@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
+from typing import Set
 
 import numpy as np
 from uncertainties import unumpy
 
-from ramanchada.misc.plottable import Plottable
-from ramanchada.misc.base_class import BaseClass
+from ramanchada2.misc.plottable import Plottable
+from ramanchada2.misc.base_class import BaseClass
 
 
 class Spectrum(Plottable, BaseClass):
-    _available_processings = set()
+    _available_processings: Set[str] = set()
 
     def __init__(self, **kwargs):
         super(Plottable, self).__init__()

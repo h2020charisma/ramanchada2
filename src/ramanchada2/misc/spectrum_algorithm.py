@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from copy import copy
-from ramanchada.spectrum.spectrum import Spectrum
+from ramanchada2.spectrum.spectrum import Spectrum
 
 
 def spectrum_algorithm_deco(fun):
@@ -15,4 +15,6 @@ def spectrum_algorithm_deco(fun):
         raise ValueError(f'redefining {fun.__name__}')
     Spectrum._available_processings.add(fun.__name__)
     setattr(Spectrum, fun.__name__, retf)
+    retf.__name__ = fun.__name__
+    retf.__doc__ = fun.__doc__
     return retf

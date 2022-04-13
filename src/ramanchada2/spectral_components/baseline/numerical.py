@@ -1,4 +1,4 @@
-from .baselie_base import BaseLineBase
+from .baseline_base import BaseLineBase
 
 
 class BaselineNumerical(BaseLineBase):

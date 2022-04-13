@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from uncertainties import unumpy
 
-from ramanchada.spectral_components.spectral_component import SpectralComponent
+from ramanchada2.spectral_components.spectral_component import SpectralComponent
 
 
 class SpectralPeak(SpectralComponent, ABC):

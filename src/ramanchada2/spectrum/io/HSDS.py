@@ -6,13 +6,10 @@ import h5py
 import logging
 
 from ..spectrum import Spectrum
-from ramanchada.misc.spectrum_method import spectrum_method_deco
-from ramanchada.misc.spectrum_constructor import spectrum_constructor_deco
 
 logger = logging.getLogger()
 
 
-@spectrum_method_deco
 def write_h5(spe: Spectrum):
     filename = f'{spe.cachedir}/{spe.h5file}'
     base_dataset = f'{repr(spe)}/_Spectrum'.replace(' ', '')
@@ -25,6 +22,5 @@ def write_h5(spe: Spectrum):
             h5.create_dataset(base_dataset + '/y', data=spe.y)
 
 
-@spectrum_constructor_deco
 def read_h5(spe: Spectrum, filename):
     ...

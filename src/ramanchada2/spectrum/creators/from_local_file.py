@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..spectrum import Spectrum
-from ramanchada.misc.spectrum_constructor import spectrum_constructor_deco
+from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
 
 
 @spectrum_constructor_deco

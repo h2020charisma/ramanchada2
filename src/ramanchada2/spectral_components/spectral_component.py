@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from ramanchada.misc.plottable import Plottable
-from ramanchada.misc.base_class import BaseClass
+from ramanchada2.misc.plottable import Plottable
+from ramanchada2.misc.base_class import BaseClass
 
 
 class SpectralComponent(Plottable, BaseClass):

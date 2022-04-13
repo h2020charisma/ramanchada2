@@ -142,3 +142,6 @@ cython_debug/
 .*.un~
 .*.swp
 Session.vim
+
+# vscode
+.vscode/
