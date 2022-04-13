@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from ramanchada.spectrum.spectrum import Spectrum
+from ramanchada2.spectrum.spectrum import Spectrum
 
 
 def spectrum_constructor_deco(fun):
-    def retf(*args, **kwargs):
+    def retf(*args, **kwargs) -> Spectrum:
         if 'spe_kwargs' in kwargs:
             spe_kwargs = kwargs['spe_kwargs']
             kwargs.pop('spe_kwargs')

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from ramanchada.misc.spectrum_algorithm import spectrum_algorithm_deco
+from ramanchada2.misc.spectrum_algorithm import spectrum_algorithm_deco
 
 
 @spectrum_algorithm_deco

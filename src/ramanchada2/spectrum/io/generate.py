@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 
 from ..spectrum import Spectrum
-from ramanchada.spectral_components.spectral_component_collection import SpectralComponentCollection
-from ramanchada.misc.spectrum_constructor import spectrum_constructor_deco
+from ramanchada2.spectral_components.spectral_component_collection import SpectralComponentCollection
+from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
 
 
 @spectrum_constructor_deco

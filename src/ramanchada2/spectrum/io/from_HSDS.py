@@ -6,8 +6,8 @@ import h5py
 import logging
 
 from ..spectrum import Spectrum
-from ramanchada.misc.spectrum_method import spectrum_method_deco
-from ramanchada.misc.spectrum_constructor import spectrum_constructor_deco
+from ramanchada2.misc.spectrum_method import spectrum_method_deco
+from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
 
 logger = logging.getLogger()
 
