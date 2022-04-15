@@ -1,3 +1,6 @@
+[![build](https://github.com/h2020charisma/ramanchada2/workflows/build/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/build.yml)
+[![docs](https://github.com/h2020charisma/ramanchada2/workflows/docs/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/deploy-docs.yml)
+
 Harmonising Raman Spectroscopy
 ==============================
 
@@ -20,7 +23,7 @@ Ramanchada package can be installed in editable mode by runing
 
 ```bash
 pip install -e . # install ramanchada2
-pip install jupyter  # install jupyter
+pip install -r requirements.txt # install development environment
 hash -r # make sure the newly created environment is in use
 ```
 
