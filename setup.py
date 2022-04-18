@@ -4,11 +4,15 @@ setup(
     name="ramanchada2",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
+        "numpy",
         "matplotlib",
         "h5py",
         "scipy",
         "uncertainties",
+        "pydantic",
+        "lmfit",
+        "pandas",
     ],
 )

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Create spectrum from local files."""
 
 from __future__ import annotations
 
@@ -9,6 +10,8 @@ from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
 @spectrum_constructor_deco
 def from_local_file(spe: Spectrum, infile, filetype, **kwargs):
     """
+    Read experimental spectrum from a local file.
+
     infile : file-like object
     filetype : str
         one of: txt...

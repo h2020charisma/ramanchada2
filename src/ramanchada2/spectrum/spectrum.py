@@ -4,10 +4,12 @@ from __future__ import annotations
 from typing import Set
 
 import numpy as np
+import numpy.typing as npt
 from uncertainties import unumpy
 
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.base_class import BaseClass
+from ramanchada2.misc.types import SpectrumMetaData
 
 
 class Spectrum(Plottable, BaseClass):
@@ -49,15 +51,16 @@ class Spectrum(Plottable, BaseClass):
     def x(self): return unumpy.nominal_values(self._xdata)
 
     @x.setter
-    def x(self, val):
+    def x(self, val: npt.NDArray[np.float64]):
         self._xdata = val
         self._xdata.flags.writeable = False
 
     @property
-    def y(self): return unumpy.nominal_values(self._ydata)
+    def y(self) -> npt.NDArray[np.float64]:
+        return unumpy.nominal_values(self._ydata)
 
     @y.setter
-    def y(self, val):
+    def y(self, val: npt.NDArray[np.float64]):
         self._ydata = val
         self._ydata.flags.writeable = False
 
@@ -70,8 +73,9 @@ class Spectrum(Plottable, BaseClass):
         return np.zeros_like(self._ydata)
 
     @property
-    def meta(self): return self._metadata
+    def meta(self) -> SpectrumMetaData:
+        return self._metadata
 
     @meta.setter
-    def meta(self, val):
-        self._metadata = dict(val)
+    def meta(self, val: SpectrumMetaData):
+        self._metadata = val.copy()
