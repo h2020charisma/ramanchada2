@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
-from typing import TextIO
+from typing import TextIO, Tuple
+
+from numpy.typing import NDArray
 
 from .bw_format import bw_format
+from .two_column_spe import two_column_spe
+from ramanchada2.misc.types import SpectrumMetaData
 
 
 """ There are 4 types of TXT data files that can be distinguished by their first line:
@@ -14,9 +18,13 @@ from .bw_format import bw_format
     """
 
 
-def read_txt(data_in: TextIO):
+def read_txt(data_in: TextIO) -> Tuple[NDArray, NDArray, SpectrumMetaData]:
     lines = data_in.readlines()
     if lines[0].startswith('File Version;BW'):
-        return bw_format(lines)
-    else:
-        raise NotImplementedError('filetype not supported, only BW filetype implemented')
+        data, meta = bw_format(lines)
+        positions = data['RamanShift']
+        intensities = data['DarkSubtracted#1']
+    else:  # assume two column spectrum
+        positions, intensities = two_column_spe(lines)
+        meta = dict()
+    return positions, intensities, meta
