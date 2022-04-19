@@ -30,7 +30,6 @@ class Spectrum(Plottable, BaseClass):
 
     def commit(self):
         if self.cachedir:
-            self.write_h5()
             pass
 
     def process(self, algorithm: str, **kwargs):

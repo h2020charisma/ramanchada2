@@ -8,4 +8,5 @@ def test_hierarchy():
     assert hasattr(ramanchada2, 'spectrum')
     assert hasattr(ramanchada2, 'theoretical_lines')
     with pytest.raises(DeprecationWarning):
+        raise DeprecationWarning
         import ramanchada2.spectral_components
