@@ -40,10 +40,10 @@ def lines_from_crystal_out(data_in: TextIOBase) -> pd.DataFrame:
         data_in.readline()
 
     advance_to('POLYCRYSTALLINE ISOTROPIC INTENSITIES (ARBITRARY UNITS)')
-    skip_line  # empty line
+    skip_line()  # empty line
     polyXtal_lines = read_paragraph()
     advance_to('SINGLE CRYSTAL DIRECTIONAL INTENSITIES (ARBITRARY UNITS)')
-    skip_line  # empty line
+    skip_line()  # empty line
     monoXtal_lines = read_paragraph()
     # data_in is processed
 

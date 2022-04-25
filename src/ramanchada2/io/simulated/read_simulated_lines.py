@@ -4,8 +4,8 @@ from typing import Literal, List, Tuple
 
 import pydantic
 
-from .crystal_simulation_out import lines_from_crystal_out
-from .vasp_simulation_dat import lines_from_vasp_dat
+from .crystal.discrete_lines_out import lines_from_crystal_out
+from .vasp.vasp_simulation_dat import lines_from_vasp_dat
 
 
 @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
