@@ -1,0 +1,17 @@
+name: ramanchada2
+channels:
+  - conda-forge
+  - default
+dependencies:
+  - h5py
+  - jupyter
+  - lmfit
+  - matplotlib
+  - numpy
+  - pandas
+  - pip
+  - pydantic
+  - scipy
+  - uncertainties
+  - pip:
+    - -e .

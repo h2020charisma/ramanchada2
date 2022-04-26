@@ -48,3 +48,18 @@ jupyter-lab
 ```
 
 A web browser with jupyter should start automaticaly.
+
+
+## Quick start with Conda
+
+[Install Miniconda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) and, optionally, Mamba:
+```
+conda install mamba -n base -c conda-forge
+```
+
+Run the following. If you haven't installed Mamba, replace `mamba` with `conda`.
+```
+mamba env update -f environment.yml
+conda activate ramanchada
+jupyter notebook
+```
