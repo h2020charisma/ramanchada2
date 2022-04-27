@@ -15,7 +15,7 @@ def lines_from_crystal_dat(data_in: TextIOBase) -> pd.DataFrame:
             if not lin.startswith('#')
         ],
         columns=[
-            'FREQUENCIES', 'I_tot', 'I_par', 'I_perp',
+            'Frequencies', 'I_tot', 'I_par', 'I_perp',
             'I_xx', 'I_xy', 'I_xz', 'I_yy', 'I_yz', 'I_zz'
         ],
         dtype=float)

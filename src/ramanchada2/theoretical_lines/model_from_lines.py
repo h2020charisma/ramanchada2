@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import List, Tuple, Literal
+from typing import List, Tuple, Literal, Dict
 
 import numpy as np
 from lmfit import Parameters, Model
@@ -11,8 +11,8 @@ from pydantic import validate_arguments
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def model_from_lines(names: List[str],
-                     intensities: List[float],
                      positions: List[float],
+                     intensities: Dict[str, List[float]],
                      model: Literal['gaussian', 'voigt'] = 'gaussian'
                      ) -> Tuple[Model, Parameters]:
 
@@ -22,18 +22,25 @@ def model_from_lines(names: List[str],
         lm_model = VoigtModel
     else:
         raise ValueError(f'model {model} not known')
-    mod = np.sum([lm_model(prefix=f"{name}_", name=name) for name in names])
+    mod = np.sum([
+        lm_model(prefix=f'{spe_type}_{name}_', name=f'{spe_type}_{name}')
+        for spe_type in intensities
+        for name in names
+        ])
 
     params = Parameters()
-    params.add('amplitude', 1, min=0)
     params.add('pedestal', 0, min=0)
-    params.add('sigma', 10, min=0)
+    params.add('sigma', 2, min=0)
     params.add('x0', 0)
-    params.add('xscale', 1)
-    for name, intens, pos in zip(names, intensities, positions):
-        prefix = f"{name}_"
-        params.add(prefix+'amplitude', expr=f"({intens}*amplitude)+pedestal")
-        params.add(prefix+'center', expr=f"({pos}*xscale)+x0")
-        params.add(prefix+'sigma', expr='sigma')
+    params.add('x1', 1)
+
+    for spe_type, spe_int in intensities.items():
+        spe_prefix = f'{spe_type}_'
+        params.add(spe_prefix+'amplitude', 1, min=0)
+        for name, pos, line_int in zip(names, positions, spe_int):
+            line_prefix = f'{spe_prefix}{name}_'
+            params.add(line_prefix+'amplitude', expr=f'({line_int}*{spe_prefix}amplitude)+pedestal')
+            params.add(line_prefix+'center', expr=f'({pos}*x1)+x0')
+            params.add(line_prefix+'sigma', expr='sigma')
 
     return mod, params

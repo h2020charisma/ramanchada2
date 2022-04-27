@@ -51,7 +51,7 @@ def lines_from_crystal_out(data_in: TextIOBase) -> pd.DataFrame:
     polyXtal_parsed = parse(polyXtal_regex, polyXtal_lines)
     polyXtal_df = pd.DataFrame.from_records(
         polyXtal_parsed,
-        columns=['ModeL', 'ModeU', 'Energy', 'Origin', 'I_tot', 'I_par', 'I_perp'])
+        columns=['ModeL', 'ModeU', 'Frequencies', 'Origin', 'I_tot', 'I_par', 'I_perp'])
     polyXtal_df = polyXtal_df.astype(
         dict(zip(polyXtal_df.keys(), [*[int]*2, float, str, *[float]*3])))
 
@@ -59,7 +59,7 @@ def lines_from_crystal_out(data_in: TextIOBase) -> pd.DataFrame:
     monoXtal_parsed = parse(monoXtal_regex, monoXtal_lines)
     monoXtal_df = pd.DataFrame.from_records(
         monoXtal_parsed,
-        columns=['ModeL', 'ModeU', 'Energy', 'Origin', 'I_xx', 'I_xy', 'I_xz', 'I_yy', 'I_yz', 'I_zz'])
+        columns=['ModeL', 'ModeU', 'Frequencies', 'Origin', 'I_xx', 'I_xy', 'I_xz', 'I_yy', 'I_yz', 'I_zz'])
     monoXtal_df = monoXtal_df.astype(
         dict(zip(monoXtal_df.keys(), [*[int]*2, float, str, *[float]*6])))
     merge = pd.merge(polyXtal_df, monoXtal_df)
