@@ -7,7 +7,7 @@ from typing import Callable, List, Dict, Optional
 from pydantic import BaseModel, Field, validator, validate_arguments
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
+from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
 
 logger = logging.getLogger(__name__)
 

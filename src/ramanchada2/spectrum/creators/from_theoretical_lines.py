@@ -10,7 +10,7 @@ from typing import Union
 from pydantic import validate_arguments
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
+from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
 from ramanchada2.misc.types import SpectrumMetaData
 
 
@@ -20,7 +20,7 @@ def from_theoretical_lines(
         spe: Spectrum,
         model: Model,
         params: Parameters,
-        x: Union[int, npt.NDArray[np.float64]] = 500,
+        x: Union[int, npt.NDArray[np.float64]] = 2000,
         metadata: SpectrumMetaData = {}):
     """
     _summ:ary_
@@ -34,7 +34,7 @@ def from_theoretical_lines(
     params : Parameters
         _description_
     x : Union[int, npt.NDArray[np.float64]], optional
-        _description_, by default np.array(500)
+        _description_, by default np.array(2000)
     metadata : Dict[str, Union[int, str, bool]], optional
         _description_, by default {}
     """

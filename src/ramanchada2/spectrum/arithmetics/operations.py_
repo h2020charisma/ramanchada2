@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+
+"""
+from typing import Union, Callable
+
+import numpy as np
+from numpy.typing import NDArray
+
+from ramanchada2.misc.spectrum_deco import spectrum_arithmetics_deco
+from ..spectrum import Spectrum
+
+@spectrum_arithmetics_deco('__add__', '__sub__', '__mult__', '__truediv__')
+def operations(
+        old_spe: Spectrum,
+        new_spe: Spectrum,
+        ar_fun: Callable,
+        arg: Union[Spectrum, NDArray]):
+    if isinstance(arg, Spectrum):
+        if not (old_spe.x == arg.x).all():
+            ValueError('x axes should be equal')
+        new_spe.y = ar_fun(old_spe.y, arg.y)
+    elif isinstance(arg, np.ndarray):
+        if old_spe.y.shape != arg.shape:
+            ValueError(f'shapes does not match {old_spe.y.shape} != {arg.shape}')
+        new_spe.y = ar_fun(old_spe.y, arg)
+"""

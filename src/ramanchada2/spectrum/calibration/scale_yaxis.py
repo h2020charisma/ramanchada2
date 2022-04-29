@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ramanchada2.misc.spectrum_algorithm import spectrum_algorithm_deco
+from ramanchada2.misc.spectrum_deco import spectrum_algorithm_deco
 
 
 @spectrum_algorithm_deco

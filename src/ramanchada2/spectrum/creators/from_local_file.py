@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import Literal
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_constructor import spectrum_constructor_deco
+from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
 from ramanchada2.io.experimental import read_txt
 
 

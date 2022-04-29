@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 from typing import Set
+from types import MappingProxyType
+
 
 import numpy as np
 import numpy.typing as npt
@@ -72,9 +74,9 @@ class Spectrum(Plottable, BaseClass):
         return np.zeros_like(self._ydata)
 
     @property
-    def meta(self) -> SpectrumMetaData:
+    def meta(self):
         return self._metadata
 
     @meta.setter
     def meta(self, val: SpectrumMetaData):
-        self._metadata = val.copy()
+        self._metadata = MappingProxyType(val)
