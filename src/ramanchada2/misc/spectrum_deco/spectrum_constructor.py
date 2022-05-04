@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+from functools import wraps
 from ramanchada2.spectrum.spectrum import Spectrum
 
 
 def spectrum_constructor_deco(fun):
+    @wraps(fun)
     def retf(*args, **kwargs) -> Spectrum:
         if 'spe_kwargs' in kwargs:
             spe_kwargs = kwargs['spe_kwargs']

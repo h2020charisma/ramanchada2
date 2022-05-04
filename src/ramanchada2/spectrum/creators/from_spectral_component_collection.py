@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import annotations
-
 import numpy as np
 
 from ..spectrum import Spectrum
@@ -11,7 +9,7 @@ from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
 
 @spectrum_constructor_deco
 def from_spectral_component_collection(
-        spe: Spectrum,
+        spe: Spectrum, /,
         spe_components: SpectralComponentCollection,
         x=2000, metadata={'origin': 'generated'}):
     """

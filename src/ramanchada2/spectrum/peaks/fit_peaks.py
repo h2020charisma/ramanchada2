@@ -26,7 +26,7 @@ class FitPeaksResult(UserList):
 @spectrum_method_deco
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def fit_peaks(
-        spe,
+        spe, /,
         model: Literal['Gaussian', 'Lorentzian', 'Moffat',
                        'Voigt', 'PseudoVoigt',
                        ],

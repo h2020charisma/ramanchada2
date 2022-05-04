@@ -16,13 +16,22 @@ from ..spectrum import Spectrum
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def convolve(
         old_spe: Spectrum,
-        new_spe: Spectrum,
+        new_spe: Spectrum, /,
         lineshape: Union[Callable[[Union[float, NDArray]], float],
                          Literal[
-                              'gaussian', 'gaussian2d', 'lorentzian',
+                              'gaussian', 'lorentzian',
                               'voigt', 'pvoigt', 'moffat',
                               ]],
         **kwargs):
+    """
+    Convole spectrum with a function
+
+    Parameters
+    ----------
+    lineshape : Union[Callable[[Union[float, NDArray]], float],
+                      Literal['gaussian', 'lorentzian', 'voigt', 'pvoigt', 'moffat']]
+        predefined model or user defined function to convolve spectrum with
+    """
     if callable(lineshape):
         shape_fun = lineshape
     else:

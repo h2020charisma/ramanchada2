@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import annotations
-
 import numpy as np
 import numpy.typing as npt
 from lmfit import Model
@@ -17,26 +15,24 @@ from ramanchada2.misc.types import SpectrumMetaData
 @spectrum_constructor_deco
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_theoretical_lines(
-        spe: Spectrum,
+        spe: Spectrum, /,
         model: Model,
         params: Parameters,
         x: Union[int, npt.NDArray[np.float64]] = 2000,
         metadata: SpectrumMetaData = {}):
     """
-    _summ:ary_
+    Generate spectrum from `lmfit` model.
 
     Parameters
     ----------
-    spe : Spectrum
-        _description_
-    model : Model
-        _description_
-    params : Parameters
-        _description_
+    model : lmfit.Model
+        the model to be used for spectrum generation
+    params : lmfit.Parameters
+        the parameters to be applied to the model
     x : Union[int, npt.NDArray[np.float64]], optional
-        _description_, by default np.array(2000)
+        array with x values, by default np.array(2000)
     metadata : Dict[str, Union[int, str, bool]], optional
-        _description_, by default {}
+        metadata for the newly created `Spectrum`, by default {}
     """
     if isinstance(x, np.ndarray):
         spe.x = x

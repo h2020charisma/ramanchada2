@@ -19,7 +19,11 @@ def moving_minimum(
     -----------
         window_size : int
     """
-    mov_min = [min(old_spe.y[i:min(i+window_size, len(old_spe.y))])
-               for i in range(len(old_spe.y))
-               ]
-    new_spe.y = np.array(mov_min)
+    arr = old_spe.y
+    mov_min_left = [min(arr[max(0, i):min(i+window_size, len(arr))])
+                    for i in range(len(arr))
+                    ]
+    mov_min_right = [min(arr[max(0, i-window_size):min(i, len(arr))])
+                     for i in range(1, len(arr)+1)
+                     ]
+    new_spe.y = np.maximum.reduce([mov_min_left, mov_min_right])
