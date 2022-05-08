@@ -4,7 +4,7 @@ from functools import wraps
 from ramanchada2.spectrum.spectrum import Spectrum
 
 
-def spectrum_method_deco(fun):
+def add_spectrum_method(fun):
     @wraps(fun)
     def retf(spe: Spectrum, *args, **kwargs):
         ret = fun(spe, *args, **kwargs)

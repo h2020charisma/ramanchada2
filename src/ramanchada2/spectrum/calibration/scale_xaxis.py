@@ -1,19 +1,28 @@
 #!/usr/bin/env python3
 
-from typing import Callable
+from typing import Callable, Union
 
-from ramanchada2.misc.spectrum_deco import spectrum_algorithm_deco
+import numpy.typing as npt
+from pydantic import validate_arguments
+
+from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+from ..spectrum import Spectrum
 
 
-@spectrum_algorithm_deco
-def scale_xaxis_linear(old_spe, new_spe, factor=1, preserve_integral=False, **kwargs):
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def scale_xaxis_linear(old_spe: Spectrum,
+                       new_spe: Spectrum, /,
+                       factor: float = 1,
+                       preserve_integral: bool = False):
     new_spe.x = old_spe.x * factor
     if preserve_integral:
         new_spe.y = old_spe.y / factor
 
 
-@spectrum_algorithm_deco
-def scale_xaxis_fun(old_spe, new_spe,
-                    fun: Callable[[int], float],
-                    **kwargs):
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def scale_xaxis_fun(old_spe: Spectrum,
+                    new_spe: Spectrum, /,
+                    fun: Callable[[Union[int, npt.NDArray]], float]):
     new_spe.x = fun(old_spe.x)

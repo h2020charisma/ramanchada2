@@ -6,10 +6,11 @@ from pydantic import validate_arguments, Field
 import numpy as np
 from scipy import signal, fft
 
-from ramanchada2.misc.spectrum_deco import spectrum_algorithm_deco
+from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+from ..spectrum import Spectrum
 
 
-@validate_arguments
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
 def generate_baseline(
         bandwidth: int = Field(..., gt=2),
         size: int = Field(..., gt=2),
@@ -28,8 +29,10 @@ def generate_baseline(
     return base
 
 
-@spectrum_algorithm_deco
-def add_baseline(old_spe, new_spe, bandwidth, amplitude, pedestal, rng_seed=None):
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
+                 bandwidth, amplitude, pedestal, rng_seed=None):
     size = len(old_spe.y)
     base = generate_baseline(bandwidth=bandwidth, size=size, rng_seed=rng_seed)
     new_spe.y = old_spe.y + amplitude*base + pedestal

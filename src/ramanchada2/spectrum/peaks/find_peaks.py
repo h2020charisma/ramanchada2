@@ -5,10 +5,11 @@ from scipy import signal
 from pydantic import validate_arguments
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import spectrum_method_deco
+from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
+                                            add_spectrum_filter)
 
 
-@spectrum_method_deco
+@add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def find_peaks(
         spe: Spectrum, /,
@@ -39,3 +40,13 @@ def find_peaks(
                 locations=loc,
                 widths=w,
                 bounds=bounds)
+
+
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def find_peaks_filter(
+        old_spe: Spectrum,
+        new_spe: Spectrum, /,
+        *args, **kwargs):
+    res = old_spe.find_peaks(*args, **kwargs)  # type: ignore
+    new_spe.result = {k: v.tolist() for k, v in res.items()}
