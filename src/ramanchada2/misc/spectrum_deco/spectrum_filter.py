@@ -15,7 +15,6 @@ def add_spectrum_filter(fun):
         new_spe = copy(old_spe)
         new_spe._applied_processings.append(proc=fun.__name__, args=args, kwargs=kwargs)
         fun(old_spe, new_spe, *args, **kwargs)
-        print(f'Run filter {fun.__name__}({args}, {kwargs})')
         new_spe.write_cache()
         return new_spe
     if hasattr(Spectrum, fun.__name__):

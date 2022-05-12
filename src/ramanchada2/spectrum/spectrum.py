@@ -55,7 +55,6 @@ class Spectrum(Plottable):
         return str(self._applied_processings.to_list())
 
     def write_cha(self, chafile, dataset):
-        print(f'write_cha {chafile} {dataset}')
         write_cha(chafile, dataset,
                   self.x, self.y, self.meta.serialize())
 
