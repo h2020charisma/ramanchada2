@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
-from .spectrum_algorithm import spectrum_algorithm_deco
-from .spectrum_constructor import spectrum_constructor_deco
-from .spectrum_method import spectrum_method_deco
+from .spectrum_filter import add_spectrum_filter
+from .spectrum_constructor import add_spectrum_constructor
+from .spectrum_method import add_spectrum_method
+from .dynamically_added import dynamically_added_filters
+from .dynamically_added import dynamically_added_constructors

@@ -5,13 +5,15 @@ from typing import Union
 import numpy as np
 from pydantic import validate_arguments
 
-from ramanchada2.misc.spectrum_deco import spectrum_algorithm_deco
+from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+from ..spectrum import Spectrum
 
 
-@spectrum_algorithm_deco
-@validate_arguments
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
 def add_poisson_noise(
-        old_spe, new_spe, /,
+        old_spe: Spectrum,
+        new_spe: Spectrum, /,
         scale: float = 1,
         rng_seed: Union[int, None] = None):
     """

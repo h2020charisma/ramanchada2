@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 
-
 from typing import Union
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import validate_arguments
 
-from ramanchada2.misc.spectrum_deco import spectrum_algorithm_deco
+from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
-@spectrum_algorithm_deco
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@add_spectrum_filter
 def __mul__(
         old_spe: Spectrum,
         new_spe: Spectrum,

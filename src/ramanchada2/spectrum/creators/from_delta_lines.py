@@ -8,17 +8,16 @@ from scipy import sparse
 from pydantic import validate_arguments
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
-from ramanchada2.misc.types import SpectrumMetaData
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 
-@spectrum_constructor_deco
+@add_spectrum_constructor()
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_delta_lines(
-        spe: Spectrum, /,
         deltas: Dict[float, float],
         x: Union[int, npt.NDArray] = 2000,
-        metadata: SpectrumMetaData = {}):
+        **kwargs
+        ):
     """
     Generate `Spectrum` with delta lines.
 
@@ -30,20 +29,13 @@ def from_delta_lines(
     x : Union[int, npt.NDArray], optional
         array with x values. If an integer is provided, it is used
         generate a sequence with `np.arange()`, by default 2000
-    metadata : SpectrumMetaData, optional
-        metadata for the newly created spectrum, by default {}
     """
     x_loc = list(deltas.keys())
     ampl = list(deltas.values())
-    if isinstance(x, np.ndarray):
-        spe.x = x
-    else:
-        spe.x = np.arange(x)
-
+    spe = Spectrum(x=x, **kwargs)
     y = sparse.coo_array((ampl, (np.zeros_like(x_loc), x_loc)),
                          shape=(1, len(spe.x)))
     y = y.toarray()
     y.shape = (-1)
     spe.y = y
-
-    spe.meta = metadata
+    return spe

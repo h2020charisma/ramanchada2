@@ -3,17 +3,18 @@
 
 from typing import Literal
 
+from pydantic import validate_arguments
+
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 from ramanchada2.io.experimental import read_txt
 
 
-@spectrum_constructor_deco
+@add_spectrum_constructor()
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_local_file(
-        spe: Spectrum, /,
         in_file_name: str,
-        filetype: Literal['txt'] = 'txt',
-        **kwargs):
+        filetype: Literal['txt'] = 'txt'):
     """
     Read experimental spectrum from a local file.
 
@@ -36,8 +37,6 @@ def from_local_file(
     elif filetype in {'txt', 'txtr', 'csv', 'prn', 'rruf'}:
         with open(in_file_name) as fp:
             x, y, meta = read_txt(fp)
-            spe.x = x
-            spe.y = y
-            spe.meta = meta
+            return Spectrum(x=x, y=y, metadata=meta)  # type: ignore
     else:
         raise ValueError(f'filetype {filetype} not supported')
