@@ -2,13 +2,16 @@
 
 from typing import Literal
 from collections import UserList
+import json
 
 import numpy as np
 from pydantic import validate_arguments
 from lmfit.models import lmfit_models
 from lmfit import models
 
-from ramanchada2.misc.spectrum_deco import spectrum_method_deco
+from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
+                                            add_spectrum_filter)
+from ..spectrum import Spectrum
 
 
 class FitPeaksResult(UserList):
@@ -22,8 +25,13 @@ class FitPeaksResult(UserList):
     def locations(self):
         return [v for peak in self for k, v in peak.values.items() if '_center' in k]
 
+    def to_json(self):
+        mod = [peak.model.dumps() for peak in self]
+        par = [peak.params.dumps() for peak in self]
+        return json.dumps(dict(models=mod, params=par))
 
-@spectrum_method_deco
+
+@add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def fit_peaks(
         spe, /,
@@ -46,7 +54,7 @@ def fit_peaks(
         widths = np.diff(bounds/3, axis=1).astype(int)
         widths.shape = (-1)
     locations = spe.x[locations]
-    bounds = bounds.astype(int)
+    bounds = np.array(bounds).astype(int)
     for i, (b, a, x0, w) in enumerate(zip(bounds, amplitudes, locations, widths)):
         x = spe.x[b[0]:b[1]]
         y = spe.y[b[0]:b[1]]
@@ -73,3 +81,12 @@ def fit_peaks(
             params[f'p{i}_gamma'].set(vary=True)
         results.append(mod.fit(y, params=params, x=x))
     return results
+
+
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def fit_peaks_filter(
+        old_spe: Spectrum,
+        new_spe: Spectrum, /, model):
+    find_peaks_res = old_spe.result
+    new_spe.result = old_spe.fit_peaks(model, **find_peaks_res).to_json()  # type: ignore

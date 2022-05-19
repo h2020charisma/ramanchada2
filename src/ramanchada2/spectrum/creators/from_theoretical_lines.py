@@ -8,18 +8,15 @@ from typing import Union
 from pydantic import validate_arguments
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import spectrum_constructor_deco
-from ramanchada2.misc.types import SpectrumMetaData
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 
-@spectrum_constructor_deco
+@add_spectrum_constructor()
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_theoretical_lines(
-        spe: Spectrum, /,
         model: Model,
         params: Parameters,
-        x: Union[int, npt.NDArray[np.float64]] = 2000,
-        metadata: SpectrumMetaData = {}):
+        x: Union[int, npt.NDArray[np.float64]] = 2000):
     """
     Generate spectrum from `lmfit` model.
 
@@ -31,12 +28,7 @@ def from_theoretical_lines(
         the parameters to be applied to the model
     x : Union[int, npt.NDArray[np.float64]], optional
         array with x values, by default np.array(2000)
-    metadata : Dict[str, Union[int, str, bool]], optional
-        metadata for the newly created `Spectrum`, by default {}
     """
-    if isinstance(x, np.ndarray):
-        spe.x = x
-    else:
-        spe.x = np.arange(x)
-    spe._ydata = model.eval(params=params, x=spe.x)
-    spe.meta = metadata
+    spe = Spectrum(x=x)
+    spe.y = model.eval(params=params, x=spe.x)
+    return spe

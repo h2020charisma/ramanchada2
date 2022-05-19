@@ -7,3 +7,7 @@ class ApplicationException(Exception):
 
 class InputParserError(ApplicationException):
     pass
+
+
+class ChadaReadNotFoundError(ApplicationException):
+    pass
