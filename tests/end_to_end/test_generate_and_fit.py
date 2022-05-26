@@ -13,8 +13,8 @@ def test_generate_and_fit():
     found_peaks = spe.find_peaks(prominence=.1)
 
     true_pos = np.array(list(lines.keys()))
-    calc_pos = found_peaks['locations']
-    fit_peaks = spe.fit_peaks('Voigt', **found_peaks)
+    calc_pos = found_peaks.peaks
+    fit_peaks = spe.fit_peaks(model='Voigt', peak_candidates=found_peaks)
     fit_pos = fit_peaks.locations
 
     assert len(true_pos) == len(calc_pos), 'wrong number of peaks found'

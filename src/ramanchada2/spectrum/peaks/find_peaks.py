@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import numpy as np
+from typing import Union, Tuple, List
 from scipy import signal
-from pydantic import validate_arguments
+from pydantic import validate_arguments, Field
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
+from ramanchada2.misc.types import PeakCandidatesListModel
 
 
 @add_spectrum_method
@@ -14,7 +15,9 @@ from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
 def find_peaks(
         spe: Spectrum, /,
         prominence: float = 1e-2,
-        width: int = 1):
+        wlen=None,
+        width: Union[int, Tuple[int, int]] = 1
+        ) -> PeakCandidatesListModel:
     """
     Find peaks in spectrum.
 
@@ -30,16 +33,21 @@ def find_peaks(
     _type_
         _description_
     """
-    loc, data = signal.find_peaks(spe.y, prominence=prominence, width=width)
-    w = data['widths']
-    bounds = np.stack((data['left_ips'] - 2*w,
-                       data['right_ips'] + 2*w
-                       ), axis=-1).astype(int)
-    ampl = data['prominences']
-    return dict(amplitudes=ampl,
-                locations=loc,
-                widths=w,
-                bounds=bounds)
+    res = signal.find_peaks(spe.y, prominence=prominence, width=width, wlen=wlen)
+    return PeakCandidatesListModel.from_find_peaks(res)
+
+
+@add_spectrum_method
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def find_peak_groups(
+        spe: Spectrum, /,
+        prominence: float = 1e-2,
+        wlen=None,
+        width: Union[int, Tuple[int, int]] = 1,
+        n_sigma_group: float = Field(5, ge=0)
+        ) -> List[PeakCandidatesListModel]:
+    res = signal.find_peaks(spe.y, prominence=prominence, width=width, wlen=wlen)
+    return PeakCandidatesListModel.from_find_peaks(res).group_neighbours(n_sigma=n_sigma_group)
 
 
 @add_spectrum_filter
