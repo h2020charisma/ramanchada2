@@ -2,7 +2,7 @@
 
 from typing import Union, Tuple, List
 from scipy import signal
-from pydantic import validate_arguments, Field
+from pydantic import validate_arguments, PositiveFloat
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
@@ -44,7 +44,7 @@ def find_peak_groups(
         prominence: float = 1e-2,
         wlen=None,
         width: Union[int, Tuple[int, int]] = 1,
-        n_sigma_group: float = Field(5, ge=0)
+        n_sigma_group: PositiveFloat = 5.
         ) -> List[PeakCandidatesListModel]:
     res = signal.find_peaks(spe.y, prominence=prominence, width=width, wlen=wlen)
     return PeakCandidatesListModel.from_find_peaks(res).group_neighbours(n_sigma=n_sigma_group)

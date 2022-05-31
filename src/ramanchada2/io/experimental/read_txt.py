@@ -21,9 +21,9 @@ def read_txt(data_in: TextIO) -> Tuple[NDArray, NDArray, Dict]:
     lines = data_in.readlines()
     if lines[0].startswith('File Version;BW'):
         data, meta = bw_format(lines)
-        positions = data['RamanShift']
-        intensities = data['DarkSubtracted#1']
+        positions = data['RamanShift'].to_numpy()
+        intensities = data['DarkSubtracted#1'].to_numpy()
     else:  # assume two column spectrum
         positions, intensities = two_column_spe(lines)
         meta = dict()
-    return positions.to_numpy(), intensities.to_numpy(), meta
+    return positions, intensities, meta
