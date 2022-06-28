@@ -2,12 +2,12 @@
 
 from typing import Union, Tuple, List
 from scipy import signal
-from pydantic import validate_arguments, PositiveFloat
+from pydantic import validate_arguments, PositiveFloat, PositiveInt
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
-from ramanchada2.misc.types import PeakCandidatesListModel
+from ramanchada2.misc.types import PeakCandidatesGroupModel
 
 
 @add_spectrum_method
@@ -17,7 +17,7 @@ def find_peaks(
         prominence: float = 1e-2,
         wlen=None,
         width: Union[int, Tuple[int, int]] = 1
-        ) -> PeakCandidatesListModel:
+        ) -> PeakCandidatesGroupModel:
     """
     Find peaks in spectrum.
 
@@ -34,7 +34,7 @@ def find_peaks(
         _description_
     """
     res = signal.find_peaks(spe.y, prominence=prominence, width=width, wlen=wlen)
-    return PeakCandidatesListModel.from_find_peaks(res)
+    return PeakCandidatesGroupModel.from_find_peaks(res, x_arr=spe.x, y_arr=spe.y)
 
 
 @add_spectrum_method
@@ -44,10 +44,15 @@ def find_peak_groups(
         prominence: float = 1e-2,
         wlen=None,
         width: Union[int, Tuple[int, int]] = 1,
-        n_sigma_group: PositiveFloat = 5.
-        ) -> List[PeakCandidatesListModel]:
+        n_sigma_group: PositiveFloat = 5.,
+        moving_minimum_window: PositiveInt = None
+        ) -> List[PeakCandidatesGroupModel]:
+    if moving_minimum_window is not None:
+        spe = spe.subtract_moving_minimum(moving_minimum_window)  # type: ignore
+    spe = spe.normalize()  # type: ignore
     res = signal.find_peaks(spe.y, prominence=prominence, width=width, wlen=wlen)
-    return PeakCandidatesListModel.from_find_peaks(res).group_neighbours(n_sigma=n_sigma_group)
+    return PeakCandidatesGroupModel.from_find_peaks(res, x_arr=spe.x, y_arr=spe.y
+                                                    ).group_neighbours(n_sigma=n_sigma_group)
 
 
 @add_spectrum_filter
@@ -56,5 +61,5 @@ def find_peaks_filter(
         old_spe: Spectrum,
         new_spe: Spectrum, /,
         *args, **kwargs):
-    res = old_spe.find_peaks(*args, **kwargs)  # type: ignore
-    new_spe.result = {k: v.tolist() for k, v in res.items()}
+    res = old_spe.find_peak_groups(*args, **kwargs)  # type: ignore
+    new_spe.result = res.dict()['__root__']
