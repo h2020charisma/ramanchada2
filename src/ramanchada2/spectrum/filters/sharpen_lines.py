@@ -10,13 +10,13 @@ from ..spectrum import Spectrum
 
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
-def derivative_shapening(old_spe: Spectrum,
-                         new_spe: Spectrum, /,
-                         filter_fraction: confloat(gt=0, le=1) = .6,  # type: ignore
-                         sig_width: confloat(ge=0) = .25,  # type: ignore
-                         der2_factor: float = 1,
-                         der4_factor: float = .1
-                         ):
+def derivative_sharpening(old_spe: Spectrum,
+                          new_spe: Spectrum, /,
+                          filter_fraction: confloat(gt=0, le=1) = .6,  # type: ignore
+                          sig_width: confloat(ge=0) = .25,  # type: ignore
+                          der2_factor: float = 1,
+                          der4_factor: float = .1
+                          ):
     Y = fft.rfft(old_spe.y)
     h = signal.windows.hann(int(len(Y)*filter_fraction))
     h = h[(len(h))//2-1:]

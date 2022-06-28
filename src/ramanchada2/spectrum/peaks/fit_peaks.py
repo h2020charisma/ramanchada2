@@ -2,11 +2,11 @@
 
 from typing import Literal, List, Union
 from collections import UserList
-import json
 
 import numpy as np
 from pydantic import validate_arguments, Field
 from lmfit.models import lmfit_models, LinearModel
+from lmfit.model import ModelResult, Parameters, Model
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
@@ -26,10 +26,16 @@ class FitPeaksResult(UserList):
     def locations(self):
         return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
 
-    def to_json(self):
-        mod = [peak.model.dumps() for peak in self]
-        par = [peak.params.dumps() for peak in self]
-        return json.dumps(dict(models=mod, params=par))
+    def dumps(self):
+        return [peak.dumps() for peak in self]
+
+    def loads(self, json_str: List[str]):
+        self.clear()
+        for p in json_str:
+            params = Parameters()
+            modres = ModelResult(Model(lambda x: x, None), params)
+            self.append(modres.loads(p))
+        return self
 
     def plot(self, ax, peak_candidate_groups, xarr):
         for i, p in enumerate(self):
@@ -180,4 +186,4 @@ def fit_peaks_filter(
     new_spe.result = old_spe.fit_peak_groups(*args,  # type: ignore
                                              peak_candidate_groups=cand_groups,
                                              kwargs_fit=kwargs_fit,
-                                             **kwargs).to_json()
+                                             **kwargs).dumps()
