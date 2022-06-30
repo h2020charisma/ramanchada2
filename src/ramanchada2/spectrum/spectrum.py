@@ -91,6 +91,11 @@ class Spectrum(Plottable):
             **kwargs
         )
 
+    def sort_x(self):
+        idx = np.argsort(self.x)
+        self.x = self.x[idx]
+        self.y = self.y[idx]
+
     @property
     def x(self): return unumpy.nominal_values(self._xdata)
 

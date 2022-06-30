@@ -8,9 +8,12 @@ import pydantic
 import numpy as np
 import numpy.typing as npt
 
+from ..pydantic_base_model import PydBaseModel
+
 
 SpeMetadataFieldTyping = Union[
-    npt.NDArray, pydantic.StrictBool,
+    npt.NDArray, PydBaseModel,
+    pydantic.StrictBool,
     pydantic.StrictInt, float,
     datetime.datetime,
     List[Any], Dict[str, Any],
@@ -19,42 +22,48 @@ SpeMetadataFieldTyping = Union[
 SpeMetadataTyping = Dict[str, SpeMetadataFieldTyping]
 
 
-class SpeMetaBaseModel(pydantic.BaseModel):
-    class Config:
-        arbitrary_types_allowed = True
-
-
-class SpeMetadataFieldModel(SpeMetaBaseModel):
+class SpeMetadataFieldModel(PydBaseModel):
     __root__: SpeMetadataFieldTyping
 
     @pydantic.validator('__root__', pre=True)
     def pre_validate(cls, val):
         if isinstance(val, np.ndarray):
             return val
-        elif (isinstance(val, str) and (
-            val.startswith('[') and val.endswith(']') or
-                val.startswith('{') and val.endswith('}'))):
-            return json.loads(val.replace("'", '"'))
-        else:
-            return val
+        if isinstance(val, str):
+            if val.startswith('ramanchada2_model@'):
+                # The format is:
+                # ramanchada2_model@ModelName#<DATA>
+                pos_at = val.index('@')
+                pos_hash = val.index('#')
+                model_name = val[pos_at+1:pos_hash]
+                from ramanchada2.misc import types
+                model = getattr(types, model_name)
+                return model.validate(val[pos_hash+1:])
+            if(val.startswith('[') and val.endswith(']') or
+               val.startswith('{') and val.endswith('}')):
+                return json.loads(val.replace("'", '"').replace(r'b"', '"'))
+        return val
+
+    def serialize(self):
+        if isinstance(self.__root__, list) or isinstance(self.__root__, dict):
+            return json.dumps(self.__root__)
+        if isinstance(self.__root__, PydBaseModel):
+            return f'ramanchada2_model@{type(self.__root__).__name__}#' + self.json()
+        if isinstance(self.__root__, datetime.datetime):
+            return self.__root__.isoformat()
+        if isinstance(self.__root__, PydBaseModel):
+            return self.__root__.serialize()
+        return self.__root__
 
 
-class SpeMetadataModel(SpeMetaBaseModel):
+class SpeMetadataModel(PydBaseModel):
     __root__: Dict[str, SpeMetadataFieldModel]
 
     def __str__(self):
         return str(self.serialize())
 
     def serialize(self):
-        ret = dict()
-        for key, val in self.__root__.items():
-            if isinstance(val.__root__, list) or isinstance(val.__root__, dict):
-                ret.update({key: json.dumps(val.__root__)})
-            elif isinstance(val.__root__, datetime.datetime):
-                ret.update({key: val.__root__.isoformat()})
-            else:
-                ret.update({key: val.__root__})
-        return ret
+        return {k: v.serialize() for k, v in self.__root__.items()}
 
     def __getitem__(self, key: str) -> SpeMetadataFieldTyping:
         return self.__root__[key].__root__
