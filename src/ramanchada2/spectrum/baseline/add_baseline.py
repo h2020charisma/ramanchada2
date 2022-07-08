@@ -33,6 +33,23 @@ def generate_baseline(
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
                  bandwidth, amplitude, pedestal, rng_seed=None):
+    """
+    Add artificial baseline to the spectrum.
+    A random spectrum is generated in frequency domain using uniform random numbers.
+    The signal in frequency domain is tapered with bohman window to reduce the bandwidth
+    and is transformed to "time" domain.
+
+    Parameters
+    ----------
+    bandwidth : int > 2
+        number of lowest frequency bins distinct from zero
+    amplitude : float
+        upper boundary for the uniform random generator
+    pedestal : float
+        additive constant pedestal to the spectrum
+    rng_seed : int, optional
+        seed for the random generator
+    """
     size = len(old_spe.y)
     base = generate_baseline(bandwidth=bandwidth, size=size, rng_seed=rng_seed)
     new_spe.y = old_spe.y + amplitude*base + pedestal

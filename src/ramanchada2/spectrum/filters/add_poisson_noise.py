@@ -16,15 +16,16 @@ def add_poisson_noise(
         new_spe: Spectrum, /,
         scale: float = 1,
         rng_seed: Union[int, None] = None):
-    """
+    r"""
     Add poisson noise to the spectrum.
+    For each particular sample the noise is proportional to $\sqrt{scale*a_i}$.
 
     Parameters
     ----------
     scale : float, optional
-        scale the nose amplitude, by default 1
-    rng_seed : Union[int, None], optional
-        seed for the random generator, by default None
+        scale the amplitude of the noise, by default 1
+    rng_seed : int, optional
+        seed for the random generator
     """
     rng = np.random.default_rng(rng_seed)
     dat = old_spe.y + [rng.normal(0., np.sqrt(i*scale)) for i in old_spe.y]

@@ -12,10 +12,11 @@ from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
 from ramanchada2.misc.types import (PeakCandidatesGroupModel,
                                     ListPeakCandidateGroupsModel)
+from ramanchada2.misc.plottable import Plottable
 from ..spectrum import Spectrum
 
 
-class FitPeaksResult(UserList):
+class FitPeaksResult(UserList, Plottable):
     def valuesdict(self):
         ret = dict()
         for i in self:
@@ -37,11 +38,11 @@ class FitPeaksResult(UserList):
             self.append(modres.loads(p))
         return self
 
-    def plot(self, ax, peak_candidate_groups, xarr):
+    def _plot(self, ax, peak_candidate_groups, xarr, **kwargs):
         for i, p in enumerate(self):
             left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
             x = xarr[(xarr >= left) & (xarr <= right)]
-            ax.plot(x, p.eval(x=x))
+            ax.plot(x, p.eval(x=x), **kwargs)
 
 
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt']
