@@ -12,16 +12,16 @@ from ..spectrum import Spectrum
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def generate_baseline(
-        bandwidth: int = Field(..., gt=2),
+        n_freq: int = Field(..., gt=2),
         size: int = Field(..., gt=2),
         rng_seed: Union[int, None] = None):
     rng = np.random.default_rng(rng_seed)
-    k = rng.normal(0, size, size=(2, bandwidth))
+    k = rng.normal(0, size, size=(2, n_freq))
     k[1][0] = 0
     z = k[0] + k[1]*1j
     w = signal.windows.bohman(2*len(z))[-len(z):]
     z *= w
-    z = np.concatenate([z, np.zeros(size-bandwidth)])
+    z = np.concatenate([z, np.zeros(size-n_freq)])
     base = fft.irfft(z)
     base = base[:size]
     base -= base.min()
@@ -32,16 +32,16 @@ def generate_baseline(
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
-                 bandwidth, amplitude, pedestal, rng_seed=None):
+                 n_freq, amplitude, pedestal, rng_seed=None):
     """
     Add artificial baseline to the spectrum.
-    A random spectrum is generated in frequency domain using uniform random numbers.
-    The signal in frequency domain is tapered with bohman window to reduce the bandwidth
-    and is transformed to "time" domain.
+    A random baseline is generated in frequency domain using uniform random numbers.
+    The baseline in frequency domain is tapered with bohman window to reduce the bandwidth
+    of the baseline to first `n_freq` frequencies and is transformed to "time" domain.
 
     Parameters
     ----------
-    bandwidth : int > 2
+    n_freq : int > 2
         number of lowest frequency bins distinct from zero
     amplitude : float
         upper boundary for the uniform random generator
@@ -51,5 +51,5 @@ def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
         seed for the random generator
     """
     size = len(old_spe.y)
-    base = generate_baseline(bandwidth=bandwidth, size=size, rng_seed=rng_seed)
+    base = generate_baseline(n_freq=n_freq, size=size, rng_seed=rng_seed)
     new_spe.y = old_spe.y + amplitude*base + pedestal
