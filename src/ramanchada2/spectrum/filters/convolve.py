@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-from typing import Literal, Union, Callable, List
+from typing import Literal, Union, Callable
 
 import numpy as np
+import numpy.typing as npt
 from numpy.typing import NDArray
 from scipy import signal
 import lmfit
@@ -18,23 +19,27 @@ def convolve(
         old_spe: Spectrum,
         new_spe: Spectrum, /,
         lineshape: Union[Callable[[Union[float, NDArray]], float],
-                         List[float],
+                         npt.NDArray,
                          Literal[
                               'gaussian', 'lorentzian',
                               'voigt', 'pvoigt', 'moffat',
                               ]],
         **kwargs):
     """
-    Convole spectrum with a function
+    Convole spectrum with arbitrary lineshape.
 
     Parameters
     ----------
-    lineshape : Union[Callable[[Union[float, NDArray]], float],
-                      Literal['gaussian', 'lorentzian', 'voigt', 'pvoigt', 'moffat']]
-        predefined model or user defined function to convolve spectrum with
+    lineshape : callable, str or np.ndarray
+                callable: should have a single positional argument x, ex: `lambda x: np.exp((x/5)**2)`
+                predefined peak profile:
+                    'gaussian', 'lorentzian', 'voigt', 'pvoigt', 'moffat'
+                np.ndarray: lineshape in samples
+    **kwargs :
+        additional kwargs will be passed to lineshape function
     """
 
-    if isinstance(lineshape, list):
+    if isinstance(lineshape, np.ndarray):
         new_spe.y = signal.convolve(old_spe.y, lineshape, mode='same')
     else:
         if callable(lineshape):

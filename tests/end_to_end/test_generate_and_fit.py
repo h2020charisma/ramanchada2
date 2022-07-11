@@ -6,7 +6,7 @@ def test_generate_and_fit():
     lines = {40: 20, 150: 15, 200: 30, 500: 50, 550: 5}
     shift = 50
     spe = spectrum.from_delta_lines(lines).convolve('voigt', sigma=3)
-    spe = spe.add_baseline(bandwidth=5, amplitude=3, pedestal=0, rng_seed=1111)
+    spe = spe.add_baseline(n_freq=5, amplitude=3, pedestal=0, rng_seed=1111)
     spe = spe.add_poisson_noise(.0002, rng_seed=1111)
     spe = spe.scale_xaxis_fun(lambda x: x - shift)
     candidates = spe.find_peak_groups(prominence=.1, n_sigma_group=0.001, wlen=50, moving_minimum_window=50)
