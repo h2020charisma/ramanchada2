@@ -1,5 +1,5 @@
 [![build](https://github.com/h2020charisma/ramanchada2/workflows/build/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/build.yml)
-[![docs](https://github.com/h2020charisma/ramanchada2/workflows/docs/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/deploy-docs.yml)
+[![docs](https://github.com/h2020charisma/ramanchada2/workflows/docs/badge.svg)](https://h2020charisma.github.io/ramanchada2/index.html)
 
 Harmonising Raman Spectroscopy
 ==============================
