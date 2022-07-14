@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Union
+from typing import Union, Callable
 
 from pydantic import validate_arguments, Field
 import numpy as np
@@ -32,12 +32,14 @@ def generate_baseline(
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
-                 n_freq, amplitude, pedestal, rng_seed=None):
+                 n_freq, amplitude, pedestal, func: Callable = None, rng_seed=None):
     """
     Add artificial baseline to the spectrum.
     A random baseline is generated in frequency domain using uniform random numbers.
     The baseline in frequency domain is tapered with bohman window to reduce the bandwidth
     of the baseline to first `n_freq` frequencies and is transformed to "time" domain.
+    Additionaly by using `func` parameter the user can define arbitrary function
+    to be added as baseline.
 
     Parameters
     ----------
@@ -47,9 +49,15 @@ def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
         upper boundary for the uniform random generator
     pedestal : float
         additive constant pedestal to the spectrum
+    func : callable
+        user defined function to be added as baseline.
+        Example: func=lambda x: x*.01 + x**2*.0001
     rng_seed : int, optional
         seed for the random generator
     """
     size = len(old_spe.y)
     base = generate_baseline(n_freq=n_freq, size=size, rng_seed=rng_seed)
-    new_spe.y = old_spe.y + amplitude*base + pedestal
+    y = old_spe.y + amplitude*base + pedestal
+    if func is not None:
+        y += func(old_spe.x) + old_spe.y
+    new_spe.y = y

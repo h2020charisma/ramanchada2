@@ -3,6 +3,7 @@
 from .spectrum import Spectrum  # noqa
 from .arithmetics import *  # noqa
 from .baseline import *  # noqa
+from .calc import *  # noqa
 from .calibration import *  # noqa
 from .filters import *  # noqa
 from .peaks import *  # noqa
