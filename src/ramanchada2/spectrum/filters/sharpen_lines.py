@@ -17,7 +17,8 @@ def derivative_sharpening(old_spe: Spectrum,
                           der2_factor: float = 1,
                           der4_factor: float = .1
                           ):
-    Y = fft.rfft(old_spe.y)
+    leny = len(old_spe.y)
+    Y = fft.rfft(old_spe.y, n=leny)
     h = signal.windows.hann(int(len(Y)*filter_fraction))
     h = h[(len(h))//2-1:]
     h = np.concatenate((h, np.zeros(len(Y)-len(h))))
@@ -26,7 +27,7 @@ def derivative_sharpening(old_spe: Spectrum,
     Y *= h
     Y2 = Y*der**2
     Y4 = Y2*der**2
-    y0 = fft.irfft(Y)
-    y2 = fft.irfft(Y2)
-    y4 = fft.irfft(Y4)
+    y0 = fft.irfft(Y, n=leny)
+    y2 = fft.irfft(Y2, n=leny)
+    y4 = fft.irfft(Y4, n=leny)
     new_spe.y = y0 - y2/sig_width**2*der2_factor + y4/sig_width**4*der4_factor

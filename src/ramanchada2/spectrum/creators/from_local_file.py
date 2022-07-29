@@ -7,14 +7,14 @@ from pydantic import validate_arguments
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
-from ramanchada2.io.experimental import read_txt
+from ramanchada2.io.experimental import read_txt, read_csv
 
 
 @add_spectrum_constructor()
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_local_file(
         in_file_name: str,
-        filetype: Literal['txt'] = 'txt'):
+        filetype: Literal['txt', 'csv'] = 'txt'):
     """
     Read experimental spectrum from a local file.
 
@@ -34,9 +34,13 @@ def from_local_file(
     """
     if filetype in {'jdx', 'dx'}:
         raise NotImplementedError('The implementation of JCAMP reader is missing')
-    elif filetype in {'txt', 'txtr', 'csv', 'prn', 'rruf'}:
+    elif filetype in {'txt', 'txtr', 'prn', 'rruf'}:
         with open(in_file_name) as fp:
             x, y, meta = read_txt(fp)
+            return Spectrum(x=x, y=y, metadata=meta)  # type: ignore
+    elif filetype in {'csv'}:
+        with open(in_file_name) as fp:
+            x, y, meta = read_csv(fp)
             return Spectrum(x=x, y=y, metadata=meta)  # type: ignore
     else:
         raise ValueError(f'filetype {filetype} not supported')

@@ -4,6 +4,7 @@ from typing import Literal, List, Union
 from collections import UserList
 
 import numpy as np
+import pandas as pd
 from pydantic import validate_arguments, Field
 from lmfit.models import lmfit_models, LinearModel
 from lmfit.model import ModelResult, Parameters, Model
@@ -43,6 +44,15 @@ class FitPeaksResult(UserList, Plottable):
             left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
             x = xarr[(xarr >= left) & (xarr <= right)]
             ax.plot(x, p.eval(x=x), **kwargs)
+
+    def to_csv(self, path_or_buf=None, sep=',', **kwargs):
+        return pd.DataFrame(
+            [
+                dict(name=f'g{group:02d}_{key}', value=val.value, stderr=val.stderr)
+                for group, res in enumerate(self)
+                for key, val in res.params.items()
+            ]
+        ).sort_values('name').to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
 
 
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt']
