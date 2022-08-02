@@ -39,11 +39,22 @@ class FitPeaksResult(UserList, Plottable):
             self.append(modres.loads(p))
         return self
 
-    def _plot(self, ax, peak_candidate_groups, xarr, **kwargs):
+    def _plot(self, ax, peak_candidate_groups=None, individual_peaks=False, xarr=None, **kwargs):
         for i, p in enumerate(self):
-            left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
-            x = xarr[(xarr >= left) & (xarr <= right)]
-            ax.plot(x, p.eval(x=x), **kwargs)
+            if peak_candidate_groups is None:
+                p0_cent = p.params['p0_center']
+                left, right = p0_cent.min, p0_cent.max
+            else:
+                left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
+            if xarr is None:
+                x = np.linspace(left, right, 100)
+            else:
+                x = xarr[(xarr >= left) & (xarr <= right)]
+            if individual_peaks:
+                for component in p.components:
+                    ax.plot(x, component.eval(x=x, params=p.params), **kwargs)
+            else:
+                ax.plot(x, p.eval(x=x), **kwargs)
 
     def to_csv(self, path_or_buf=None, sep=',', **kwargs):
         return pd.DataFrame(
@@ -106,10 +117,10 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
             height_factor = 1/w/np.sqrt(2)
         elif mod == 'PseudoVoigt':
             fwhm_factor = lmfit_models[mod].fwhm_factor
-            height_factor = 1/np.pi/w
+            height_factor = 1/np.pi/np.sqrt(w)/2
         else:
             fwhm_factor = lmfit_models[mod].fwhm_factor
-            height_factor = lmfit_models[mod].height_factor
+            height_factor = lmfit_models[mod].height_factor/np.sqrt(w)/2
 
         a = spe.y[peak_i] - (slope*x0 + intercept)
         if a < 0:
@@ -131,6 +142,7 @@ def fit_peaks_model(spe: Spectrum, /, *,
                     peak_candidates: PeakCandidatesGroupModel,
                     n_sigma_trim: float = Field(5, gt=0),
                     baseline_model: Literal['linear', None] = None,
+                    no_fit=False,
                     kwargs_fit={}
                     ):
     fit_model, fit_params = build_model_params(spe=spe,
@@ -138,13 +150,17 @@ def fit_peaks_model(spe: Spectrum, /, *,
                                                peak_candidates=peak_candidates,
                                                baseline_model=baseline_model)
     lb, rb = peak_candidates.boundaries_idx(n_sigma=n_sigma_trim, arr_len=len(spe.x))
+    rb -= 1
     fitx = spe.x[lb:rb]
     fity = spe.y[lb:rb]
 
     for par in fit_params:
         if par.endswith('_center'):
             fit_params[par].set(min=spe.x[lb], max=spe.x[rb], vary=True)
-    fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit)
+    if no_fit:
+        fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit, max_nfev=-1)
+    else:
+        fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit)
     return fit_tmp
 
 
@@ -154,6 +170,7 @@ def fit_peak_groups(spe, /, *,
                     model: Union[available_models_type, List[available_models_type]],
                     peak_candidate_groups: ListPeakCandidateGroupsModel,
                     n_sigma_trim: float = 3,
+                    no_fit=False,
                     kwargs_fit={}
                     ):
     fit_res = FitPeaksResult()
@@ -164,6 +181,7 @@ def fit_peak_groups(spe, /, *,
                                        baseline_model='linear',
                                        n_sigma_trim=n_sigma_trim,
                                        kwargs_fit=kwargs_fit,
+                                       no_fit=no_fit,
                                        ))
     return fit_res
 
