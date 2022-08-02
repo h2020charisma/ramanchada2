@@ -39,7 +39,7 @@ class SpeMetadataFieldModel(PydBaseModel):
                 from ramanchada2.misc import types
                 model = getattr(types, model_name)
                 return model.validate(val[pos_hash+1:])
-            if(val.startswith('[') and val.endswith(']') or
+            if (val.startswith('[') and val.endswith(']') or
                val.startswith('{') and val.endswith('}')):
                 return json.loads(val.replace("'", '"').replace(r'b"', '"'))
         return val
