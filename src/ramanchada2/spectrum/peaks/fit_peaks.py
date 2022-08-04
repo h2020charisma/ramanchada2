@@ -66,7 +66,7 @@ class FitPeaksResult(UserList, Plottable):
         ).sort_values('name').to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
 
 
-available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt']
+available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
@@ -109,30 +109,46 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
 
     pos_ampl_sigma_base = peak_candidates.pos_ampl_sigma_base_peakidx()
     for i, (mod, (x0, a, w, p, peak_i)) in enumerate(zip(model, pos_ampl_sigma_base)):
-        if mod == 'Moffat':
-            fwhm_factor = 2.
-            height_factor = 1.
-        elif mod == 'Voigt':
-            fwhm_factor = 3.6013
-            height_factor = 1/w/np.sqrt(2)
-        elif mod == 'PseudoVoigt':
-            fwhm_factor = lmfit_models[mod].fwhm_factor
-            height_factor = 1/np.pi/np.sqrt(w)/2
-        else:
-            fwhm_factor = lmfit_models[mod].fwhm_factor
-            height_factor = lmfit_models[mod].height_factor/np.sqrt(w)/2
-
         a = spe.y[peak_i] - (slope*x0 + intercept)
         if a < 0:
             a = spe.y[peak_i]
-        fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
-        fit_params[f'p{i}_center'].set(value=x0)
-        fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
-
         if mod == 'Moffat':
+            fwhm_factor = 2.
+            height_factor = 1.
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
             fit_params[f'p{i}_beta'].set(value=1, min=1e-4, max=100)
-        if mod == 'Voigt':
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'Voigt':
+            fwhm_factor = 3.6013
+            height_factor = 1/w/np.sqrt(2)
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
             fit_params[f'p{i}_gamma'].set(value=w/fwhm_factor, min=.0001, max=w/fwhm_factor*10, vary=True)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'PseudoVoigt':
+            fwhm_factor = lmfit_models[mod].fwhm_factor
+            height_factor = 1/np.pi/np.sqrt(w)/2
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'Pearson4':
+            fwhm_factor = 1
+            fit_params[f'p{i}_height'].set(value=a, max=a*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'Pearson7':
+            fwhm_factor = 1
+            height_factor = 1/2/w
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        else:
+            fwhm_factor = lmfit_models[mod].fwhm_factor
+            height_factor = lmfit_models[mod].height_factor/np.sqrt(w)/2
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
     return fit_model, fit_params
 
 
@@ -189,9 +205,7 @@ def fit_peak_groups(spe, /, *,
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def fit_peaks(spe, /, *,
-              model: Literal['Gaussian', 'Lorentzian', 'Moffat',
-                             'Voigt', 'PseudoVoigt',
-                             ],
+              model: available_models_type,
               peak_candidates: PeakCandidatesGroupModel,
               n_sigma_trim: float = 3,
               ):
