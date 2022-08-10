@@ -14,6 +14,7 @@ from ramanchada2.misc.types import SpeMetadataModel
 from ramanchada2.misc.types.spectrum import (SpeProcessingListModel,
                                              SpeProcessingModel)
 from ramanchada2.io.HSDS import write_cha
+from ramanchada2.io.output.write_csv import write_csv as io_write_csv
 
 
 class Spectrum(Plottable):
@@ -53,6 +54,12 @@ class Spectrum(Plottable):
 
     def __str__(self):
         return str(self._applied_processings.to_list())
+
+    def write_csv(self, filename, delimiter=',', newline='\n'):
+        csv = io_write_csv(self.x, self.y, delimiter=delimiter)
+        with open(filename, 'w', newline=newline) as f:
+            for c in csv:
+                f.write(c)
 
     def write_cha(self, chafile, dataset):
         write_cha(chafile, dataset,

@@ -8,11 +8,12 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_method
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def central_moments(spe: Spectrum, /,
-                    left_idx=0, right_idx=-1, moments=[1, 2, 3, 4], normalize=False
+                    boundaries=(-np.infty, np.infty), moments=[1, 2, 3, 4], normalize=False
                     ):
     mom = dict()
-    x = spe.x[left_idx:right_idx]
-    p = spe.y[left_idx:right_idx]
+    filter_idx = (spe.x >= boundaries[0]) & (spe.x < boundaries[1])
+    x = spe.x[filter_idx]
+    p = spe.y[filter_idx]
     p -= p.min()
     p /= p.sum()
     mom[1] = np.sum(x*p)

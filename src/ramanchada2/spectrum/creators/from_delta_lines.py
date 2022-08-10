@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-from typing import Union, Dict
+from typing import Dict, Callable
 
 import numpy as np
-import numpy.typing as npt
-from scipy import sparse
-from pydantic import validate_arguments
+from pydantic import validate_arguments, PositiveInt
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
@@ -15,7 +13,8 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_delta_lines(
         deltas: Dict[float, float],
-        x: Union[int, npt.NDArray] = 2000,
+        xcal: Callable[[float], float] = None,
+        nbins: PositiveInt = 2000,
         **kwargs
         ):
     """
@@ -24,18 +23,24 @@ def from_delta_lines(
     Parameters
     ----------
     deltas : Dict[float, float]
-        keys of the dictionary are the x indexes of the deltas;
+        keys of the dictionary are the x positions of the deltas;
         values are the amplitudes of the corresponding deltas
-    x : Union[int, npt.NDArray], optional
-        array with x values. If an integer is provided, it is used
-        generate a sequence with `np.arange()`, by default 2000
+    xcal : Callable, optional
+        x axis calibration function
+    nbins : int, optional
+        Number of bins in the spectrum
+    Example
+    -------
+    xcal=lambda x: x*3 -1000, nbins=1000
+    will produce spectrum with 1000 bins in the range [-1000, 2000)
     """
-    x_loc = list(deltas.keys())
-    ampl = list(deltas.values())
-    spe = Spectrum(x=x, **kwargs)
-    y = sparse.coo_array((ampl, (np.zeros_like(x_loc), x_loc)),
-                         shape=(1, len(spe.x)))
-    y = y.toarray()
-    y.shape = (-1)
-    spe.y = y
+    if xcal is None:
+        x = np.arange(nbins, dtype=float)
+    else:
+        x = np.linspace(xcal(0), xcal(nbins), nbins, endpoint=False)
+    y = np.zeros_like(x)
+    for pos, ampl in deltas.items():
+        idx = np.argmin(np.abs(x - pos))
+        y[idx] += ampl
+    spe = Spectrum(x=x, y=y, **kwargs)
     return spe

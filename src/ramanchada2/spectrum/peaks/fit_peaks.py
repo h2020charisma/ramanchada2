@@ -4,6 +4,7 @@ from typing import Literal, List, Union
 from collections import UserList
 
 import numpy as np
+import pandas as pd
 from pydantic import validate_arguments, Field
 from lmfit.models import lmfit_models, LinearModel
 from lmfit.model import ModelResult, Parameters, Model
@@ -38,14 +39,34 @@ class FitPeaksResult(UserList, Plottable):
             self.append(modres.loads(p))
         return self
 
-    def _plot(self, ax, peak_candidate_groups, xarr, **kwargs):
+    def _plot(self, ax, peak_candidate_groups=None, individual_peaks=False, xarr=None, **kwargs):
         for i, p in enumerate(self):
-            left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
-            x = xarr[(xarr >= left) & (xarr <= right)]
-            ax.plot(x, p.eval(x=x), **kwargs)
+            if peak_candidate_groups is None:
+                p0_cent = p.params['p0_center']
+                left, right = p0_cent.min, p0_cent.max
+            else:
+                left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
+            if xarr is None:
+                x = np.linspace(left, right, 100)
+            else:
+                x = xarr[(xarr >= left) & (xarr <= right)]
+            if individual_peaks:
+                for component in p.components:
+                    ax.plot(x, component.eval(x=x, params=p.params), **kwargs)
+            else:
+                ax.plot(x, p.eval(x=x), **kwargs)
+
+    def to_csv(self, path_or_buf=None, sep=',', **kwargs):
+        return pd.DataFrame(
+            [
+                dict(name=f'g{group:02d}_{key}', value=val.value, stderr=val.stderr)
+                for group, res in enumerate(self)
+                for key, val in res.params.items()
+            ]
+        ).sort_values('name').to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
 
 
-available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt']
+available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
@@ -88,30 +109,46 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
 
     pos_ampl_sigma_base = peak_candidates.pos_ampl_sigma_base_peakidx()
     for i, (mod, (x0, a, w, p, peak_i)) in enumerate(zip(model, pos_ampl_sigma_base)):
-        if mod == 'Moffat':
-            fwhm_factor = 2.
-            height_factor = 1.
-        elif mod == 'Voigt':
-            fwhm_factor = 3.6013
-            height_factor = 1/w/np.sqrt(2)
-        elif mod == 'PseudoVoigt':
-            fwhm_factor = lmfit_models[mod].fwhm_factor
-            height_factor = 1/np.pi/w
-        else:
-            fwhm_factor = lmfit_models[mod].fwhm_factor
-            height_factor = lmfit_models[mod].height_factor
-
         a = spe.y[peak_i] - (slope*x0 + intercept)
         if a < 0:
             a = spe.y[peak_i]
-        fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
-        fit_params[f'p{i}_center'].set(value=x0)
-        fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
-
         if mod == 'Moffat':
+            fwhm_factor = 2.
+            height_factor = 1.
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
             fit_params[f'p{i}_beta'].set(value=1, min=1e-4, max=100)
-        if mod == 'Voigt':
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'Voigt':
+            fwhm_factor = 3.6013
+            height_factor = 1/w/np.sqrt(2)
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
             fit_params[f'p{i}_gamma'].set(value=w/fwhm_factor, min=.0001, max=w/fwhm_factor*10, vary=True)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'PseudoVoigt':
+            fwhm_factor = lmfit_models[mod].fwhm_factor
+            height_factor = 1/np.pi/np.sqrt(w)/2
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'Pearson4':
+            fwhm_factor = 1
+            fit_params[f'p{i}_height'].set(value=a, max=a*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        elif mod == 'Pearson7':
+            fwhm_factor = 1
+            height_factor = 1/2/w
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
+        else:
+            fwhm_factor = lmfit_models[mod].fwhm_factor
+            height_factor = lmfit_models[mod].height_factor/np.sqrt(w)/2
+            fit_params[f'p{i}_amplitude'].set(value=a/height_factor, min=0, max=a/height_factor*20)
+            fit_params[f'p{i}_center'].set(value=x0)
+            fit_params[f'p{i}_sigma'].set(value=w/fwhm_factor, min=.1e-4, max=w/fwhm_factor*50)
     return fit_model, fit_params
 
 
@@ -121,6 +158,7 @@ def fit_peaks_model(spe: Spectrum, /, *,
                     peak_candidates: PeakCandidatesGroupModel,
                     n_sigma_trim: float = Field(5, gt=0),
                     baseline_model: Literal['linear', None] = None,
+                    no_fit=False,
                     kwargs_fit={}
                     ):
     fit_model, fit_params = build_model_params(spe=spe,
@@ -128,13 +166,17 @@ def fit_peaks_model(spe: Spectrum, /, *,
                                                peak_candidates=peak_candidates,
                                                baseline_model=baseline_model)
     lb, rb = peak_candidates.boundaries_idx(n_sigma=n_sigma_trim, arr_len=len(spe.x))
+    rb -= 1
     fitx = spe.x[lb:rb]
     fity = spe.y[lb:rb]
 
     for par in fit_params:
         if par.endswith('_center'):
             fit_params[par].set(min=spe.x[lb], max=spe.x[rb], vary=True)
-    fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit)
+    if no_fit:
+        fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit, max_nfev=-1)
+    else:
+        fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit)
     return fit_tmp
 
 
@@ -144,6 +186,7 @@ def fit_peak_groups(spe, /, *,
                     model: Union[available_models_type, List[available_models_type]],
                     peak_candidate_groups: ListPeakCandidateGroupsModel,
                     n_sigma_trim: float = 3,
+                    no_fit=False,
                     kwargs_fit={}
                     ):
     fit_res = FitPeaksResult()
@@ -154,6 +197,7 @@ def fit_peak_groups(spe, /, *,
                                        baseline_model='linear',
                                        n_sigma_trim=n_sigma_trim,
                                        kwargs_fit=kwargs_fit,
+                                       no_fit=no_fit,
                                        ))
     return fit_res
 
@@ -161,9 +205,7 @@ def fit_peak_groups(spe, /, *,
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def fit_peaks(spe, /, *,
-              model: Literal['Gaussian', 'Lorentzian', 'Moffat',
-                             'Voigt', 'PseudoVoigt',
-                             ],
+              model: available_models_type,
               peak_candidates: PeakCandidatesGroupModel,
               n_sigma_trim: float = 3,
               ):

@@ -10,7 +10,7 @@ setup(
         "matplotlib",
         "h5py",
         "h5pyd",
-        "scipy",
+        "scipy>=1.8.0",
         "uncertainties",
         "pydantic",
         "lmfit",
