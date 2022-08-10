@@ -2,7 +2,7 @@
 
 from typing import Tuple, Dict
 
-import h5py, h5pyd
+import h5py
 import logging
 import numpy as np
 import numpy.typing as npt
@@ -20,7 +20,7 @@ def write_cha(filename: str,
     data = np.stack([x, y])
     try:
         _h5 = h5module or h5py
-        with _h5.File(filename, mode= 'a') as h5:
+        with _h5.File(filename, mode='a') as h5:
             if h5.get(dataset) is None:
                 ds = h5.create_dataset(dataset, data=data)
                 ds.attrs.update(meta)
@@ -34,7 +34,7 @@ def read_cha(filename: str,
              dataset: str, h5module=None
              ) -> Tuple[npt.NDArray, npt.NDArray, Dict]:
     _h5 = h5module or h5py
-    with _h5.File(filename, mode= 'r') as h5:
+    with _h5.File(filename, mode='r') as h5:
         data = h5.get(dataset)
         if data is None:
             raise ChadaReadNotFoundError(f'dataset `{dataset}` not found in file `{filename}`')
