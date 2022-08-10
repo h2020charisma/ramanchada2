@@ -16,7 +16,7 @@ logger = logging.getLogger()
 @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
 def write_cha(filename: str,
               dataset: str,
-              x: npt.NDArray, y: npt.NDArray, meta: Dict, h5module = None):
+              x: npt.NDArray, y: npt.NDArray, meta: Dict, h5module=None):
     data = np.stack([x, y])
     try:
         _h5 = h5module or h5py
@@ -31,7 +31,7 @@ def write_cha(filename: str,
 
 
 def read_cha(filename: str,
-             dataset: str, h5module = None
+             dataset: str, h5module=None
              ) -> Tuple[npt.NDArray, npt.NDArray, Dict]:
     _h5 = h5module or h5py
     with _h5.File(filename, mode= 'r') as h5:
