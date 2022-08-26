@@ -44,13 +44,13 @@ def read_cha(filename: str,
     return x, y, meta
 
 
-def filter_dataset(topdomain, domain, process_file, sample=None, wavelength=None, instrument=None, provider=None,
-                              investigation=None, kwargs={}, h5module=None):
+def filter_dataset(topdomain, domain, process_file, sample=None, wavelength=None, instrument=None,
+                   provider=None, investigation=None, kwargs={}, h5module=None):
     _h5 = h5module or h5pyd
     with _h5.File(domain) as dataset:
         if (sample is not None) and (dataset["annotation_sample"].attrs["sample"] == sample):
             process_file(topdomain, domain, **kwargs)
-     
+
 
 def visit_domain(topdomain="/", process_dataset=None, kwargs={}, h5module=None):
     _h5 = h5module or h5pyd
