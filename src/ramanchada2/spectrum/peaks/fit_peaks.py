@@ -56,14 +56,17 @@ class FitPeaksResult(UserList, Plottable):
             else:
                 ax.plot(x, p.eval(x=x), **kwargs)
 
-    def to_csv(self, path_or_buf=None, sep=',', **kwargs):
+    def to_dataframe(self):
         return pd.DataFrame(
             [
                 dict(name=f'g{group:02d}_{key}', value=val.value, stderr=val.stderr)
                 for group, res in enumerate(self)
                 for key, val in res.params.items()
             ]
-        ).sort_values('name').to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
+        ).sort_values('name')
+
+    def to_csv(self, path_or_buf=None, sep=',', **kwargs):
+        return self.to_dataframe().to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
 
 
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
