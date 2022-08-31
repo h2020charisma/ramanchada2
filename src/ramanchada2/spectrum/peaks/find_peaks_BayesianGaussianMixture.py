@@ -18,20 +18,22 @@ def find_peaks_bayesian_gaussian(spe: Spectrum, /,
                                  n_samples: PositiveInt = 5000,
                                  n_components: PositiveInt = 50,
                                  n_sigma_group: PositiveFloat = 5.,
-                                 max_iter: PositiveInt = None,
-                                 random_state=None
+                                 max_iter: PositiveInt = 100,
+                                 moving_minimum_window: PositiveInt = None,
+                                 random_state=None,
+                                 trim_range=[-np.infty, np.infty],
                                  ) -> PeakCandidatesGroupModel:
-    samp = spe.gen_samples(size=10000)
+    if moving_minimum_window is not None:
+        spe = spe.subtract_moving_minimum(moving_minimum_window)  # type: ignore
+    spe = spe.normalize()  # type: ignore
+    #for auto segmenting use predict / predict_proba
+    samp = spe.gen_samples(size=10000, trim_range=trim_range)
     X = [[i] for i in samp]
     bgm = BayesianGaussianMixture(n_components=n_components,
                                   random_state=random_state,
                                   max_iter=max_iter
                                   ).fit(X)
-    res = [[mean[0], np.sqrt(cov[0][0]), weight]
-           for mean, cov, weight in zip(bgm.means_, bgm.covariances_, bgm.weights_)]
-    res = sorted(res, key=lambda x: x[2], reverse=True)
-    pd.DataFrame(res, columns=("mean", "sigma", "weight"))
 
     return PeakCandidatesGroupModel.from_find_peaks_bayesian_gaussian_mixture(
-        means, sigmas, weights, x_arr=spe.x, y_arr=spe.y
+        bgm, x_arr=spe.x, y_arr=spe.y
         ).group_neighbours(n_sigma=n_sigma_group)

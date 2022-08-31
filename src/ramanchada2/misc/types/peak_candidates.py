@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Dict, List, Tuple
+from pydantic import PositiveFloat
 
 import pydantic
 import numpy as np
@@ -13,92 +14,76 @@ from ..plottable import Plottable
 
 
 class PeakCandidateModel(PydBaseModel, Plottable):
-    peak_idx: int
-    peak_pos: int
-    prominence: float
-
-    half_max_val: float
-
-    left_base_idx: int
-    left_base_pos: float
-    left_base_val: float
-
-    right_base_idx: int
-    right_base_pos: float
-    right_base_val: float
-
-    left_whm_idx: int
-    left_whm_pos: float
-
-    right_whm_idx: int
-    right_whm_pos: float
+    base_slope: float = 0
+    base_intercept: float = 0
+    amplitude: PositiveFloat
+    position: float
+    sigma: PositiveFloat
+    skew: float = 0
 
     @property
     def fwhm(self) -> float:
-        return abs(self.left_whm_pos - self.right_base_pos)
+        return self.sigma * 2.355
 
     @property
-    def fwhm_idx(self) -> float:
-        return abs(self.left_whm_idx - self.right_base_idx)
+    def lwhm(self) -> float:
+        """
+        Left width at half maximum.
+        """
+        return self.fwhm*(1-self.skew)/2
 
     @property
-    def sigma(self):
-        return self.fwhm / 2.355
+    def rwhm(self) -> float:
+        """
+        Right width at half maximum.
+        """
+        return self.fwhm*(1+self.skew)/2
 
     @property
-    def sigma_idx(self):
-        return self.fwhm_idx / 2.355
+    def left_sigma(self) -> float:
+        return self.sigma*(1-self.skew)
 
     @property
-    def peak_base(self) -> float:
-        return max(self.left_base_val, self.right_base_val)
-
-    @property
-    def peak_val(self) -> float:
-        return self.peak_base + self.prominence
-
-    @property
-    def peak_pos_cor(self) -> float:
-        return (2*self.peak_pos + self.left_whm_pos + self.right_whm_pos)/4
+    def right_sigma(self) -> float:
+        return self.sigma*(1+self.skew)
 
     def boundaries(self, n_sigma):
         return (
-            self.peak_pos_cor - n_sigma*self.sigma,
-            self.peak_pos_cor + n_sigma*self.sigma,
+            self.position - n_sigma*self.left_sigma,
+            self.position + n_sigma*self.right_sigma,
         )
 
-    def boundaries_idx(self, n_sigma, arr_len):
-        return (
-            round(max(self.peak_idx - n_sigma*self.sigma_idx, 0)),
-            round(min(self.peak_idx + n_sigma*self.sigma_idx, arr_len)),
-        )
+    def boundaries_idx(self, n_sigma, x_arr):
+        lb, rb = self.boundaries(n_sigma)
+        lb_idx = np.argmin(np.abs(x_arr - lb))
+        rb_idx = np.argmin(np.abs(x_arr - rb))
+        return (lb_idx, rb_idx)
 
-    def pos_ampl_sigma_base_peakidx(self):
-        amp = self.prominence
-        ped = self.peak_base
-        pos = self.peak_pos_cor
-        sig = self.sigma
-        return pos, amp, sig, ped, self.peak_idx
+    def pos_ampl_sigma_base(self):
+        return (self.position,
+                self.amplitude,
+                self.sigma,
+                self.peak_base)
 
     def plot_params_baseline(self):
-        return ((self.left_base_pos, self.right_base_pos), (self.left_base_val, self.right_base_val))
+        x = np.array([self.position - 4*self.sigma, self.position + 4*self.sigma])
+        return (x, self.base_slope*x + self.base_intercept)
 
     def plot_params_errorbar(self):
-        x = self.peak_pos_cor
-        xleft = self.peak_pos_cor - self.left_whm_pos
-        xright = self.right_whm_pos - self.peak_pos_cor
-        y = self.half_max_val
-        y_err = (self.prominence/2)
+        x = self.position
+        xleft = self.lwhm
+        xright = self.rwhm
+        y_err = (self.amplitude/2)
+        y = y_err + self.peak_base
         return (x,), (y,), (y_err,), ((xleft,), (xright,))
+
+    @property
+    def peak_base(self):
+        return self.position*self.base_slope + self.base_intercept
 
     def _plot(self, ax, *args, label=" ", **kwargs):
         ax.errorbar(*self.plot_params_errorbar(), label=label)
         ax.plot(*self.plot_params_baseline())
-
-    def baseline_linear(self):
-        slope = (self.right_base_val - self.left_base_val)/(self.right_base_pos-self.left_base_pos)
-        intercept = -slope + self.left_base_val
-        return intercept, slope
 
     def serialize(self):
         self.json()
@@ -109,7 +94,7 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
 
     @pydantic.validator('__root__', pre=False)
     def post_validate(cls, val):
-        return sorted(val, key=lambda x: x.peak_idx)
+        return sorted(val, key=lambda x: x.position)
 
     @staticmethod
     @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
@@ -117,68 +102,66 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
                         x_arr: npt.NDArray,
                         y_arr: npt.NDArray,
                         ):
-        peaks = arg[0]
-        properties = arg[1]
-
-        properties.update({'peak': peaks})
-        properties_pivot = [dict(zip(properties, i)) for i in zip(*properties.values())]
-
-        def straight_line(x):
+        def interpolate(x):
             x1 = int(x)
             x2 = x1 + 1
             y1 = x_arr[x1]
             y2 = x_arr[x2]
             return (y2-y1)/(x2-x1)*(x-x1)+y1
 
-        peak_list = [PeakCandidateModel(
-            peak_idx=prop['peak'],
-            peak_pos=x_arr[prop['peak']],
-            prominence=prop['prominences'],
-            half_max_val=prop['width_heights'],
-            left_base_idx=prop['left_bases'],
-            left_base_pos=x_arr[prop['left_bases']],
-            left_base_val=y_arr[prop['left_bases']],
-            right_base_idx=prop['right_bases'],
-            right_base_pos=x_arr[prop['right_bases']],
-            right_base_val=y_arr[prop['right_bases']],
+        peaks = arg[0]
+        properties = arg[1]
+        properties.update({'peak': peaks})
+        properties_pivot = [dict(zip(properties, i)) for i in zip(*properties.values())]
 
-            left_whm_idx=round(prop['left_ips']),
-            left_whm_pos=straight_line(prop['left_ips']),
+        peak_list = list()
+        for prop in properties_pivot:
+            pos_maximum = x_arr[prop['peak']]
+            lwhm = pos_maximum - interpolate(prop['left_ips'])
+            rwhm = interpolate(prop['right_ips']) - pos_maximum
+            fwhm = lwhm + rwhm
+            sigma = fwhm/2.355
 
-            right_whm_idx=round(prop['right_ips']),
-            right_whm_pos=straight_line(prop['right_ips'])
-        )
-            for prop in properties_pivot]
+            left_base_pos = x_arr[prop['left_bases']]
+            left_base_val = y_arr[prop['left_bases']]
+            right_base_pos = x_arr[prop['right_bases']]
+            right_base_val = y_arr[prop['right_bases']]
+
+            slope = (right_base_val - left_base_val)/(right_base_pos - left_base_pos)
+            intercept = -slope*left_base_pos + left_base_val
+            peak_list.append(dict(amplitude=prop['prominences'],
+                                  position=pos_maximum + (rwhm - lwhm)/4,
+                                  sigma=sigma,
+                                  skew=(rwhm-lwhm)/(rwhm+lwhm),
+                                  base_slope=slope,
+                                  base_intercept=intercept,
+                                  ))
         return PeakCandidatesGroupModel.validate(peak_list)
 
     @staticmethod
     @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
-    def from_find_peaks_bayesian_gaussian_mixture(means, sigmas, weights,
+    def from_find_peaks_bayesian_gaussian_mixture(bgm,
                                                   x_arr: npt.NDArray,
                                                   y_arr: npt.NDArray,
                                                   ):
-        #TODO
-        peak_list = [PeakCandidateModel(
-            peak_idx=x_arr[np.argmin((x_arr-mean)**2)],
-            peak_pos=mean,
-            prominence=weight,
-            half_max_val=prop['width_heights'],
-            left_base_idx=0,
-            left_base_pos=x_arr[prop['left_bases']],
-            left_base_val=y_arr[prop['left_bases']],
-            right_base_idx=0,
-            right_base_pos=x_arr[prop['right_bases']],
-            right_base_val=y_arr[prop['right_bases']],
+        bgm_peaks = [[mean[0], np.sqrt(cov[0][0]), weight]
+            for mean, cov, weight in
+            zip(bgm.means_, bgm.covariances_, bgm.weights_)]
+        bgm_peaks = sorted(bgm_peaks, key=lambda x: x[2], reverse=True)
+        integral = np.sum(y_arr)
 
-            left_whm_idx=round(prop['left_ips']),
-            left_whm_pos=straight_line(prop['left_ips']),
-
-            right_whm_idx=round(prop['right_ips']),
-            right_whm_pos=straight_line(prop['right_ips'])
-        )
-            for prop in properties_pivot]
-
+        peak_list = list()
+        for mean, sigma, weight in bgm_peaks:
+            if weight < np.max(bgm.weights_) * 1e-5:
+                break
+            peak_list.append(dict(amplitude=weight*integral,
+                                  position=mean,
+                                  sigma=sigma,
+                                  ))
         return PeakCandidatesGroupModel.validate(peak_list)
+
+    def sigmas(self):
+        return [i.sigma for i in self.__root__]
 
     @property
     def peak_vals(self) -> List[float]:
@@ -216,9 +199,6 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
     def peak_pos_cors(self):
         return [i.peak_pos_cor for i in self.__root__]
 
-    def sigmas(self, x_arr=None):
-        return [i.sigma(x_arr=x_arr) for i in self.__root__]
-
     @property
     def prominences(self):
         return [i.prominence for i in self.__root__]
@@ -251,8 +231,8 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
     def base_lines(self):
         return [i.base_line for i in self.__root__]
 
-    def pos_ampl_sigma_base_peakidx(self):
-        return [i.pos_ampl_sigma_base_peakidx() for i in self.__root__]
+    def pos_ampl_sigma_base(self):
+        return [i.pos_ampl_sigma_base() for i in self.__root__]
 
     def serialize(self):
         return self.json()
@@ -266,9 +246,9 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
     def __iter__(self):
         return iter(self.__root__)
 
-    def boundaries_idx(self, n_sigma, arr_len):
-        left, _ = self.__root__[0].boundaries_idx(n_sigma=n_sigma, arr_len=arr_len)
-        _, right = self.__root__[-1].boundaries_idx(n_sigma=n_sigma, arr_len=arr_len)
+    def boundaries_idx(self, n_sigma, x_arr):
+        left, _ = self.__root__[0].boundaries_idx(n_sigma=n_sigma, x_arr=x_arr)
+        _, right = self.__root__[-1].boundaries_idx(n_sigma=n_sigma, x_arr=x_arr)
         return left, right
 
     def boundaries(self, n_sigma):

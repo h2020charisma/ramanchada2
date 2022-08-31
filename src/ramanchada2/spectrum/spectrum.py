@@ -149,7 +149,10 @@ class Spectrum(Plottable):
     def result(self, res: Union[Dict, List]):
         return self.meta._update(dict(ramanchada2_filter_result=res))
 
-    def gen_samples(self, size):
-        spe_dist = rv_histogram((self.y, self.x_bin_boundaries))
+    def gen_samples(self, size, trim_range=[-np.infty, np.infty]):
+        x_all = self.x_bin_boundaries
+        l_idx = np.argmin(np.abs(x_all - trim_range[0]))
+        r_idx = np.argmin(np.abs(x_all - trim_range[1]))
+        spe_dist = rv_histogram((self.y[l_idx:r_idx], x_all[l_idx:r_idx+1]))
         samps = spe_dist.rvs(size=size)
         return samps
