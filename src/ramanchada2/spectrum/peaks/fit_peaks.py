@@ -28,6 +28,18 @@ class FitPeaksResult(UserList, Plottable):
     def locations(self):
         return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
 
+    @property
+    def centers(self):
+        return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
+
+    @property
+    def fwhms(self):
+        return [v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')]
+
+    @property
+    def amplitudes(self):
+        return [v for peak in self for k, v in peak.values.items() if k.endswith('amplitude')]
+
     def dumps(self):
         return [peak.dumps() for peak in self]
 
@@ -228,6 +240,9 @@ def fit_peaks_filter(
         kwargs_fit={},
         **kwargs,
         ):
+    """
+    Write fit result as metadata.
+    """
     cand_groups = ListPeakCandidateGroupsModel.validate(old_spe.result)
     new_spe.result = old_spe.fit_peak_groups(*args,  # type: ignore
                                              peak_candidate_groups=cand_groups,

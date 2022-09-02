@@ -151,6 +151,35 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
             for prop in properties_pivot]
         return PeakCandidatesGroupModel.validate(peak_list)
 
+    @staticmethod
+    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    def from_find_peaks_bayesian_gaussian_mixture(means, sigmas, weights,
+                                                  x_arr: npt.NDArray,
+                                                  y_arr: npt.NDArray,
+                                                  ):
+        #TODO
+        peak_list = [PeakCandidateModel(
+            peak_idx=x_arr[np.argmin((x_arr-mean)**2)],
+            peak_pos=mean,
+            prominence=weight,
+            half_max_val=prop['width_heights'],
+            left_base_idx=0,
+            left_base_pos=x_arr[prop['left_bases']],
+            left_base_val=y_arr[prop['left_bases']],
+            right_base_idx=0,
+            right_base_pos=x_arr[prop['right_bases']],
+            right_base_val=y_arr[prop['right_bases']],
+
+            left_whm_idx=round(prop['left_ips']),
+            left_whm_pos=straight_line(prop['left_ips']),
+
+            right_whm_idx=round(prop['right_ips']),
+            right_whm_pos=straight_line(prop['right_ips'])
+        )
+            for prop in properties_pivot]
+
+        return PeakCandidatesGroupModel.validate(peak_list)
+
     @property
     def peak_vals(self) -> List[float]:
         return [i.peak_val for i in self.__root__]
