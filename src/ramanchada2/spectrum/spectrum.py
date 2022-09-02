@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from uncertainties import unumpy
 import pydantic
+from scipy.stats import rv_histogram
 
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.types import SpeMetadataModel
@@ -112,6 +113,14 @@ class Spectrum(Plottable):
         self._xdata.flags.writeable = False
 
     @property
+    def x_bin_boundaries(self):
+        return np.concatenate((
+            [(3*self.x[0] - self.x[1])/2],
+            (self.x[1:] + self.x[:-1])/2,
+            [(3*self.x[-1] - self.x[-2])/2]
+        ))
+
+    @property
     def y(self) -> npt.NDArray[np.float64]:
         return unumpy.nominal_values(self._ydata)
 
@@ -139,3 +148,8 @@ class Spectrum(Plottable):
     @result.setter
     def result(self, res: Union[Dict, List]):
         return self.meta._update(dict(ramanchada2_filter_result=res))
+
+    def gen_samples(self, size):
+        spe_dist = rv_histogram((self.y, self.x_bin_boundaries))
+        samps = spe_dist.rvs(size=size)
+        return samps
