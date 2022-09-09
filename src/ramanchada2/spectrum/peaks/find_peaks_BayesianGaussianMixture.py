@@ -2,13 +2,9 @@
 
 from pydantic import validate_arguments, PositiveFloat, PositiveInt
 from sklearn.mixture import BayesianGaussianMixture
-import pandas as pd
-import numpy as np
-
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
-                                            add_spectrum_filter)
+from ramanchada2.misc.spectrum_deco import add_spectrum_method
 from ramanchada2.misc.types import PeakCandidatesGroupModel
 
 
@@ -21,13 +17,12 @@ def find_peaks_bayesian_gaussian(spe: Spectrum, /,
                                  max_iter: PositiveInt = 100,
                                  moving_minimum_window: PositiveInt = None,
                                  random_state=None,
-                                 trim_range=[-np.infty, np.infty],
+                                 trim_range=None,
                                  ) -> PeakCandidatesGroupModel:
     if moving_minimum_window is not None:
         spe = spe.subtract_moving_minimum(moving_minimum_window)  # type: ignore
-    spe = spe.normalize()  # type: ignore
-    #for auto segmenting use predict / predict_proba
-    samp = spe.gen_samples(size=10000, trim_range=trim_range)
+    spe = spe.normalize('unity')  # type: ignore
+    samp = spe.gen_samples(size=n_samples, trim_range=trim_range)
     X = [[i] for i in samp]
     bgm = BayesianGaussianMixture(n_components=n_components,
                                   random_state=random_state,

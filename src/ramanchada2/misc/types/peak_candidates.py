@@ -145,8 +145,8 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
                                                   y_arr: npt.NDArray,
                                                   ):
         bgm_peaks = [[mean[0], np.sqrt(cov[0][0]), weight]
-            for mean, cov, weight in
-            zip(bgm.means_, bgm.covariances_, bgm.weights_)]
+                     for mean, cov, weight in
+                     zip(bgm.means_, bgm.covariances_, bgm.weights_)]
         bgm_peaks = sorted(bgm_peaks, key=lambda x: x[2], reverse=True)
         integral = np.sum(y_arr)
 
@@ -164,40 +164,12 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
         return [i.sigma for i in self.__root__]
 
     @property
-    def peak_vals(self) -> List[float]:
-        return [i.peak_val for i in self.__root__]
+    def amplitudes(self) -> List[float]:
+        return [i.amplitude for i in self.__root__]
 
     @property
-    def left_base_idx(self):
-        return self.__root__[0].left_base_idx
-
-    @property
-    def right_base_idx(self):
-        return self.__root__[-1].right_base_idx
-
-    def left_base_idx_range(self, n_sigma, arr_len):
-        w = self.__root__[0].sigma
-        left = round(self.__root__[0].peak_idx - n_sigma*w)
-        if left < 0:
-            left = 0
-        if left >= arr_len:
-            left = arr_len - 1
-        return left, self.__root__[0].peak_idx
-
-    def right_base_idx_range(self, n_sigma, arr_len):
-        w = self.__root__[-1].sigma
-        right = round(self.__root__[-1].peak_idx + n_sigma*w)
-        if right >= arr_len:
-            right = arr_len - 1
-        return self.__root__[-1].peak_idx, right
-
-    @property
-    def peaks(self):
-        return [i.peak_pos for i in self.__root__]
-
-    @property
-    def peak_pos_cors(self):
-        return [i.peak_pos_cor for i in self.__root__]
+    def positions(self):
+        return [i.position for i in self.__root__]
 
     @property
     def prominences(self):

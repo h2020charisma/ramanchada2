@@ -12,7 +12,7 @@ def test_generate_and_fit():
     candidates = spe.find_peak_groups(prominence=.1, n_sigma_group=0.001, wlen=50, moving_minimum_window=50)
 
     true_pos = np.array(list(lines.keys()))
-    calc_pos = [i for gr in candidates for i in gr.peaks]
+    calc_pos = [i for gr in candidates for i in gr.positions]
     fit_peaks = spe.fit_peak_groups(model='Voigt', peak_candidate_groups=candidates)
     fit_pos = fit_peaks.locations
 

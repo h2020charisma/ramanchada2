@@ -2,10 +2,11 @@
 
 from typing import Literal, List, Union
 from collections import UserList
+import logging
 
 import numpy as np
 import pandas as pd
-from pydantic import validate_arguments, Field, PositiveFloat
+from pydantic import validate_arguments, PositiveFloat
 from lmfit.models import lmfit_models, LinearModel
 from lmfit.model import ModelResult, Parameters, Model
 
@@ -15,6 +16,8 @@ from ramanchada2.misc.types import (PeakCandidatesGroupModel,
                                     ListPeakCandidateGroupsModel)
 from ramanchada2.misc.plottable import Plottable
 from ..spectrum import Spectrum
+
+logger = logging.getLogger(__name__)
 
 
 class FitPeaksResult(UserList, Plottable):
@@ -102,20 +105,18 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
         mod_list.append(lmfit_models[mod](name=f'p{i}', prefix=f'p{i}_'))
     fit_model = np.sum(mod_list)
 
-    #if baseline_model == 'linear':
-    #    li = np.argmin(np.abs(spe.x - peak_candidates.left_sigma * n_sigma))
-    #    ri = np.argmin(np.abs(spe.x - peak_candidates.right_sigma * n_sigma))
-    #    xl = spe.x[li]
-    #    yl = spe.y[li]
-    #    xr = spe.x[ri]
-    #    yr = spe.y[ri]
-    #    slope = (yr-yl)/(xr-xl)
-    #    intercept = -xl*slope + yl
-    #else:
-    #    slope = 0
-    #    intercept = 0
-    slope = 0
-    intercept = 0
+    n_sigma = 4
+    if baseline_model == 'linear':
+        li, ri = peak_candidates.boundaries_idx(n_sigma, x_arr=spe.x)
+        xl = spe.x[li]
+        yl = spe.y[li]
+        xr = spe.x[ri]
+        yr = spe.y[ri]
+        slope = (yr-yl)/(xr-xl)
+        intercept = -xl*slope + yl
+    else:
+        slope = 0
+        intercept = 0
 
     fit_params = fit_model.make_params()
     if baseline_model == 'linear':
@@ -181,7 +182,20 @@ def fit_peaks_model(spe: Spectrum, /, *,
                                                peak_candidates=peak_candidates,
                                                baseline_model=baseline_model)
     lb, rb = peak_candidates.boundaries_idx(n_sigma=n_sigma_trim, x_arr=spe.x)
-    rb -= 1
+    if len(spe.x) < len(fit_model.param_names):
+        logger.warning('Not enought number of points in the spectrum')
+    if rb-lb < len(fit_model.param_names):
+        logger.warning(
+            'Number of data points is smaller than number of model parameters. Use bigger value for `n_sigma_trim`')
+    lb -= len(fit_model.param_names)//2 - 1
+    rb += len(fit_model.param_names)//2
+    if lb < 0:
+        rb += -lb
+        lb = 0
+    if rb >= len(spe.x):
+        lb -= rb - len(spe.x) + 1
+        rb = len(spe.x) - 1
+
     fitx = spe.x[lb:rb]
     fity = spe.y[lb:rb]
 
@@ -206,7 +220,7 @@ def fit_peak_groups(spe, /, *,
                     kwargs_fit={}
                     ):
     fit_res = FitPeaksResult()
-    for group in peak_candidate_groups.__root__:
+    for group_i, group in enumerate(peak_candidate_groups.__root__):
         fit_res.append(fit_peaks_model(spe,
                                        peak_candidates=group,
                                        model=model,
