@@ -149,12 +149,12 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
                      zip(bgm.means_, bgm.covariances_, bgm.weights_)]
         bgm_peaks = sorted(bgm_peaks, key=lambda x: x[2], reverse=True)
         integral = np.sum(y_arr)
+        n_peaks = (np.round(bgm.weights_, 2) > 0).sum()
+        bgm_peaks = bgm_peaks[:n_peaks]
 
         peak_list = list()
         for mean, sigma, weight in bgm_peaks:
-            if weight < np.max(bgm.weights_) * 1e-5:
-                break
-            peak_list.append(dict(amplitude=weight*integral,
+            peak_list.append(dict(amplitude=weight*integral*2/sigma,
                                   position=mean,
                                   sigma=sigma,
                                   ))
