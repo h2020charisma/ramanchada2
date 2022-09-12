@@ -2,10 +2,11 @@
 
 from typing import Literal, List, Union
 from collections import UserList
+import logging
 
 import numpy as np
 import pandas as pd
-from pydantic import validate_arguments, Field
+from pydantic import validate_arguments, PositiveFloat
 from lmfit.models import lmfit_models, LinearModel
 from lmfit.model import ModelResult, Parameters, Model
 
@@ -15,6 +16,8 @@ from ramanchada2.misc.types import (PeakCandidatesGroupModel,
                                     ListPeakCandidateGroupsModel)
 from ramanchada2.misc.plottable import Plottable
 from ..spectrum import Spectrum
+
+logger = logging.getLogger(__name__)
 
 
 class FitPeaksResult(UserList, Plottable):
@@ -27,6 +30,18 @@ class FitPeaksResult(UserList, Plottable):
     @property
     def locations(self):
         return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
+
+    @property
+    def centers(self):
+        return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
+
+    @property
+    def fwhms(self):
+        return [v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')]
+
+    @property
+    def amplitudes(self):
+        return [v for peak in self for k, v in peak.values.items() if k.endswith('amplitude')]
 
     def dumps(self):
         return [peak.dumps() for peak in self]
@@ -90,11 +105,9 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
         mod_list.append(lmfit_models[mod](name=f'p{i}', prefix=f'p{i}_'))
     fit_model = np.sum(mod_list)
 
+    n_sigma = 4
     if baseline_model == 'linear':
-        li_bounds = peak_candidates.left_base_idx_range(n_sigma=5, arr_len=len(spe.x))
-        ri_bounds = peak_candidates.right_base_idx_range(n_sigma=5, arr_len=len(spe.x))
-        li = np.argmin(spe.y[li_bounds[0]:li_bounds[1]]) + li_bounds[0]
-        ri = np.argmin(spe.y[ri_bounds[0]:ri_bounds[1]]) + ri_bounds[0]
+        li, ri = peak_candidates.boundaries_idx(n_sigma, x_arr=spe.x)
         xl = spe.x[li]
         yl = spe.y[li]
         xr = spe.x[ri]
@@ -102,7 +115,7 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
         slope = (yr-yl)/(xr-xl)
         intercept = -xl*slope + yl
     else:
-        slope = 1
+        slope = 0
         intercept = 0
 
     fit_params = fit_model.make_params()
@@ -110,11 +123,11 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
         fit_params['bl_slope'].set(value=slope)
         fit_params['bl_intercept'].set(value=intercept)
 
-    pos_ampl_sigma_base = peak_candidates.pos_ampl_sigma_base_peakidx()
-    for i, (mod, (x0, a, w, p, peak_i)) in enumerate(zip(model, pos_ampl_sigma_base)):
-        a = spe.y[peak_i] - (slope*x0 + intercept)
+    pos_ampl_sigma_base = peak_candidates.pos_ampl_sigma_base()
+    for i, (mod, (x0, a, w, p)) in enumerate(zip(model, pos_ampl_sigma_base)):
+        a = a - (slope*x0 + intercept)
         if a < 0:
-            a = spe.y[peak_i]
+            a = -a
         if mod == 'Moffat':
             fwhm_factor = 2.
             height_factor = 1.
@@ -159,7 +172,7 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
 def fit_peaks_model(spe: Spectrum, /, *,
                     model: Union[available_models_type, List[available_models_type]],
                     peak_candidates: PeakCandidatesGroupModel,
-                    n_sigma_trim: float = Field(5, gt=0),
+                    n_sigma_trim: PositiveFloat = 5,
                     baseline_model: Literal['linear', None] = None,
                     no_fit=False,
                     kwargs_fit={}
@@ -168,14 +181,28 @@ def fit_peaks_model(spe: Spectrum, /, *,
                                                model=model,
                                                peak_candidates=peak_candidates,
                                                baseline_model=baseline_model)
-    lb, rb = peak_candidates.boundaries_idx(n_sigma=n_sigma_trim, arr_len=len(spe.x))
-    rb -= 1
+    lb, rb = peak_candidates.boundaries_idx(n_sigma=n_sigma_trim, x_arr=spe.x)
+    if len(spe.x) < len(fit_model.param_names):
+        logger.warning('Not enought number of points in the spectrum')
+    if rb-lb < len(fit_model.param_names):
+        logger.warning(
+            'Number of data points is smaller than number of model parameters. Use bigger value for `n_sigma_trim`')
+    lb -= len(fit_model.param_names)//2 - 1
+    rb += len(fit_model.param_names)//2
+    if lb < 0:
+        rb += -lb
+        lb = 0
+    if rb >= len(spe.x):
+        lb -= rb - len(spe.x) + 1
+        rb = len(spe.x) - 1
+
     fitx = spe.x[lb:rb]
     fity = spe.y[lb:rb]
 
     for par in fit_params:
         if par.endswith('_center'):
             fit_params[par].set(min=spe.x[lb], max=spe.x[rb], vary=True)
+
     if no_fit:
         fit_tmp = fit_model.fit(fity, params=fit_params, x=fitx, **kwargs_fit, max_nfev=-1)
     else:
@@ -193,7 +220,7 @@ def fit_peak_groups(spe, /, *,
                     kwargs_fit={}
                     ):
     fit_res = FitPeaksResult()
-    for group in peak_candidate_groups.__root__:
+    for group_i, group in enumerate(peak_candidate_groups.__root__):
         fit_res.append(fit_peaks_model(spe,
                                        peak_candidates=group,
                                        model=model,
@@ -228,6 +255,9 @@ def fit_peaks_filter(
         kwargs_fit={},
         **kwargs,
         ):
+    """
+    Write fit result as metadata.
+    """
     cand_groups = ListPeakCandidateGroupsModel.validate(old_spe.result)
     new_spe.result = old_spe.fit_peak_groups(*args,  # type: ignore
                                              peak_candidate_groups=cand_groups,

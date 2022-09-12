@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
-from typing import Set, Union, Dict, List
+from typing import Set, Union, Dict, List, Tuple
 from copy import deepcopy
+import logging
 
 import numpy as np
 import numpy.typing as npt
@@ -16,6 +17,8 @@ from ramanchada2.misc.types.spectrum import (SpeProcessingListModel,
                                              SpeProcessingModel)
 from ramanchada2.io.HSDS import write_cha
 from ramanchada2.io.output.write_csv import write_csv as io_write_csv
+
+logger = logging.getLogger(__name__)
 
 
 class Spectrum(Plottable):
@@ -149,7 +152,19 @@ class Spectrum(Plottable):
     def result(self, res: Union[Dict, List]):
         return self.meta._update(dict(ramanchada2_filter_result=res))
 
-    def gen_samples(self, size):
-        spe_dist = rv_histogram((self.y, self.x_bin_boundaries))
+    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    def spe_distribution(self, trim_range: Tuple[float, float] = None):
+        x_all = self.x_bin_boundaries
+        if trim_range is not None:
+            l_idx = int(np.argmin(np.abs(x_all - trim_range[0])))
+            r_idx = int(np.argmin(np.abs(x_all - trim_range[1])))
+            spe_dist = rv_histogram((self.y[l_idx:r_idx], x_all[l_idx:r_idx+1]))
+        else:
+            spe_dist = rv_histogram((self.y, x_all))
+        return spe_dist
+
+    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    def gen_samples(self, size: pydantic.PositiveInt, trim_range=None):
+        spe_dist = self.spe_distribution(trim_range=trim_range)
         samps = spe_dist.rvs(size=size)
         return samps
