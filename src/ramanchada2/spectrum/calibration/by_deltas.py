@@ -46,21 +46,51 @@ class DeltaSpeModel:
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def calibrate_by_deltas_model(spe: Spectrum, /,
-                              deltas: Dict[float, float], convolution_steps: Union[None, List[float]] = [15, 1],
+                              deltas: Dict[float, float],
+                              convolution_steps: Union[None, List[float]] = [15, 1],
                               scale2=True, scale3=False, ax=None, **kwargs
                               ):
-    spe_padded = spe.pad_zeros()  # type: ignore
-    xl, *_, xr = np.nonzero(spe_padded.y)[0]
-    y1 = spe_padded.x[xl]
-    y2 = spe_padded.x[xr]
-    x1 = np.min(list(deltas.keys()))
-    x2 = np.max(list(deltas.keys()))
-    xx = x2 - x1
-    x1 -= xx * .15
-    x2 += xx * .15
+    """
+    - Builds a composite model based on a set of user specified delta lines.
+    - Initial guess is calculated based on 10-th and 90-th percentiles of
+      the distributions.
+
+    The phasespace of the model is flat with big amount of narrow minima.
+    In order to find the best fit, the experimental data are successively
+    convolved with gaussians with different widths startign from wide to
+    narrow. The model for the calibration is 3-th order polynomial, which
+    potentialy can be changed for higher order polynomial. In order to avoid
+    solving the inverse of the calibration function, the result is tabulated
+    and interpolated linarly for each bin of the spectrum.
+    """
+    mod = DeltaSpeModel(deltas)
+    spe_padded = spe
+
+    deltasx = np.array(list(deltas.keys()))
+
+    deltas_cs = np.cumsum(list(deltas.values()))
+    deltas_cs /= deltas_cs[-1]
+
+    deltas_idx10 = np.argmin(np.abs(deltas_cs-.1))
+    deltas_idx90 = np.argmin(np.abs(deltas_cs-.9))
+    x1, x2 = deltasx[[deltas_idx10, deltas_idx90]]
+
+    spe_cs = np.cumsum(
+        spe_padded.moving_average(50).subtract_moving_minimum(10).moving_average(5).y)  # type: ignore
+
+    spe_cs /= spe_cs[-1]
+    spe_idx10 = np.argmin(np.abs(spe_cs-.1))
+    spe_idx90 = np.argmin(np.abs(spe_cs-.9))
+    y1, y2 = spe_padded.x[[spe_idx10, spe_idx90]]
+
     scale = (y1-y2)/(x1-x2)
     shift = -scale * x1 + y1
-    mod = DeltaSpeModel(deltas, scale=scale, shift=shift)
+    gain = np.sum(spe.y)/np.sum(list(deltas.values()))
+    mod.params['scale'].set(value=scale)
+    mod.params['shift'].set(value=shift)
+    mod.params['gain'].set(value=gain)
+    mod.params['sigma'].set(value=2.5)
+
     if ax is not None:
         spe_padded.plot(ax=ax)
 
@@ -84,13 +114,25 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def calibrate_by_deltas_filter(old_spe: Spectrum,
                                new_spe: Spectrum, /,
-                               deltas: Dict[float, float], convolution_steps: List[float] = [15, 1, 0],
+                               deltas: Dict[float, float],
+                               convolution_steps,
                                **kwargs
                                ):
     mod, par = old_spe.calibrate_by_deltas_model(  # type: ignore
         deltas=deltas,
         convolution_steps=convolution_steps,
         **kwargs)
-    tmp_spe = old_spe.scale_xaxis_fun(lambda x: (x - par['shift'].value)/par['scale'].value)  # type: ignore
-    # par['scale2'].value*x**2 + par['scale3'].value*x**3)
-    new_spe.x = tmp_spe.x
+
+    deltasx = np.array(list(deltas.keys()))
+    dxl, dxr = deltasx[[0, -1]]
+    xl = dxl - (dxr - dxl)
+    xr = dxl + (dxr - dxl)
+    true_x = np.linspace(xl, xr, len(old_spe.x)*6)
+    meas_x = (par['shift'].value + true_x * par['scale'] +
+              true_x**2 * par['scale2'] + true_x**3 * par['scale3'])
+    x_cal = np.zeros_like(old_spe.x)
+    for i in range(len(old_spe.x)):
+        idx = np.argmax(meas_x > old_spe.x[i])
+        pt_rto = (old_spe.x[i] - meas_x[idx-1])/(meas_x[idx] - meas_x[idx-1])
+        x_cal[i] = (true_x[idx] - true_x[idx-1])*pt_rto + true_x[idx-1]
+    new_spe.x = x_cal
