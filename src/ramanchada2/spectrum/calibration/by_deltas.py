@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Literal
 import lmfit
 
 
@@ -48,7 +48,9 @@ class DeltaSpeModel:
 def calibrate_by_deltas_model(spe: Spectrum, /,
                               deltas: Dict[float, float],
                               convolution_steps: Union[None, List[float]] = [15, 1],
-                              scale2=True, scale3=False, ax=None, **kwargs
+                              scale2=True, scale3=False,
+                              init_guess: Literal[None, 'cumulative'] = None,
+                              ax=None, **kwargs
                               ):
     """
     - Builds a composite model based on a set of user specified delta lines.
@@ -66,25 +68,29 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
     mod = DeltaSpeModel(deltas)
     spe_padded = spe
 
-    deltasx = np.array(list(deltas.keys()))
+    if init_guess == 'cumulative':
+        deltasx = np.array(list(deltas.keys()))
 
-    deltas_cs = np.cumsum(list(deltas.values()))
-    deltas_cs /= deltas_cs[-1]
+        deltas_cs = np.cumsum(list(deltas.values()))
+        deltas_cs /= deltas_cs[-1]
 
-    deltas_idx10 = np.argmin(np.abs(deltas_cs-.1))
-    deltas_idx90 = np.argmin(np.abs(deltas_cs-.9))
-    x1, x2 = deltasx[[deltas_idx10, deltas_idx90]]
+        deltas_idx10 = np.argmin(np.abs(deltas_cs-.1))
+        deltas_idx90 = np.argmin(np.abs(deltas_cs-.9))
+        x1, x2 = deltasx[[deltas_idx10, deltas_idx90]]
 
-    spe_cs = np.cumsum(
-        spe_padded.moving_average(50).subtract_moving_minimum(10).moving_average(5).y)  # type: ignore
+        spe_cs = np.cumsum(
+            spe_padded.moving_average(50).subtract_moving_minimum(10).moving_average(5).y)  # type: ignore
 
-    spe_cs /= spe_cs[-1]
-    spe_idx10 = np.argmin(np.abs(spe_cs-.1))
-    spe_idx90 = np.argmin(np.abs(spe_cs-.9))
-    y1, y2 = spe_padded.x[[spe_idx10, spe_idx90]]
+        spe_cs /= spe_cs[-1]
+        spe_idx10 = np.argmin(np.abs(spe_cs-.1))
+        spe_idx90 = np.argmin(np.abs(spe_cs-.9))
+        y1, y2 = spe_padded.x[[spe_idx10, spe_idx90]]
 
-    scale = (y1-y2)/(x1-x2)
-    shift = -scale * x1 + y1
+        scale = (y1-y2)/(x1-x2)
+        shift = -scale * x1 + y1
+    else:
+        scale = 1
+        shift = 0
     gain = np.sum(spe.y)/np.sum(list(deltas.values()))
     mod.params['scale'].set(value=scale)
     mod.params['shift'].set(value=shift)
@@ -100,12 +106,12 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
 
     if scale2:
         mod.params['scale2'].set(vary=True, value=0)
-        mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
+        # mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
         mod.fit(spe_padded, sigma=0, ax=ax, **kwargs)
     if scale3:
         mod.params['scale2'].set(vary=True, value=0)
         mod.params['scale3'].set(vary=True, value=0)
-        mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
+        # mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
         mod.fit(spe_padded, sigma=0, ax=ax, **kwargs)
     return mod.model, mod.params
 
@@ -116,11 +122,13 @@ def calibrate_by_deltas_filter(old_spe: Spectrum,
                                new_spe: Spectrum, /,
                                deltas: Dict[float, float],
                                convolution_steps,
+                               init_guess=None,
                                **kwargs
                                ):
     mod, par = old_spe.calibrate_by_deltas_model(  # type: ignore
         deltas=deltas,
         convolution_steps=convolution_steps,
+        init_guess=init_guess,
         **kwargs)
 
     deltasx = np.array(list(deltas.keys()))
