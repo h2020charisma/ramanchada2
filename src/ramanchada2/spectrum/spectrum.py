@@ -102,7 +102,7 @@ class Spectrum(Plottable):
             **kwargs
         )
 
-    def sort_x(self):
+    def _sort_x(self):
         idx = np.argsort(self.x)
         self.x = self.x[idx]
         self.y = self.y[idx]
