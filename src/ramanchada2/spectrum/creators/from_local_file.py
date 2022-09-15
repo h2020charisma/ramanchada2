@@ -37,10 +37,12 @@ def from_local_file(
     elif filetype in {'txt', 'txtr', 'prn', 'rruf'}:
         with open(in_file_name) as fp:
             x, y, meta = read_txt(fp)
-            return Spectrum(x=x, y=y, metadata=meta)  # type: ignore
+            spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
     elif filetype in {'csv'}:
         with open(in_file_name) as fp:
             x, y, meta = read_csv(fp)
-            return Spectrum(x=x, y=y, metadata=meta)  # type: ignore
+            spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
     else:
         raise ValueError(f'filetype {filetype} not supported')
+    spe._sort_x()
+    return spe
