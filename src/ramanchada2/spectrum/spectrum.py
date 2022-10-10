@@ -39,8 +39,14 @@ class Spectrum(Plottable):
                 self.x = x
         if y is not None:
             self.y = y
-        self._cachefile = cachefile
 
+        sort_idx = np.argsort(self.x)
+        if (np.diff(sort_idx) != 1).any():
+            self.x = self.x[sort_idx]
+            if self.y is not None:
+                self.y = self.y[sort_idx]
+
+        self._cachefile = cachefile
         self._metadata = deepcopy(metadata or SpeMetadataModel(__root__={}))
         self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(__root__=[]))
 
@@ -131,6 +137,10 @@ class Spectrum(Plottable):
     def y(self, val: npt.NDArray[np.float64]):
         self._ydata = val
         self._ydata.flags.writeable = False
+
+    @property
+    def y_noise(self):
+        return np.std(np.sort(np.diff(self.y))[len(self.y)//4:len(self.y)*3//4])
 
     @property
     def x_err(self):

@@ -33,7 +33,17 @@ class FitPeaksResult(UserList, Plottable):
 
     @property
     def centers(self):
-        return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
+        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('center')])
+
+    @property
+    def centers_err(self):
+        return np.array([
+            (v.value, v.stderr)
+            for peak in self
+            for k, v in peak.params.items()
+            if k.endswith('center')
+            if hasattr(v, 'stderr') and v.stderr is not None
+            ])
 
     @property
     def fwhms(self):

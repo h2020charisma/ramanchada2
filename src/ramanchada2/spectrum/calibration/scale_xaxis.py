@@ -24,5 +24,6 @@ def scale_xaxis_linear(old_spe: Spectrum,
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def scale_xaxis_fun(old_spe: Spectrum,
                     new_spe: Spectrum, /,
-                    fun: Callable[[Union[int, npt.NDArray]], float]):
-    new_spe.x = fun(old_spe.x)
+                    fun: Callable[[Union[int, npt.NDArray]], float],
+                    args=[]):
+    new_spe.x = fun(old_spe.x, *args)

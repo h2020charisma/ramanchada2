@@ -35,7 +35,11 @@ def from_delta_lines(
     will produce spectrum with 1000 bins in the range [-1000, 2000)
     """
     if xcal is None:
-        x = np.arange(nbins, dtype=float)
+        dk = list(deltas.keys())
+        dkmin, dkmax = np.min(dk), np.max(dk)
+        dkmin -= (dkmax-dkmin) * .1
+        dkmax += (dkmax-dkmin) * .1
+        x = np.linspace(dkmin, dkmax, nbins, endpoint=False, dtype=float)
     else:
         x = np.linspace(xcal(0), xcal(nbins), nbins, endpoint=False)
     y = np.zeros_like(x)

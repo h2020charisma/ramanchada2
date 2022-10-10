@@ -32,11 +32,11 @@ def bayesian_gaussian_mixture(spe: Spectrum, /,
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def find_peaks_bayesian_gaussian(spe: Spectrum, /,
-                                 n_samples: PositiveInt = 5000,
+                                 n_samples: PositiveInt = 50000,
                                  n_components: PositiveInt = 50,
-                                 n_sigma_group: PositiveFloat = 5.,
-                                 max_iter: PositiveInt = 100,
-                                 moving_minimum_window: PositiveInt = None,
+                                 n_sigma_group: PositiveFloat = 3,
+                                 max_iter: PositiveInt = 1000,
+                                 moving_minimum_window: PositiveInt = 16,
                                  random_state=None,
                                  trim_range=None,
                                  ) -> PeakCandidatesGroupModel:

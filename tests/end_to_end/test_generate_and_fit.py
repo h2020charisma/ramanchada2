@@ -9,7 +9,7 @@ def test_generate_and_fit():
     spe = spe.add_baseline(n_freq=5, amplitude=3, pedestal=0, rng_seed=1111)
     spe = spe.add_poisson_noise(.0002, rng_seed=1111)
     spe = spe.scale_xaxis_fun(lambda x: x - shift)
-    candidates = spe.find_peak_groups(prominence=.1, n_sigma_group=0.001, wlen=50, moving_minimum_window=50)
+    candidates = spe.find_peak_groups(prominence=spe.y_noise*5, n_sigma_group=0.001, wlen=50, moving_minimum_window=50)
 
     true_pos = np.array(list(lines.keys()))
     calc_pos = [i for gr in candidates for i in gr.positions]
