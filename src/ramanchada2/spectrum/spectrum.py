@@ -7,7 +7,6 @@ import logging
 
 import numpy as np
 import numpy.typing as npt
-from uncertainties import unumpy
 import pydantic
 from scipy.stats import rv_histogram
 
@@ -114,7 +113,7 @@ class Spectrum(Plottable):
         self.y = self.y[idx]
 
     @property
-    def x(self): return unumpy.nominal_values(self._xdata)
+    def x(self): return np.array(self._xdata)
 
     @x.setter
     def x(self, val: npt.NDArray[np.float64]):
@@ -131,7 +130,7 @@ class Spectrum(Plottable):
 
     @property
     def y(self) -> npt.NDArray[np.float64]:
-        return unumpy.nominal_values(self._ydata)
+        return np.array(self._ydata)
 
     @y.setter
     def y(self, val: npt.NDArray[np.float64]):
