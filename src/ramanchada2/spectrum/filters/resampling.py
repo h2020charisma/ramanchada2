@@ -23,7 +23,7 @@ def resample_NUDFT(spe: Spectrum, /,
     x = x[(x >= x_range[0]) & (x < x_range[1])]
     x = (x-x_range[0])/(x_range[1]-x_range[0])*xnew_bins
     w = np.linspace(0, np.pi, (xnew_bins)//2+1)
-    Y_new = np.sum([yi*np.exp(-1j*w*xi)for xi, yi in zip(x, y)], axis=0)
+    Y_new = np.sum([yi*np.exp(-1j*w*xi) for xi, yi in zip(x, y)], axis=0)
     Y_new *= (window(len(Y_new)*2))[len(Y_new):]
     y_new = fft.irfft(Y_new, n=xnew_bins)
     x_new = np.linspace(x_range[0], x_range[1], xnew_bins)
