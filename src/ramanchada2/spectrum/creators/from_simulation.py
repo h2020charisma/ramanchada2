@@ -15,7 +15,7 @@ from ramanchada2.io.simulated import read_simulated_lines
 @add_spectrum_constructor()
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_simulation(in_file: Union[str, TextIOBase],
-                    sim_type: Literal['vasp', 'crystal_out', 'crystal_dat'],
+                    sim_type: Literal['vasp', 'crystal_out', 'crystal_dat', 'raw_dat'],
                     use: Literal['I_tot', 'I_perp', 'I_par',
                                  'I_xx', 'I_xy', 'I_xz',
                                  'I_yy', 'I_yz', 'I_zz'] = 'I_tot'
