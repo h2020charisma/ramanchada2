@@ -3,7 +3,6 @@
 from typing import Tuple, Dict
 
 import h5py
-import h5pyd
 import logging
 import numpy as np
 import numpy.typing as npt
@@ -46,14 +45,14 @@ def read_cha(filename: str,
 
 def filter_dataset(topdomain, domain, process_file, sample=None, wavelength=None, instrument=None,
                    provider=None, investigation=None, kwargs={}, h5module=None):
-    _h5 = h5module or h5pyd
+    _h5 = h5module or h5py
     with _h5.File(domain) as dataset:
         if (sample is not None) and (dataset["annotation_sample"].attrs["sample"] == sample):
             process_file(topdomain, domain, **kwargs)
 
 
 def visit_domain(topdomain="/", process_dataset=None, kwargs={}, h5module=None):
-    _h5 = h5module or h5pyd
+    _h5 = h5module or h5py
     if topdomain.endswith("/"):
         with _h5.Folder(topdomain) as domain:
             domain._getSubdomains()

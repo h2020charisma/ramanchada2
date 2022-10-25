@@ -9,7 +9,6 @@ setup(
         "numpy",
         "matplotlib",
         "h5py",
-        "h5pyd",
         "scipy>=1.8.0",
         "uncertainties",
         "pydantic",
