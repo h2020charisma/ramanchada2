@@ -15,5 +15,6 @@ setup(
         "lmfit",
         "pandas",
         "sklearn",
+        "pyhht",
     ],
 )
