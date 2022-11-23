@@ -48,7 +48,7 @@ def filter_dataset(topdomain, domain, process_file, sample=None, wavelength=None
     _h5 = h5module or h5py
     with _h5.File(domain) as dataset:
         if (sample is not None) and (dataset["annotation_sample"].attrs["sample"] == sample):
-            process_file(topdomain, domain, **kwargs,h5module)
+            process_file(topdomain, domain, h5module, **kwargs)
 
 
 def visit_domain(topdomain="/", process_dataset=None, kwargs={}, h5module=None):
