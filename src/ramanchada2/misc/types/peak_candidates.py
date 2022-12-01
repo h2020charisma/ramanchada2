@@ -13,6 +13,84 @@ from .pydantic_base_model import PydBaseModel
 from ..plottable import Plottable
 
 
+class PeakModel(PydBaseModel):
+    amplitude: PositiveFloat
+    position: float
+    sigma: PositiveFloat
+    skew: float = 0
+
+    @property
+    def fwhm(self) -> float:
+        return self.sigma * 2.355
+
+    @property
+    def lwhm(self) -> float:
+        """
+        Left width at half maximum.
+        """
+        return self.fwhm*(1-self.skew)/2
+
+    @property
+    def rwhm(self) -> float:
+        """
+        Right width at half maximum.
+        """
+        return self.fwhm*(1+self.skew)/2
+
+    def serialize(self):
+        self.json()
+
+
+class PeakCandidateMultiModel(PydBaseModel, Plottable):
+    peaks: List[PeakModel]
+    base_slope: float = 0
+    base_intercept: float = 0
+    boundaries: Tuple[float, float]
+
+    def plot_params_baseline(self):
+        x = np.array(self.boundaries)
+        return (x, self.base_slope*x + self.base_intercept)
+
+    def plot_params_errorbar(self):
+        x = self.positions
+        xleft = self.lwhms
+        xright = self.rwhms
+        y_err = (self.amplitudes/2)
+        y = y_err + self.peak_bases
+        return x, y, y_err, (xleft, xright)
+
+    @property
+    def positions(self):
+        return np.array([p.position for p in self.peaks])
+
+    @property
+    def lwhms(self):
+        return np.array([p.lwhm for p in self.peaks])
+
+    @property
+    def rwhms(self):
+        return np.array([p.rwhm for p in self.peaks])
+
+    @property
+    def amplitudes(self):
+        return np.array([p.amplitude for p in self.peaks])
+
+    @property
+    def bases(self):
+        return self.positions * self.base_slope + self.base_intercept
+
+    @property
+    def peak_bases(self):
+        return self.positions*self.base_slope + self.base_intercept
+
+    def _plot(self, ax, *args, label=" ", **kwargs):
+        ax.errorbar(*self.plot_params_errorbar(), label=label)
+        ax.plot(*self.plot_params_baseline())
+
+    def serialize(self):
+        self.json()
+
+
 class PeakCandidateModel(PydBaseModel, Plottable):
     base_slope: float = 0
     base_intercept: float = 0
@@ -89,6 +167,23 @@ class PeakCandidateModel(PydBaseModel, Plottable):
         self.json()
 
 
+class ListPeakCandidateMultiModel(PydBaseModel, Plottable):
+    __root__: List[PeakCandidateMultiModel]
+
+    def _plot(self, ax, *args, label=" ", **kwargs):
+        for i, gr in enumerate(self.__root__):
+            gr.plot(ax=ax, *args, label=f'{label}_{i}', **kwargs)
+
+    def __getitem__(self, key) -> PeakCandidatesGroupModel:
+        return self.__root__[key]
+
+    def __iter__(self):
+        return iter(self.__root__)
+
+    def serialize(self):
+        self.json()
+
+
 class PeakCandidatesGroupModel(PydBaseModel, Plottable):
     __root__: List[PeakCandidateModel]
 
@@ -102,6 +197,48 @@ class PeakCandidatesGroupModel(PydBaseModel, Plottable):
                         x_arr: npt.NDArray,
                         y_arr: npt.NDArray,
                         ):
+        def interpolate(x):
+            x1 = int(x)
+            x2 = x1 + 1
+            y1 = x_arr[x1]
+            y2 = x_arr[x2]
+            return (y2-y1)/(x2-x1)*(x-x1)+y1
+
+        peaks = arg[0]
+        properties = arg[1]
+        properties.update({'peak': peaks})
+        properties_pivot = [dict(zip(properties, i)) for i in zip(*properties.values())]
+
+        peak_list = list()
+        for prop in properties_pivot:
+            pos_maximum = x_arr[prop['peak']]
+            lwhm = pos_maximum - interpolate(prop['left_ips'])
+            rwhm = interpolate(prop['right_ips']) - pos_maximum
+            fwhm = lwhm + rwhm
+            sigma = fwhm/2.355
+
+            left_base_pos = x_arr[prop['left_bases']]
+            left_base_val = y_arr[prop['left_bases']]
+            right_base_pos = x_arr[prop['right_bases']]
+            right_base_val = y_arr[prop['right_bases']]
+
+            slope = (right_base_val - left_base_val)/(right_base_pos - left_base_pos)
+            intercept = -slope*left_base_pos + left_base_val
+            peak_list.append(dict(amplitude=prop['prominences'],
+                                  position=pos_maximum + (rwhm - lwhm)/4,
+                                  sigma=sigma,
+                                  skew=(rwhm-lwhm)/(rwhm+lwhm),
+                                  base_slope=slope,
+                                  base_intercept=intercept,
+                                  ))
+        return PeakCandidatesGroupModel.validate(peak_list)
+
+    @staticmethod
+    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    def from_find_peaks_hht(arg: Tuple[npt.NDArray, Dict[str, npt.NDArray]],
+                            x_arr: npt.NDArray,
+                            y_arr: npt.NDArray,
+                            ):
         def interpolate(x):
             x1 = int(x)
             x2 = x1 + 1

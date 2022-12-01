@@ -15,6 +15,8 @@ from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
 from ramanchada2.misc.types import (PeakCandidatesGroupModel,
                                     ListPeakCandidateGroupsModel)
 from ramanchada2.misc.plottable import Plottable
+from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel, PeakCandidateMultiModel
+
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
@@ -65,21 +67,31 @@ class FitPeaksResult(UserList, Plottable):
         return self
 
     def _plot(self, ax, peak_candidate_groups=None, individual_peaks=False, xarr=None, **kwargs):
-        for i, p in enumerate(self):
-            if peak_candidate_groups is None:
-                p0_cent = p.params['p0_center']
-                left, right = p0_cent.min, p0_cent.max
-            else:
-                left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
-            if xarr is None:
-                x = np.linspace(left, right, 100)
-            else:
-                x = xarr[(xarr >= left) & (xarr <= right)]
-            if individual_peaks:
-                for component in p.components:
-                    ax.plot(x, component.eval(x=x, params=p.params), **kwargs)
-            else:
-                ax.plot(x, p.eval(x=x), **kwargs)
+        if isinstance(peak_candidate_groups, ListPeakCandidateMultiModel):
+            for cand, fitres in zip(peak_candidate_groups, self):
+                x = np.linspace(*cand.boundaries, 200)
+                if individual_peaks:
+                    for component in fitres.components:
+                        ax.plot(x, component.eval(x=x, params=fitres.params), **kwargs)
+                else:
+                    ax.plot(x, fitres.eval(x=x), **kwargs)
+
+        else:
+            for i, p in enumerate(self):
+                if peak_candidate_groups is None:
+                    p0_cent = p.params['p0_center']
+                    left, right = p0_cent.min, p0_cent.max
+                else:
+                    left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
+                if xarr is None:
+                    x = np.linspace(left, right, 100)
+                else:
+                    x = xarr[(xarr >= left) & (xarr <= right)]
+                if individual_peaks:
+                    for component in p.components:
+                        ax.plot(x, component.eval(x=x, params=p.params), **kwargs)
+                else:
+                    ax.plot(x, p.eval(x=x), **kwargs)
 
     def to_dataframe(self):
         return pd.DataFrame(
@@ -98,8 +110,74 @@ available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'Ps
 
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
+def build_multipeak_model_params(profile: Union[available_models_type, List[available_models_type]],
+                                 candidates: PeakCandidateMultiModel,
+                                 baseline_model: Literal['linear', None] = 'linear',
+                                 ):
+    mod_list = list()
+    if baseline_model == 'linear':
+        mod_list.append(LinearModel(name='baseline', prefix='bl_'))
+    for peak_i, peak in enumerate(candidates.peaks):
+        mod_list.append(lmfit_models[profile](name=f'p{peak_i}', prefix=f'p{peak_i}_'))
+    fit_model = np.sum(mod_list)
+    fit_params = fit_model.make_params()
+    if baseline_model == 'linear':
+        fit_params['bl_slope'].set(value=candidates.base_slope, vary=False)
+        fit_params['bl_intercept'].set(value=candidates.base_intercept, vary=False)
+
+    for peak_i, peak in enumerate(candidates.peaks):
+        #fit_params[f'p{peak_i}_center'].set(value=peak.position, vary=True)
+        #fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+
+
+        if profile == 'Moffat':
+            fwhm_factor = 2.
+            height_factor = 2./peak.sigma**.5
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_beta'].set(value=1, min=1e-4, max=10)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+
+        elif profile == 'Voigt':
+            fwhm_factor = 3.6013
+            height_factor = 1/peak.sigma/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_gamma'].set(value=peak.sigma/fwhm_factor, vary=True)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        elif profile == 'PseudoVoigt':
+            fwhm_factor = lmfit_models[profile].fwhm_factor
+            height_factor = 1/np.pi/np.sqrt(peak.sigma)/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        elif profile == 'Pearson4':
+            fwhm_factor = 1
+            fit_params[f'p{peak_i}_height'].set(value=peak.amplitude)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        elif profile == 'Pearson7':
+            fwhm_factor = 1
+            height_factor = 1/2/peak.sigma
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        else:
+            fwhm_factor = lmfit_models[profile].fwhm_factor
+            height_factor = lmfit_models[profile].height_factor/peak.sigma/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+
+        fit_params[f'p{peak_i}_amplitude'].set(min=0)
+        fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
+        fit_params[f'p{peak_i}_height'].set(min=peak.amplitude*.1, max=peak.amplitude*20)
+        fit_params[f'p{peak_i}_center'].set(value=peak.position)
+
+    return fit_model, fit_params
+
+
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
 def build_model_params(spe, model: Union[available_models_type, List[available_models_type]],
-                       peak_candidates: PeakCandidatesGroupModel,
+                       peak_candidates: ListPeakCandidateGroupsModel,
                        baseline_model: Literal['linear', None] = None,
                        ):
     mod_list = list()
@@ -135,7 +213,7 @@ def build_model_params(spe, model: Union[available_models_type, List[available_m
 
     pos_ampl_sigma_base = peak_candidates.pos_ampl_sigma_base()
     for i, (mod, (x0, a, w, p)) in enumerate(zip(model, pos_ampl_sigma_base)):
-        a = a - (slope*x0 + intercept)
+        #a = a - (slope*x0 + intercept)
         if a < 0:
             a = -a
         if mod == 'Moffat':
@@ -239,6 +317,35 @@ def fit_peak_groups(spe, /, *,
                                        kwargs_fit=kwargs_fit,
                                        no_fit=no_fit,
                                        ))
+    return fit_res
+
+
+@add_spectrum_method
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def fit_peak_multimodel(spe, /, *,
+                        profile: Union[available_models_type, List[available_models_type]],
+                        candidates: ListPeakCandidateMultiModel,
+                        no_fit=False,
+                        kwargs_fit={}
+                        ):
+    if no_fit:
+        kwargs_fit = dict(kwargs_fit)
+        kwargs_fit['max_nfev'] = 1
+    fit_res = FitPeaksResult()
+    for group in candidates.__root__:
+        mod, par = build_multipeak_model_params(profile=profile, candidates=group)
+        idx = (group.boundaries[0] < spe.x) & (spe.x < group.boundaries[1])
+        x = spe.x[idx]
+        y = spe.y[idx]
+        for i in range(len(group.peaks)):
+            par[f'p{i}_center'].set(vary=False)
+        fr = mod.fit(y, x=x, params=par, **kwargs_fit)
+        for i in range(len(group.peaks)):
+            par[f'p{i}_center'].set(vary=True)
+        #par['bl_slope'].set(vary=True)
+        #par['bl_intercept'].set(vary=True)
+        fr = mod.fit(y, x=x, params=par, **kwargs_fit)
+        fit_res.append(fr)
     return fit_res
 
 
