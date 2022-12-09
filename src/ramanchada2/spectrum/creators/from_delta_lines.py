@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Dict, Callable
+from typing import Dict, Callable, Union
 
 import numpy as np
 from pydantic import validate_arguments, PositiveInt
@@ -13,7 +13,7 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def from_delta_lines(
         deltas: Dict[float, float],
-        xcal: Callable[[float], float] = None,
+        xcal: Union[Callable[[float], float], None] = None,
         nbins: PositiveInt = 2000,
         **kwargs
         ):

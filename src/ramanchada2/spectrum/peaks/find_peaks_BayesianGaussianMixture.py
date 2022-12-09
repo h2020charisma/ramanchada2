@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from typing import Union
+
 from pydantic import validate_arguments, PositiveFloat, PositiveInt
 from sklearn.mixture import BayesianGaussianMixture
 
@@ -14,7 +16,7 @@ def bayesian_gaussian_mixture(spe: Spectrum, /,
                               n_samples: PositiveInt = 5000,
                               n_components: PositiveInt = 50,
                               max_iter: PositiveInt = 100,
-                              moving_minimum_window: PositiveInt = None,
+                              moving_minimum_window: Union[PositiveInt, None] = None,
                               random_state=None,
                               trim_range=None,
                               ) -> PeakCandidatesGroupModel:
