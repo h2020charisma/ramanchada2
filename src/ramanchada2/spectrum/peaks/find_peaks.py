@@ -45,8 +45,8 @@ def find_peak_groups(
         wlen=None,
         width: Union[int, Tuple[int, int]] = 1,
         n_sigma_group: PositiveFloat = 5.,
-        moving_minimum_window: PositiveInt = None,
-        kw_derivative_sharpening: Dict = None,
+        moving_minimum_window: Union[PositiveInt, None] = None,
+        kw_derivative_sharpening: Union[Dict, None] = None,
         ) -> List[PeakCandidatesGroupModel]:
     if moving_minimum_window is not None:
         spe = spe.subtract_moving_minimum(moving_minimum_window)  # type: ignore

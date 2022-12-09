@@ -14,7 +14,7 @@ setup(
         "pydantic",
         "lmfit",
         "pandas",
-        "sklearn",
+        "scikit-learn",
         "pyhht",
     ],
 )

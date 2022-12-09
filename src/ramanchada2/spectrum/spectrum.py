@@ -28,8 +28,8 @@ class Spectrum(Plottable):
                  x: Union[npt.NDArray, int, None] = None,
                  y: Union[npt.NDArray, None] = None,
                  cachefile: str = '',
-                 metadata: SpeMetadataModel = None,
-                 applied_processings: SpeProcessingListModel = None):
+                 metadata: Union[SpeMetadataModel, None] = None,
+                 applied_processings: Union[SpeProcessingListModel, None] = None):
         super(Plottable, self).__init__()
         if x is not None:
             if isinstance(x, int):
@@ -162,7 +162,7 @@ class Spectrum(Plottable):
         return self.meta._update(dict(ramanchada2_filter_result=res))
 
     @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
-    def spe_distribution(self, trim_range: Tuple[float, float] = None):
+    def spe_distribution(self, trim_range: Union[Tuple[float, float], None] = None):
         x_all = self.x_bin_boundaries
         if trim_range is not None:
             l_idx = int(np.argmin(np.abs(x_all - trim_range[0])))
