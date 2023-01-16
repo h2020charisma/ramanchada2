@@ -16,5 +16,6 @@ setup(
         "pandas",
         "scikit-learn",
         "pyhht",
+        "statsmodels",
     ],
 )
