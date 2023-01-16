@@ -60,7 +60,7 @@ def hht_sharpening_chain(old_spe: Spectrum,
                          new_spe: Spectrum, /,
                          movmin: List[PositiveInt] = [150, 50]
                          ):
-    spe = new_spe
+    spe = old_spe
     for mm in movmin:
         spe = spe.hht_sharpening(movmin=mm)  # type: ignore
     new_spe.y = spe.y
