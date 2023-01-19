@@ -2,12 +2,11 @@
 
 from typing import Union
 
-from pydantic import validate_arguments, PositiveFloat, PositiveInt
+from pydantic import validate_arguments, PositiveInt
 from sklearn.mixture import BayesianGaussianMixture
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import add_spectrum_method
-#from ramanchada2.misc.types import PeakCandidatesGroupModel
 
 
 @add_spectrum_method
@@ -29,35 +28,3 @@ def bayesian_gaussian_mixture(spe: Spectrum, /,
                                   max_iter=max_iter
                                   ).fit(X)
     return bgm
-
-
-'''
-@add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
-def find_peaks_bayesian_gaussian(spe: Spectrum, /,
-                                 n_samples: PositiveInt = 50000,
-                                 n_components: PositiveInt = 50,
-                                 n_sigma_group: PositiveFloat = 3,
-                                 max_iter: PositiveInt = 1000,
-                                 moving_minimum_window: PositiveInt = 16,
-                                 random_state=None,
-                                 trim_range=None,
-                                 ) -> PeakCandidatesGroupModel:
-    bgm = spe.bayesian_gaussian_mixture(n_samples=n_samples,  # type: ignore
-                                        n_components=n_components,
-                                        max_iter=max_iter,
-                                        moving_minimum_window=moving_minimum_window,
-                                        random_state=random_state,
-                                        trim_range=trim_range)
-
-    x = spe.x
-    y = spe.y
-    if trim_range is not None:
-        trims = (x > trim_range[0]) & (x < trim_range[1])
-        x = x[trims]
-        y = y[trims]
-    return PeakCandidatesGroupModel.from_find_peaks_bayesian_gaussian_mixture(
-        bgm, x_arr=x, y_arr=y
-        ).group_neighbours(n_sigma=n_sigma_group)
-
-'''
