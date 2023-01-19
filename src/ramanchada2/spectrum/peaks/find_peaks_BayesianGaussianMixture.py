@@ -7,7 +7,7 @@ from sklearn.mixture import BayesianGaussianMixture
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import add_spectrum_method
-from ramanchada2.misc.types import PeakCandidatesGroupModel
+#from ramanchada2.misc.types import PeakCandidatesGroupModel
 
 
 @add_spectrum_method
@@ -19,7 +19,7 @@ def bayesian_gaussian_mixture(spe: Spectrum, /,
                               moving_minimum_window: Union[PositiveInt, None] = None,
                               random_state=None,
                               trim_range=None,
-                              ) -> PeakCandidatesGroupModel:
+                              ):
     if moving_minimum_window is not None:
         spe = spe.subtract_moving_minimum(moving_minimum_window)  # type: ignore
     samp = spe.gen_samples(size=n_samples, trim_range=trim_range)
@@ -31,6 +31,7 @@ def bayesian_gaussian_mixture(spe: Spectrum, /,
     return bgm
 
 
+'''
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def find_peaks_bayesian_gaussian(spe: Spectrum, /,
@@ -58,3 +59,5 @@ def find_peaks_bayesian_gaussian(spe: Spectrum, /,
     return PeakCandidatesGroupModel.from_find_peaks_bayesian_gaussian_mixture(
         bgm, x_arr=x, y_arr=y
         ).group_neighbours(n_sigma=n_sigma_group)
+
+'''

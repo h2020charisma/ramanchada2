@@ -12,8 +12,7 @@ from lmfit.model import ModelResult, Parameters, Model
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
-from ramanchada2.misc.types import (PeakCandidatesGroupModel,
-                                    ListPeakCandidateGroupsModel)
+#from ramanchada2.misc.types import (PeakCandidatesGroupModel, ListPeakCandidateGroupsModel)
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel, PeakCandidateMultiModel
 
@@ -36,6 +35,20 @@ class FitPeaksResult(UserList, Plottable):
     @property
     def centers(self):
         return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('center')])
+
+    @property
+    def fwhm(self):
+        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')])
+
+    def boundaries(self, n_sigma=5):
+        bounds = list()
+        for group in self:
+            pos = np.array([v for k, v in group.values.items() if k.endswith('center')])
+            sig = np.array([v for k, v in group.values.items() if k.endswith('fwhm')])
+            sig /= 2.35
+            sig *= n_sigma
+            bounds.append((np.min(pos - sig), np.max(pos+sig)))
+        return bounds
 
     @property
     def centers_err(self):
@@ -67,31 +80,28 @@ class FitPeaksResult(UserList, Plottable):
         return self
 
     def _plot(self, ax, peak_candidate_groups=None, individual_peaks=False, xarr=None, **kwargs):
-        if isinstance(peak_candidate_groups, ListPeakCandidateMultiModel):
-            for cand, fitres in zip(peak_candidate_groups, self):
-                x = np.linspace(*cand.boundaries, 200)
-                if individual_peaks:
-                    for component in fitres.components:
-                        ax.plot(x, component.eval(x=x, params=fitres.params), **kwargs)
-                else:
-                    ax.plot(x, fitres.eval(x=x), **kwargs)
+        def group_plot(x, fitres):
+            if individual_peaks:
+                color = None
+                for component in fitres.components:
+                    line, = ax.plot(x, component.eval(x=x, params=fitres.params), color=color, **kwargs)
+                    color = line.get_c()
+            else:
+                ax.plot(x, fitres.eval(x=x), **kwargs)
 
+        if peak_candidate_groups is None:
+            for bound, fitres in zip(self.boundaries(), self):
+                x = np.linspace(*bound, 200)
+                group_plot(x, fitres)
+        elif isinstance(peak_candidate_groups, ListPeakCandidateMultiModel):
+            for cand, fitres in zip(peak_candidate_groups, self):
+                x = np.linspace(*cand.boundaries, 2000)
+                group_plot(x, fitres)
         else:
-            for i, p in enumerate(self):
-                if peak_candidate_groups is None:
-                    p0_cent = p.params['p0_center']
-                    left, right = p0_cent.min, p0_cent.max
-                else:
-                    left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
-                if xarr is None:
-                    x = np.linspace(left, right, 100)
-                else:
-                    x = xarr[(xarr >= left) & (xarr <= right)]
-                if individual_peaks:
-                    for component in p.components:
-                        ax.plot(x, component.eval(x=x, params=p.params), **kwargs)
-                else:
-                    ax.plot(x, p.eval(x=x), **kwargs)
+            for i, fitres in enumerate(self):
+                left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
+                x = np.linspace(left, right, 100)
+                group_plot(x, fitres)
 
     def to_dataframe(self):
         return pd.DataFrame(
@@ -109,72 +119,8 @@ class FitPeaksResult(UserList, Plottable):
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
-def build_multipeak_model_params(profile: Union[available_models_type, List[available_models_type]],
-                                 candidates: PeakCandidateMultiModel,
-                                 baseline_model: Literal['linear', None] = 'linear',
-                                 ):
-    mod_list = list()
-    if baseline_model == 'linear':
-        mod_list.append(LinearModel(name='baseline', prefix='bl_'))
-    for peak_i, peak in enumerate(candidates.peaks):
-        mod_list.append(lmfit_models[profile](name=f'p{peak_i}', prefix=f'p{peak_i}_'))
-    fit_model = np.sum(mod_list)
-    fit_params = fit_model.make_params()
-    if baseline_model == 'linear':
-        fit_params['bl_slope'].set(value=candidates.base_slope, vary=False)
-        fit_params['bl_intercept'].set(value=candidates.base_intercept, vary=False)
 
-    for peak_i, peak in enumerate(candidates.peaks):
-        #fit_params[f'p{peak_i}_center'].set(value=peak.position, vary=True)
-        #fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
-
-
-        if profile == 'Moffat':
-            fwhm_factor = 2.
-            height_factor = 2./peak.sigma**.5
-            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
-            fit_params[f'p{peak_i}_beta'].set(value=1, min=1e-4, max=10)
-            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
-
-        elif profile == 'Voigt':
-            fwhm_factor = 3.6013
-            height_factor = 1/peak.sigma/2
-            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
-            fit_params[f'p{peak_i}_gamma'].set(value=peak.sigma/fwhm_factor, vary=True)
-            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
-
-        elif profile == 'PseudoVoigt':
-            fwhm_factor = lmfit_models[profile].fwhm_factor
-            height_factor = 1/np.pi/np.sqrt(peak.sigma)/2
-            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
-            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
-
-        elif profile == 'Pearson4':
-            fwhm_factor = 1
-            fit_params[f'p{peak_i}_height'].set(value=peak.amplitude)
-            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
-
-        elif profile == 'Pearson7':
-            fwhm_factor = 1
-            height_factor = 1/2/peak.sigma
-            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
-            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
-
-        else:
-            fwhm_factor = lmfit_models[profile].fwhm_factor
-            height_factor = lmfit_models[profile].height_factor/peak.sigma/2
-            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
-            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
-
-        fit_params[f'p{peak_i}_amplitude'].set(min=0)
-        fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
-        fit_params[f'p{peak_i}_height'].set(min=peak.amplitude*.1, max=peak.amplitude*20)
-        fit_params[f'p{peak_i}_center'].set(value=peak.position)
-
-    return fit_model, fit_params
-
-
+'''
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def build_model_params(spe, model: Union[available_models_type, List[available_models_type]],
                        peak_candidates: ListPeakCandidateGroupsModel,
@@ -319,6 +265,73 @@ def fit_peak_groups(spe, /, *,
                                        ))
     return fit_res
 
+'''
+
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def build_multipeak_model_params(profile: Union[available_models_type, List[available_models_type]],
+                                 candidates: PeakCandidateMultiModel,
+                                 baseline_model: Literal['linear', None] = 'linear',
+                                 ):
+    mod_list = list()
+    if baseline_model == 'linear':
+        mod_list.append(LinearModel(name='baseline', prefix='bl_'))
+    for peak_i, peak in enumerate(candidates.peaks):
+        mod_list.append(lmfit_models[profile](name=f'p{peak_i}', prefix=f'p{peak_i}_'))
+    fit_model = np.sum(mod_list)
+    fit_params = fit_model.make_params()
+    if baseline_model == 'linear':
+        fit_params['bl_slope'].set(value=candidates.base_slope, vary=False)
+        fit_params['bl_intercept'].set(value=candidates.base_intercept, vary=False)
+
+    for peak_i, peak in enumerate(candidates.peaks):
+        #fit_params[f'p{peak_i}_center'].set(value=peak.position, vary=True)
+        #fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+
+
+        if profile == 'Moffat':
+            fwhm_factor = 2.
+            height_factor = 2./peak.sigma**.5
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_beta'].set(value=1, min=1e-4, max=10)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+
+        elif profile == 'Voigt':
+            fwhm_factor = 3.6013
+            height_factor = 1/peak.sigma/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_gamma'].set(value=peak.sigma/fwhm_factor, vary=True)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        elif profile == 'PseudoVoigt':
+            fwhm_factor = lmfit_models[profile].fwhm_factor
+            height_factor = 1/np.pi/np.sqrt(peak.sigma)/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        elif profile == 'Pearson4':
+            fwhm_factor = 1
+            fit_params[f'p{peak_i}_height'].set(value=peak.amplitude)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        elif profile == 'Pearson7':
+            fwhm_factor = 1
+            height_factor = 1/2/peak.sigma
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+
+        else:
+            fwhm_factor = lmfit_models[profile].fwhm_factor
+            height_factor = lmfit_models[profile].height_factor/peak.sigma/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+
+        fit_params[f'p{peak_i}_amplitude'].set(min=0)
+        fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
+        fit_params[f'p{peak_i}_height'].set(min=peak.amplitude*.1, max=peak.amplitude*20)
+        fit_params[f'p{peak_i}_center'].set(value=peak.position)
+
+    return fit_model, fit_params
+
 
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
@@ -327,7 +340,7 @@ def fit_peak_multimodel(spe, /, *,
                         candidates: ListPeakCandidateMultiModel,
                         no_fit=False,
                         kwargs_fit={}
-                        ):
+                        ) -> FitPeaksResult():
     if no_fit:
         kwargs_fit = dict(kwargs_fit)
         kwargs_fit['max_nfev'] = 1
@@ -349,6 +362,7 @@ def fit_peak_multimodel(spe, /, *,
     return fit_res
 
 
+'''
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def fit_peaks(spe, /, *,
@@ -380,3 +394,5 @@ def fit_peaks_filter(
                                              peak_candidate_groups=cand_groups,
                                              kwargs_fit=kwargs_fit,
                                              **kwargs).dumps()
+
+'''

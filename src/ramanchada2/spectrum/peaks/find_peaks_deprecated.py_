@@ -8,9 +8,8 @@ from pydantic import validate_arguments, PositiveFloat, PositiveInt
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
-#from ramanchada2.misc.types import PeakCandidatesGroupModel
+from ramanchada2.misc.types import PeakCandidatesGroupModel
 
-'''
 
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
@@ -69,7 +68,6 @@ def find_peaks_filter(
     res = old_spe.find_peak_groups(*args, **kwargs)  # type: ignore
     new_spe.result = res.dict()['__root__']
 
-'''
 
 
 
