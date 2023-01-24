@@ -48,7 +48,6 @@ def find_peak_multipeak(
         sharpening: Union[Literal['hht'], None] = 'hht',
         strategy: Literal['topo', 'bayesian_gaussian_mixture', 'bgm'] = 'topo'
         ) -> ListPeakCandidateMultiModel:
-    spe = spe.normalize()  # type: ignore
 
     if prominence is None:
         prominence = spe.y_noise*10
