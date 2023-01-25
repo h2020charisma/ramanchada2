@@ -145,3 +145,6 @@ Session.vim
 
 # vscode
 .vscode/
+
+# VS Studio
+.vs/
