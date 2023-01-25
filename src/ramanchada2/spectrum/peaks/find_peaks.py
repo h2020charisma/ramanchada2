@@ -50,7 +50,7 @@ def find_peak_multipeak(
         ) -> ListPeakCandidateMultiModel:
 
     if prominence is None:
-        prominence = spe.y_noise*10
+        prominence = spe.y_noise*15
     if wlen is None:
         wlen = 50
     if width is None:
@@ -74,6 +74,7 @@ def find_peak_multipeak(
         return (y2-y1)/(x2-x1)*(x-x1)+y1
 
     boundaries = peak_boundaries(spe, prominence=prominence, width=width, wlen=wlen)
+    boundaries = [(li, ri) for li, ri in boundaries if (ri-li) > 4]
 
     peaks, props = signal.find_peaks(y_arr,
                                      prominence=prominence,
