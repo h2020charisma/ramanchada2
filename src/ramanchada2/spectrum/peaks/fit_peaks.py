@@ -18,6 +18,7 @@ from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel, 
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
+available_models = ['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 
 

@@ -51,7 +51,8 @@ def hht_sharpening(old_spe: Spectrum,
     imfsall *= freq**.5
     ynew = np.sum(imfsall, axis=0)
     new_spe.y = np.pad(ynew, 1)
-    new_spe.y = new_spe.subtract_moving_minimum(movmin).y  # type: ignore
+    new_spe.y = new_spe.subtract_moving_minimum(movmin).normalize().y  # type: ignore
+    new_spe.y = new_spe.y * old_spe.y.max() + old_spe.y.min()
 
 
 @add_spectrum_filter
