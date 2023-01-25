@@ -31,7 +31,7 @@ source .venv/bin/activate # activate the virtual environment
 Ramanchada package and all dependencies can be installed by runing:
 
 ```bash
-pip install -r requirements.txt # install development environment
+pip install -r requirements-dev.txt # install development environment
 hash -r # make sure the newly created environment is in use
 ```
 
