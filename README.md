@@ -7,13 +7,22 @@ Harmonising Raman Spectroscopy
 RamanChada v2
 --------------
 
-Clone the repo and go inside
+Clone the repo via
 ```bash
+git clone https://github.com/h2020charisma/ramanchada2.git
+```
+or by
+```
 git clone git@github.com:h2020charisma/ramanchada2.git
+```
+
+
+and go inside
+```bash
 cd ramanchada2 #make sure you are in ramanchada2 directory
 ```
 
-Create a virtual environment
+Make sure you have virtualenv module and create a virtual environment
 ```bash
 virtualenv .venv # create virtual environment
 source .venv/bin/activate # activate the virtual environment
