@@ -2,6 +2,7 @@
 
 from typing import Callable, Union
 
+import numpy as np
 import numpy.typing as npt
 from pydantic import validate_arguments
 
@@ -27,3 +28,5 @@ def scale_xaxis_fun(old_spe: Spectrum,
                     fun: Callable[[Union[int, npt.NDArray]], float],
                     args=[]):
     new_spe.x = fun(old_spe.x, *args)
+    if (np.diff(new_spe.x) < 0).any():
+        raise ValueError('The provided function is not a monoton increasing funciton.')
