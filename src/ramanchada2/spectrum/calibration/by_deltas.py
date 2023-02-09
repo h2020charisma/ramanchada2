@@ -4,10 +4,11 @@ import lmfit
 
 
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_arguments, PositiveInt
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
 from ..spectrum import Spectrum
+from ...misc import utils as rc2utils
 
 
 class DeltaSpeModel:
@@ -64,6 +65,7 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
     potentialy can be changed for higher order polynomial. In order to avoid
     solving the inverse of the calibration function, the result is tabulated
     and interpolated linarly for each bin of the spectrum.
+    This alogrithm is useful for corse calibration.
     """
     mod = DeltaSpeModel(deltas)
     spe_padded = spe
@@ -144,3 +146,29 @@ def calibrate_by_deltas_filter(old_spe: Spectrum,
         pt_rto = (old_spe.x[i] - meas_x[idx-1])/(meas_x[idx] - meas_x[idx-1])
         x_cal[i] = (true_x[idx] - true_x[idx-1])*pt_rto + true_x[idx-1]
     new_spe.x = x_cal
+
+
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def xcal_fine(old_spe: Spectrum,
+              new_spe: Spectrum, /, *,
+              ref: Union[Dict[float, float], List[float]],
+              poly_order: PositiveInt,
+              ):
+
+    if isinstance(ref, dict):
+        ref_pos = np.array(list(ref.keys()))
+    else:
+        ref_pos = np.array(ref)
+
+    spe_pos_dict = old_spe.fit_peak_positions(center_err_threshold=1)  # type: ignore
+    spe_cent = np.array(list(spe_pos_dict.keys()))
+
+    def cal_func(x, *a):
+        return [par*(x/1000)**power for power, par in enumerate(a)]
+
+    p0 = np.resize([0, 1000, 0], poly_order + 1)
+    p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func)
+    spe_cal = old_spe.scale_xaxis_fun(  # type: ignore
+        (lambda x, *args: np.sum(cal_func(x, *args), axis=0)), args=p)
+    new_spe.x = spe_cal.x

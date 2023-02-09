@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
+import re
 from typing import Literal, List, Union
-from collections import UserList
+from collections import UserList, defaultdict
 import logging
 
 import numpy as np
@@ -31,7 +32,7 @@ class FitPeaksResult(UserList, Plottable):
 
     @property
     def locations(self):
-        return [v for peak in self for k, v in peak.values.items() if k.endswith('center')]
+        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('center')])
 
     @property
     def centers(self):
@@ -51,6 +52,15 @@ class FitPeaksResult(UserList, Plottable):
             bounds.append((np.min(pos - sig), np.max(pos+sig)))
         return bounds
 
+    def center_amplitude(self, threshold):
+        return np.array([
+            (v.value, peak.params[k[:-6] + 'amplitude'].value)
+            for peak in self
+            for k, v in peak.params.items()
+            if k.endswith('center')
+            if hasattr(v, 'stderr') and v.stderr is not None and v.stderr < threshold
+        ]).T
+
     @property
     def centers_err(self):
         return np.array([
@@ -63,11 +73,11 @@ class FitPeaksResult(UserList, Plottable):
 
     @property
     def fwhms(self):
-        return [v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')]
+        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')])
 
     @property
     def amplitudes(self):
-        return [v for peak in self for k, v in peak.values.items() if k.endswith('amplitude')]
+        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('amplitude')])
 
     def dumps(self):
         return [peak.dumps() for peak in self]
@@ -113,8 +123,21 @@ class FitPeaksResult(UserList, Plottable):
             ]
         ).sort_values('name')
 
+    def to_dataframe_peaks(self):
+        regex = re.compile(r'p([0-1]+)_(.*)')
+        ret = defaultdict(dict)
+        for group_i, group in enumerate(self):
+            for par in group.params:
+                m = regex.match(par)
+                if m is None:
+                    continue
+                peak_i, par_name = m.groups()
+                ret[f'g{group_i:02d}_p{peak_i}'][par_name] = group.params[par].value
+                ret[f'g{group_i:02d}_p{peak_i}'][f'{par_name}_stderr'] = group.params[par].stderr
+        return pd.DataFrame.from_dict(ret, orient='index')
+
     def to_csv(self, path_or_buf=None, sep=',', **kwargs):
-        return self.to_dataframe().to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
+        return self.to_dataframe_peaks().to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
 
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
