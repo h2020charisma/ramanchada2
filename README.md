@@ -71,3 +71,5 @@ mamba env update -f environment.yml
 conda activate ramanchada2
 jupyter notebook
 ```
+---
+🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under [grant agreement No. 952921](https://cordis.europa.eu/project/id/952921).
