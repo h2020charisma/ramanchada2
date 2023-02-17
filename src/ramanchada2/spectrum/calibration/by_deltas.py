@@ -4,7 +4,7 @@ import lmfit
 
 
 import numpy as np
-from pydantic import validate_arguments, PositiveInt
+from pydantic import validate_arguments, NonNegativeInt
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
 from ..spectrum import Spectrum
@@ -153,7 +153,7 @@ def calibrate_by_deltas_filter(old_spe: Spectrum,
 def xcal_fine(old_spe: Spectrum,
               new_spe: Spectrum, /, *,
               ref: Union[Dict[float, float], List[float]],
-              poly_order: PositiveInt,
+              poly_order: NonNegativeInt,
               ):
 
     if isinstance(ref, dict):

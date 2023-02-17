@@ -106,5 +106,8 @@ class ListPeakCandidateMultiModel(PydBaseModel, Plottable):
     def __iter__(self):
         return iter(self.__root__)
 
+    def __len__(self):
+        return len(self.__root__)
+
     def serialize(self):
         self.json()
