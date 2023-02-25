@@ -25,7 +25,10 @@ cd ramanchada2  # make sure you are in ramanchada2 directory
 Make sure you have virtualenv module and create a virtual environment
 ```bash
 virtualenv .venv  # create virtual environment
-source .venv/bin/activate  # activate the virtual environment
+
+# activate the virtual environment
+source .venv/bin/activate  # on linux
+.venv\Scripts\activate  # on windows
 ```
 
 Ramanchada package and all dependencies can be installed by runing:
