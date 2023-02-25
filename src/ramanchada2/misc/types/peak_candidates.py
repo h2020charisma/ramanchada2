@@ -62,6 +62,14 @@ class PeakCandidateMultiModel(PydBaseModel, Plottable):
         return np.array([p.position for p in self.peaks])
 
     @property
+    def sigmas(self):
+        return np.array([p.sigma for p in self.peaks])
+
+    @property
+    def fwhms(self):
+        return np.array([p.fwhm for p in self.peaks])
+
+    @property
     def lwhms(self):
         return np.array([p.lwhm for p in self.peaks])
 
@@ -81,6 +89,15 @@ class PeakCandidateMultiModel(PydBaseModel, Plottable):
     def bases(self):
         return self.positions * self.base_slope + self.base_intercept
 
+    def get_pos_ampl_dict(self):
+        return dict(zip(self.positions, self.amplitudes))
+
+    def get_ampl_pos_fwhm(self):
+        return np.array([
+            self.amplitudes,
+            self.positions,
+            self.fwhms]).T
+
     @property
     def peak_bases(self):
         return self.positions * self.base_slope + self.base_intercept
@@ -95,6 +112,12 @@ class PeakCandidateMultiModel(PydBaseModel, Plottable):
 
 class ListPeakCandidateMultiModel(PydBaseModel, Plottable):
     __root__: List[PeakCandidateMultiModel]
+
+    def get_ampl_pos_fwhm(self):
+        return np.concatenate([cands.get_ampl_pos_fwhm() for cands in self.__root__])
+
+    def get_pos_ampl_dict(self):
+        return {k: v for cands in self.__root__ for k, v in cands.get_pos_ampl_dict().items()}
 
     def _plot(self, ax, *args, label=" ", **kwargs):
         for i, gr in enumerate(self.__root__):
