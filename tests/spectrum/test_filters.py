@@ -6,8 +6,8 @@ import ramanchada2 as rc2
 
 def test_recover_spikes():
     spe = rc2.spectrum.from_delta_lines(deltas={100: 100, 500: 400, 3000: 300}).convolve('gaussian', sigma=2)
-    spe = spe.add_baseline(n_freq=30, amplitude=2, pedestal=30)
-    spe = spe.add_poisson_noise(.1)
+    spe = spe.add_baseline(n_freq=30, amplitude=2, pedestal=30, rng_seed=9999)
+    spe = spe.add_poisson_noise(.1, rng_seed=9999)
     spe_bad = spe.__copy__()
     y = spe_bad.y[:]
     y[300] = 0
