@@ -4,7 +4,7 @@ import lmfit
 
 
 import numpy as np
-from pydantic import validate_arguments, PositiveInt
+from pydantic import validate_arguments, NonNegativeInt
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
 from ..spectrum import Spectrum
@@ -153,7 +153,9 @@ def calibrate_by_deltas_filter(old_spe: Spectrum,
 def xcal_fine(old_spe: Spectrum,
               new_spe: Spectrum, /, *,
               ref: Union[Dict[float, float], List[float]],
-              poly_order: PositiveInt,
+              should_fit=False,
+              poly_order: NonNegativeInt,
+              find_peaks_kw={},
               ):
 
     if isinstance(ref, dict):
@@ -161,14 +163,23 @@ def xcal_fine(old_spe: Spectrum,
     else:
         ref_pos = np.array(ref)
 
-    spe_pos_dict = old_spe.fit_peak_positions(center_err_threshold=1)  # type: ignore
+    if should_fit:
+        spe_pos_dict = old_spe.fit_peak_positions(center_err_threshold=1, find_peaks_kw=find_peaks_kw)  # type: ignore
+    else:
+        find_kw = dict(sharpening=None)
+        find_kw.update(find_peaks_kw)
+        spe_pos_dict = old_spe.find_peak_multipeak(**find_kw).get_pos_ampl_dict()  # type: ignore
     spe_cent = np.array(list(spe_pos_dict.keys()))
 
-    def cal_func(x, *a):
-        return [par*(x/1000)**power for power, par in enumerate(a)]
+    if poly_order == 0:
+        p = rc2utils.align_shift(spe_cent, ref_pos)
+        spe_cal = old_spe.scale_xaxis_fun(lambda x: x + p)  # type: ignore
+    else:
+        def cal_func(x, *a):
+            return [par*(x/1000)**power for power, par in enumerate(a)]
 
-    p0 = np.resize([0, 1000, 0], poly_order + 1)
-    p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func)
-    spe_cal = old_spe.scale_xaxis_fun(  # type: ignore
-        (lambda x, *args: np.sum(cal_func(x, *args), axis=0)), args=p)
+        p0 = np.resize([0, 1000, 0], poly_order + 1)
+        p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func)
+        spe_cal = old_spe.scale_xaxis_fun(  # type: ignore
+            (lambda x, *args: np.sum(cal_func(x, *args), axis=0)), args=p)
     new_spe.x = spe_cal.x

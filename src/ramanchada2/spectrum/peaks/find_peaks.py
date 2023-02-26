@@ -3,7 +3,9 @@
 from typing import Union, Tuple, List, Literal
 from scipy import signal
 import numpy as np
-from pydantic import validate_arguments, PositiveFloat, PositiveInt
+from pydantic import (validate_arguments, PositiveInt,
+                      NonNegativeFloat, NonNegativeInt
+                      )
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
@@ -40,8 +42,8 @@ def peak_boundaries(spe, wlen, width, prominence):
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def find_peak_multipeak(
         spe: Spectrum, /,
-        prominence: Union[PositiveFloat, None] = None,
-        wlen: Union[PositiveInt, None] = None,
+        prominence: Union[NonNegativeFloat, None] = None,
+        wlen: Union[NonNegativeInt, None] = None,
         width: Union[int, Tuple[int, int], None] = None,
         hht_chain: Union[List[PositiveInt], None] = None,
         bgm_kwargs={},
@@ -49,9 +51,9 @@ def find_peak_multipeak(
         strategy: Literal['topo', 'bayesian_gaussian_mixture', 'bgm'] = 'topo'
         ) -> ListPeakCandidateMultiModel:
 
-    if prominence is None:
+    if not prominence:
         prominence = spe.y_noise*15
-    if wlen is None:
+    if not wlen:
         wlen = 50
     if width is None:
         width = 1

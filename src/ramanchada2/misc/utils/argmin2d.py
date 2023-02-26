@@ -44,15 +44,36 @@ def align(x, y,
         cur_x = np.sum(func(x, *p), axis=0)
         x_idx, y_idx = find_closest_pairs_idx(cur_x, y)
         x_match, y_match = x[x_idx], y[y_idx]
-        obj_mat = np.stack(func(x_match, *np.ones_like(p)), axis=1)
-
         p_bak = p
-        loss_bak = loss
+        obj_mat = np.stack(func(x_match, *np.ones_like(p)), axis=1)
         p, *_ = linalg.lstsq(obj_mat, y_match, cond=1e-8)
+        loss_bak = loss
         loss = np.sum((x_match-y_match)**2)/len(x_match)**2
         if np.allclose(p, p_bak):
             break
         if loss > loss_bak:
             pass
+            return p_bak
+    return p
+
+
+@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+def align_shift(x, y,
+                p0: float = 0,
+                max_iter: pydantic.PositiveInt = 1000):
+    loss = np.infty
+    cur_x = x
+    p = p0
+    for it in range(max_iter):
+        cur_x = x + p
+        x_idx, y_idx = find_closest_pairs_idx(cur_x, y)
+        x_match, y_match = x[x_idx], y[y_idx]
+        p_bak = p
+        p = np.mean(y_match-x_match)
+        loss_bak = loss
+        loss = np.sum((y_match-x_match)**2)
+        if np.allclose(p, p_bak):
+            break
+        if loss > loss_bak:
             return p_bak
     return p
