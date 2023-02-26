@@ -21,9 +21,17 @@ class PearsonIVAmplitudeParametrizationHPW:
     numberOfTerms = 1
     orderOfBaselinePolynomial = -1
 
-    def __init__(self, numberOfTerms, orderOfBackgroundPolynomial):
+    def __init__(self, numberOfTerms=1, orderOfBackgroundPolynomial=-1):
         self.numberOfTerms = numberOfTerms
         self.orderOfBaselinePolynomial = orderOfBackgroundPolynomial
+
+    def WithNumberOfTerms(self, numberOfTerms):
+        return PearsonIVAmplitudeParametrizationHPW(
+            numberOfTerms, self.orderOfBaselinePolynomial
+        )
+
+    def GetNumberOfParametersPerPeak(self):
+        return 5
 
     def GetYOfOneTerm(x, height, pos, w, m, v):
         arg = np.sqrt((np.power(2, 1 / m) - 1) * (1 + v * v)) * (x - pos) / w - v
@@ -206,7 +214,8 @@ class PearsonIVAmplitudeParametrizationHPW:
                 else (-v / z - 2 * m) / z
             )
 
-        # go forward in exponentially increasing steps, until the amplitude falls below ymaxHalf, in order to bracked the solution
+        # go forward in exponentially increasing steps, until the amplitude falls below ymaxHalf,
+        # in order to bracked the solution
         zNear = z0
         zFar = z0
         d = 1.0
@@ -349,3 +358,33 @@ class PearsonIVAmplitudeParametrizationHPW:
         return PositionAreaHeightFWHM(
             pos, posStdDev, area, areaStdDev, height, heightStdDev, fwhm, fwhmStdDev
         )
+
+    def SetParameterBoundariesForPositivePeaks(
+        self,
+        params,
+        minimalPosition=None,
+        maximalPosition=None,
+        minimalFWHM=None,
+        maximalFWHM=None,
+    ):
+        DefaultMinWidth = 1.4908919308538355e-81  # Math.Pow(double.Epsilon, 0.25);
+        DefaultMaxWidth = 1.157920892373162e77  # Math.Pow(double.MaxValue, 0.25);
+
+        for i in range(self.numberOfTerms):
+            params[f"a{i}"].min = 0  # minimal amplitude is 0
+            if minimalPosition is not None:
+                params[f"pos{i}"].min = minimalPosition
+            if maximalPosition is not None:
+                params[f"pos{i}"].max = maximalPosition
+            if minimalFWHM is not None:
+                params[f"w{i}"].min = minimalFWHM / 2.0
+            else:
+                params[f"w{i}"].min = DefaultMinWidth
+            if maximalFWHM is not None:
+                params[f"w{i}"].max = maximalFWHM / 2.0
+            else:
+                params[f"w{i}"].max = DefaultMaxWidth
+            params[f"m{i}"].min = 1 / 2.0 + 1 / 1024.0
+            params[f"m{i}"].max = 1000
+            params[f"v{i}"].min = -1000
+            params[f"v{i}"].max = 1000
