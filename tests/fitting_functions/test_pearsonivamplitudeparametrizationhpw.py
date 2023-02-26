@@ -1,4 +1,3 @@
-from ramanchada2.fitting_functions import pearsonivamplitudeparametrizationhpw
 from ramanchada2.fitting_functions.pearsonivamplitudeparametrizationhpw import (
     PearsonIVAmplitudeParametrizationHPW,
 )

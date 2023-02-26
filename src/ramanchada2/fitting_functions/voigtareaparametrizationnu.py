@@ -20,7 +20,9 @@ Log2P32 = 0.577082881386139784459964  # Math.Pow(Log2, 1.5)
 SqrtPiLog2 = 1.47566462663560588938882  # Math.Sqrt(Math.PI*Math.Log(2))
 C2_FWHM = 0.21669  # Approximation constant for FWHM of Voigt
 C1_FWHM = 1 - np.sqrt(C2_FWHM)  # Second constant for FWHM of Voigt
-VoigtHalfWidthHalfMaximumApproximationMaximalRelativeError = 0.000216  # Gets the maximal relative error of the VoigtHalfWidthHalfMaximumApproximation(sigma, gamma) function
+
+# Gets the maximal relative error of the VoigtHalfWidthHalfMaximumApproximation(sigma, gamma) function
+VoigtHalfWidthHalfMaximumApproximationMaximalRelativeError = 0.000216
 
 PositionAreaHeightFWHM = namedtuple(
     "PositionAreaHeightFWHM",
@@ -42,9 +44,15 @@ class VoigtAreaParametrizationNu:
     numberOfTerms = 1
     orderOfBaselinePolynomial = -1
 
-    def __init__(self, numberOfTerms, orderOfBackgroundPolynomial):
+    def __init__(self, numberOfTerms=1, orderOfBackgroundPolynomial=-1):
         self.numberOfTerms = numberOfTerms
         self.orderOfBaselinePolynomial = orderOfBackgroundPolynomial
+
+    def WithNumberOfTerms(self, numberOfTerms):
+        return VoigtAreaParametrizationNu(numberOfTerms, self.orderOfBaselinePolynomial)
+
+    def GetNumberOfParametersPerPeak(self):
+        return 4
 
     def func(self, pars, x, data=None):
         sum = np.zeros(len(x))
@@ -266,7 +274,7 @@ class VoigtAreaParametrizationNu:
         )
 
     def GetPositionAreaHeightFWHMFromSinglePeakParameters(
-        parameters, indexOfPeak, cv=None
+        self, parameters, indexOfPeak, cv=None
     ):
         area = parameters[f"area{indexOfPeak}"]
         pos = parameters[f"pos{indexOfPeak}"]
@@ -291,7 +299,8 @@ class VoigtAreaParametrizationNu:
         # but for large gamma/sigma, we need a approximation, because the exp term becomes too large
         expErfcTermBySqrtNu = np.NaN
 
-        # for gamma > 20*sigma we need an approximation of the expErfcTerm, since the expTerm will get too large and the Erfc term too small
+        # for gamma > 20*sigma we need an approximation of the expErfcTerm,
+        # since the expTerm will get too large and the Erfc term too small
         # we use a series expansion
 
         if nu < (

@@ -571,6 +571,7 @@ def test_derivatives_SecondaryParameters_ExactlyGaussianLimit():
     pos = 7
     w = 3
     nu = 1
+    ff = VoigtAreaParametrizationNu(1, -1)
 
     # position, area, height and FWHM
     pahf = [pos, area, 2.66173895631567877902163, 6]
@@ -594,9 +595,7 @@ def test_derivatives_SecondaryParameters_ExactlyGaussianLimit():
     for i in range(4):
         cov = np.zeros((4, 4))
         cov[i, i] = 1
-        result = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromSinglePeakParameters(
-            params, 0, cov
-        )
+        result = ff.GetPositionAreaHeightFWHMFromSinglePeakParameters(params, 0, cov)
         assert almostequal(np.abs(areaDerivs[i]), result.AreaStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(xmaxDerivs[i]), result.PositionStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(ymaxDerivs[i]), result.HeightStdDev, 1e-13, 1e-7)
@@ -614,6 +613,7 @@ def test_derivatives_SecondaryParameters_NearlyGaussianLimit():
     pos = 7
     w = 3
     nu = 1 - 1 / 32767.0
+    ff = VoigtAreaParametrizationNu(1, -1)
 
     # position, area, height and FWHM
     pahf = [pos, area, 2.66170326013146224987024, 6.00000595967162241141443]
@@ -637,9 +637,7 @@ def test_derivatives_SecondaryParameters_NearlyGaussianLimit():
     for i in range(4):
         cov = np.zeros((4, 4))
         cov[i, i] = 1
-        result = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromSinglePeakParameters(
-            params, 0, cov
-        )
+        result = ff.GetPositionAreaHeightFWHMFromSinglePeakParameters(params, 0, cov)
         assert almostequal(np.abs(areaDerivs[i]), result.AreaStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(xmaxDerivs[i]), result.PositionStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(ymaxDerivs[i]), result.HeightStdDev, 1e-13, 1e-7)
@@ -657,6 +655,7 @@ def test_derivatives_SecondaryParameters_ExactlyLorentzianLimit():
     pos = 7
     w = 3
     nu = 0
+    ff = VoigtAreaParametrizationNu(1, -1)
 
     # position, area, height and FWHM
     pahf = [pos, area, 1.80375602170814713871402, 6]
@@ -680,9 +679,7 @@ def test_derivatives_SecondaryParameters_ExactlyLorentzianLimit():
     for i in range(4):
         cov = np.zeros((4, 4))
         cov[i, i] = 1
-        result = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromSinglePeakParameters(
-            params, 0, cov
-        )
+        result = ff.GetPositionAreaHeightFWHMFromSinglePeakParameters(params, 0, cov)
         assert almostequal(np.abs(areaDerivs[i]), result.AreaStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(xmaxDerivs[i]), result.PositionStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(ymaxDerivs[i]), result.HeightStdDev, 1e-13, 1e-7)
@@ -700,6 +697,7 @@ def test_derivatives_SecondaryParameters_NearlyLorentzianLimit():
     pos = 7
     w = 3
     nu = 1 / 32767.0
+    ff = VoigtAreaParametrizationNu(1, -1)
 
     # position, area, height and FWHM
     pahf = [pos, area, 1.80377136162144979963231, 6.00001501741722156713951]
@@ -723,9 +721,7 @@ def test_derivatives_SecondaryParameters_NearlyLorentzianLimit():
     for i in range(4):
         cov = np.zeros((4, 4))
         cov[i, i] = 1
-        result = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromSinglePeakParameters(
-            params, 0, cov
-        )
+        result = ff.GetPositionAreaHeightFWHMFromSinglePeakParameters(params, 0, cov)
         assert almostequal(np.abs(areaDerivs[i]), result.AreaStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(xmaxDerivs[i]), result.PositionStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(ymaxDerivs[i]), result.HeightStdDev, 1e-13, 1e-7)
@@ -743,6 +739,7 @@ def test_derivatives_SecondaryParameters_GeneralCase():
     pos = 7
     w = 3
     nu = 5 / 7.0
+    ff = VoigtAreaParametrizationNu(1, -1)
 
     # position, area, height and FWHM
     pahf = [pos, area, 2.35429674800053710973966, 6.04835222264692750740263]
@@ -766,9 +763,7 @@ def test_derivatives_SecondaryParameters_GeneralCase():
     for i in range(4):
         cov = np.zeros((4, 4))
         cov[i, i] = 1
-        result = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromSinglePeakParameters(
-            params, 0, cov
-        )
+        result = ff.GetPositionAreaHeightFWHMFromSinglePeakParameters(params, 0, cov)
         assert almostequal(np.abs(areaDerivs[i]), result.AreaStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(xmaxDerivs[i]), result.PositionStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(ymaxDerivs[i]), result.HeightStdDev, 1e-13, 1e-7)
