@@ -19,13 +19,13 @@ KEYWORDS = [
     'spectroscopy',
 ]
 
-PYTHON_REQUIRES = '>=3.8'
+PYTHON_REQUIRES = '>=3.9'
 
 PACKAGES = find_packages(where='src')
 
 PACKAGE_DIR = {'': 'src'}
 
-PACKAGE_DATA = {}
+PACKAGE_DATA = {'': ['aux/**/*.txt']}
 
 DATA_FILES = []
 
