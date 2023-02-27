@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 """
 # Ramanchada2
 
@@ -93,6 +94,8 @@ from __future__ import annotations
 from . import spectrum
 from . import theoretical_lines
 __all__ = ['spectrum', 'theoretical_lines']
+__version__ = '0.0.2'
+
 
 import logging
 

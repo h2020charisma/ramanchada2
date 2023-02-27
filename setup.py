@@ -1,9 +1,16 @@
 from os import path
 from setuptools import find_packages, setup
+import ast
 
 NAME = 'ramanchada2'
 
-VERSION = '0.0.1'
+with open(path.join(path.dirname(__file__), 'src/ramanchada2/__init__.py')) as fd:
+    VERSION = [ expr.value.value
+            for expr in ast.parse(fd.read()).body
+            if (isinstance(expr, ast.Assign) and
+                len(expr.targets) == 1 and
+                expr.targets[0].id == '__version__')
+            ][-1]
 
 DESCRIPTION = 'Harmonising Raman Spectroscopy'
 README_FILE = path.join(path.dirname(__file__), 'README.pypi')
