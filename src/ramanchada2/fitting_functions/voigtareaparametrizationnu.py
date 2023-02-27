@@ -21,6 +21,12 @@ SqrtPiLog2 = 1.47566462663560588938882  # Math.Sqrt(Math.PI*Math.Log(2))
 C2_FWHM = 0.21669  # Approximation constant for FWHM of Voigt
 C1_FWHM = 1 - np.sqrt(C2_FWHM)  # Second constant for FWHM of Voigt
 
+
+def SafeSqrt(x):
+    """Returns 0 if x is negative, otherwise the square root of x"""
+    return 0.0 if x < 0 else np.sqrt(x)
+
+
 # Gets the maximal relative error of the VoigtHalfWidthHalfMaximumApproximation(sigma, gamma) function
 VoigtHalfWidthHalfMaximumApproximationMaximalRelativeError = 0.000216
 
@@ -40,21 +46,44 @@ PositionAreaHeightFWHM = namedtuple(
 
 
 class VoigtAreaParametrizationNu:
+    """
+    Voigt peak fitting function with multiple peaks and polynomial baseline
+
+    A special parametrization is used for the Voigt function:
+    Each of the peaks has 4 parameters: area, pos, w, nu
+    Parameter 'area' designates the area under the peak
+    Parameter 'pos' designates the position of the peak (x-value at maximum)
+    Parameter 'w' is approximately (2%) the HWHM value of the peak
+    Parameter 'nu' (0..1) determines the Gauss'ness of the peak (0=Lorentzian,
+                1=Gaussian)
+
+    Note: the parameters 'sigma' and 'gamma' of the original Voigt function are
+          calculated as follows:
+          sigma = w * Sqrt(nu / log(4))
+          gamma = w * (1 - nu)
+    """
 
     numberOfTerms = 1
     orderOfBaselinePolynomial = -1
 
     def __init__(self, numberOfTerms=1, orderOfBackgroundPolynomial=-1):
+        """
+        Initializes an instance of the class with a given number of
+        peak terms, and the order of the baseline polynomial
+        """
         self.numberOfTerms = numberOfTerms
         self.orderOfBaselinePolynomial = orderOfBackgroundPolynomial
 
     def WithNumberOfTerms(self, numberOfTerms):
+        """Returns a new instance of the class with the given number of peak terms."""
         return VoigtAreaParametrizationNu(numberOfTerms, self.orderOfBaselinePolynomial)
 
     def GetNumberOfParametersPerPeak(self):
+        """Returns the number of parameters per peak term."""
         return 4
 
     def func(self, pars, x, data=None):
+        """Returns the y-values of the fitting function."""
         sum = np.zeros(len(x))
         for i in range(self.orderOfBaselinePolynomial, -1, -1):
             sum *= x
@@ -76,6 +105,7 @@ class VoigtAreaParametrizationNu:
         return sum - data
 
     def dfunc(self, pars, x, data=None):
+        """Returns the derivatives of the fitting function w.r.t. the parameters."""
         result = []
         k = 0
 
@@ -156,6 +186,11 @@ class VoigtAreaParametrizationNu:
     def GetInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
         height, position, fullWidth, relativeHeight=0.5
     ):
+        """
+        Returns an array of initial parameters for peak fitting,
+        given the height, the position, the full width and the relative
+        height at which the full width was measured.
+        """
         useLorenzLimit = False
 
         if not (relativeHeight > 0 and relativeHeight < 1):
@@ -175,6 +210,24 @@ class VoigtAreaParametrizationNu:
     def AddInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
         paras, indexOfPeak, height, position, fullWidth, relativeHeight=0.5
     ):
+        """
+        Add to an existing 'Parameters' instance the initial parameters for a peak.
+
+        Parameters
+        ----------
+        paras: Parameters
+            Existing instance of Parameters, to which the new parameters will be added.
+        indexOfPeak:
+            The index of the peak whose parameters are added.
+        height:
+            Approximate height of the peak.
+        pos:
+            Approximate position of the peak
+        fullWidth:
+            Approximate full width of the peak
+        relativeHeight:
+            Relative height, at which full width was measured (usually 0.5)
+        """
         apwnu = VoigtAreaParametrizationNu.GetInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
             height, position, fullWidth, relativeHeight
         )
@@ -183,13 +236,12 @@ class VoigtAreaParametrizationNu:
         paras.add(f"w{indexOfPeak}", apwnu[2])
         paras.add(f"nu{indexOfPeak}", apwnu[3])
 
-    def SafeSqrt(x):
-        if x > 0:
-            return np.sqrt(x)
-        else:
-            return 0.0
-
     def VoigtHalfWidthHalfMaximumOfSigmaGammaApproximation(sigma, gamma):
+        """
+        Gets the approximate half-width-half-maximum of a peak
+        in dependence on the original Voigt function parameters 'sigma' and 'gamma'.
+        The approximation has an accuracy of 0.0216%.
+        """
         C2 = 0.86676  # for relative error always < 0.000216 _and_ asymptotic correct behaviour
         C2S = 2 - np.sqrt(C2)
         return 0.5 * (
@@ -198,6 +250,11 @@ class VoigtAreaParametrizationNu:
         )
 
     def VoigtHalfWidthHalfMaximumOfWNuApproximation(w, nu):
+        """
+        Gets the approximate half-width-half-maximum of a peak
+        in dependence on the parameters 'w' and 'nu'.
+        The approximation has an accuracy of 0.0216%.
+        """
         sigma = w * np.sqrt(nu) * OneBySqrtLog4
         gamma = w * (1 - nu)
         return VoigtAreaParametrizationNu.VoigtHalfWidthHalfMaximumOfSigmaGammaApproximation(
@@ -205,6 +262,10 @@ class VoigtAreaParametrizationNu:
         )
 
     def VoigtHalfWidthHalfMaximumOfSigmaGamma(sigma, gamma):
+        """
+        Gets the half-width-half-maximum of a peak
+        in dependence on the original Voigt function parameters 'sigma' and 'gamma'.
+        """
         side = 0
         if sigma == 0 and gamma == 0:
             return 0
@@ -267,6 +328,10 @@ class VoigtAreaParametrizationNu:
         raise InvalidOperation  # One should never arrive here
 
     def VoigtHalfWidthHalfMaximumOfWNu(w, nu):
+        """
+        Gets the half-width-half-maximum of a peak
+        in dependence on the parameters 'w' and 'nu'.
+        """
         sigma = w * np.sqrt(nu) * OneBySqrtLog4
         gamma = w * (1 - nu)
         return VoigtAreaParametrizationNu.VoigtHalfWidthHalfMaximumOfSigmaGamma(
@@ -276,6 +341,19 @@ class VoigtAreaParametrizationNu:
     def GetPositionAreaHeightFWHMFromSinglePeakParameters(
         self, parameters, indexOfPeak, cv=None
     ):
+        """
+        Get position, area, height, and FWHM of one peak from the peak parameters.
+        If the covariance matrix is given, the corresponding errors are calculated.
+
+        Parameters
+        ----------
+        parameters: Parameters
+            Existing instance of Parameters, which contains the result of the fit.
+        indexOfPeak: int
+            The index of the peak into consideration.
+        cv: np.array
+            Covariance matrix of the fit.
+        """
         area = parameters[f"area{indexOfPeak}"]
         pos = parameters[f"pos{indexOfPeak}"]
         w = parameters[f"w{indexOfPeak}"]
@@ -284,8 +362,14 @@ class VoigtAreaParametrizationNu:
         gamma = w * (1 - nu)
 
         if cv is not None:
-            areaStdDev = VoigtAreaParametrizationNu.SafeSqrt(cv[0, 0])
-            posStdDev = VoigtAreaParametrizationNu.SafeSqrt(cv[1, 1])
+            cv = cv[
+                indexOfPeak * 4: (indexOfPeak + 1) * 4,
+                indexOfPeak * 4: (indexOfPeak + 1) * 4,
+            ]
+
+        if cv is not None:
+            areaStdDev = SafeSqrt(cv[0, 0])
+            posStdDev = SafeSqrt(cv[1, 1])
         else:
             areaStdDev = 0.0
             posStdDev = 0.0
@@ -373,7 +457,7 @@ class VoigtAreaParametrizationNu:
 
         dHeightByDNu *= area / w
 
-        heightStdDev = VoigtAreaParametrizationNu.SafeSqrt(
+        heightStdDev = SafeSqrt(
             cv[0, 0] * np.square(dHeightByDArea)
             + cv[2, 2] * np.square(dHeightByDW)
             + cv[3, 3] * np.square(dHeightByDNu)
@@ -400,7 +484,7 @@ class VoigtAreaParametrizationNu:
             )
         )
 
-        fwhmStdDev = VoigtAreaParametrizationNu.SafeSqrt(
+        fwhmStdDev = SafeSqrt(
             cv[3, 3] * np.square(dFwhmByDNu)
             + dFwhmByDW * ((cv[2, 3] + cv[3, 2]) * dFwhmByDNu + cv[2, 2] * dFwhmByDW)
         )
@@ -417,6 +501,26 @@ class VoigtAreaParametrizationNu:
         minimalFWHM=None,
         maximalFWHM=None,
     ):
+        """
+        Amends the parameters in an existing Parameters instance
+        with fit boundaries.
+
+        Parameters
+        ----------
+        params: Parameters
+            Existing instance of Parameters, which already contain all parameters.
+        minimalPosition: float (or None)
+            The minimal allowed position of a peak.
+        maximalPosition: float (or None)
+            The maximal allowed position of a peak.
+        minimalFWHM: float (or None)
+            The minimal allowed FWHM value of a peak.
+        maximalFWHM: float (or None)
+            The maximal allowed FWHM value of a peak.
+
+        Note: the minimal height is set to 0 in order to disallow negative peaks.
+              the maximal height of a peak is not limited
+        """
         for i in range(self.numberOfTerms):
             params[f"area{i}"].min = 0  # minimal area is 0
             if minimalPosition is not None:
