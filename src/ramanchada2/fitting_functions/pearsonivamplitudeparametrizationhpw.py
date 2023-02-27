@@ -10,30 +10,53 @@ Log2 = 0.69314718055994530941723212145818  # Math.Log(2)
 
 
 def SafeSqrt(x):
-    if x > 0:
-        return np.sqrt(x)
-    else:
-        return 0.0
+    """Returns 0 if x is negative, otherwise the square root of x"""
+    return 0.0 if x < 0 else np.sqrt(x)
 
 
 class PearsonIVAmplitudeParametrizationHPW:
+    """
+    PearsonIV peak fitting function with multiple peaks and polynomial baseline
 
+    A special parametrization is used for the PearsonIV function:
+    Each of the peaks has 5 parameters: a, pos, w, m, n
+    Parameter a designates the height of the peak (maximum y-value)
+    Parameter 'pos' designates the position of the peak (x-value at maximum)
+    Parameter 'w' is approximately (38%) the HWHM value of the peak
+    Parameter 'm' determines the Gauss'ness of the peak (1=Lorentian, the higher,
+              the more gaussian)
+    Parameter v determines the skewness
+
+    Note: the higher the value of 'm', the less influence the skewness parameter 'v' has
+          that means that a skewed Gaussian peak can not be modeled with this function
+    """
+
+    # Number of peaks
     numberOfTerms = 1
+
+    # Order of the baseline polynomial (-1=no baseline, 0=constant, 1=linear, etc.)
     orderOfBaselinePolynomial = -1
 
     def __init__(self, numberOfTerms=1, orderOfBackgroundPolynomial=-1):
+        """
+        Initializes an instance of the class with a given number of
+        peak terms, and the order of the baseline polynomial
+        """
         self.numberOfTerms = numberOfTerms
         self.orderOfBaselinePolynomial = orderOfBackgroundPolynomial
 
     def WithNumberOfTerms(self, numberOfTerms):
+        """Returns a new instance of the class with the given number of peak terms."""
         return PearsonIVAmplitudeParametrizationHPW(
             numberOfTerms, self.orderOfBaselinePolynomial
         )
 
     def GetNumberOfParametersPerPeak(self):
+        """Returns the number of parameters per peak term."""
         return 5
 
     def GetYOfOneTerm(x, height, pos, w, m, v):
+        """Returns the y-value of one peak in dependence on x and the peak parameters."""
         arg = np.sqrt((np.power(2, 1 / m) - 1) * (1 + v * v)) * (x - pos) / w - v
         return height * np.exp(
             m
@@ -44,6 +67,7 @@ class PearsonIVAmplitudeParametrizationHPW:
         )
 
     def func(self, pars, x, data=None):
+        """Returns the y-values of the fitting function."""
         sum = np.zeros(len(x))
         for i in range(self.orderOfBaselinePolynomial, -1, -1):
             sum *= x
@@ -71,6 +95,7 @@ class PearsonIVAmplitudeParametrizationHPW:
         return sum - data
 
     def dfunc(self, pars, x, data=None):
+        """Returns the derivatives of the fitting function w.r.t. the parameters."""
         result = []
         k = 0
 
@@ -143,6 +168,11 @@ class PearsonIVAmplitudeParametrizationHPW:
     def GetInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
         height, position, fullWidth, relativeHeight=0.5
     ):
+        """
+        Returns an array of initial parameters for peak fitting,
+        given the height, the position, the full width and the relative
+        height at which the full width was measured.
+        """
         if not (relativeHeight > 0 and relativeHeight < 1):
             raise ValueError("RelativeHeight should be in the open interval (0, 1)")
 
@@ -153,6 +183,24 @@ class PearsonIVAmplitudeParametrizationHPW:
     def AddInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
         paras, indexOfPeak, height, position, fullWidth, relativeHeight=0.5
     ):
+        """
+        Add to an existing 'Parameters' instance the initial parameters for a peak.
+
+        Parameters
+        ----------
+        paras: Parameters
+            Existing instance of Parameters, to which the new parameters will be added.
+        indexOfPeak:
+            The index of the peak whose parameters are added.
+        height:
+            Approximate height of the peak.
+        pos:
+            Approximate position of the peak
+        fullWidth:
+            Approximate full width of the peak
+        relativeHeight:
+            Relative height, at which full width was measured (usually 0.5)
+        """
         apwmv = PearsonIVAmplitudeParametrizationHPW.GetInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
             height, position, fullWidth, relativeHeight
         )
@@ -163,6 +211,11 @@ class PearsonIVAmplitudeParametrizationHPW:
         paras.add(f"v{indexOfPeak}", apwmv[3])
 
     def GetFWHMApproximation(w, m, v):
+        """
+        Gets the approximate full-width-half-maximum of a peak
+        in dependence on the parameters 'w', 'm' and 'v'.
+        The approximation has an accuracy of 39%.
+        """
         sq = np.sqrt((np.power(2, 1 / m) - 1) * (1 + v * v))
         ws = w / sq
         ms = m
@@ -174,17 +227,36 @@ class PearsonIVAmplitudeParametrizationHPW:
         )
 
     def GetFWHM(w, m, v):
+        """
+        Gets the full-width-half-maximum of a peak
+        in dependence on the parameters 'w', 'm' and 'v'.
+        """
         return PearsonIVAmplitudeParametrizationHPW.GetHWHM(
             w, m, v, True
         ) + PearsonIVAmplitudeParametrizationHPW.GetHWHM(w, m, v, False)
 
     def GetHWHM(w, m, v, rightSide):
+        """
+        Gets the half-width-half-maximum of the side of a peak
+        in dependence on the parameters 'w', 'm' and 'v'.
+        If 'rightSide' is true, the HWHM of the right side
+        of the peak is returned, else that of the left side.
+        """
         sq = np.sqrt((np.power(2, 1 / m) - 1) * (1 + v * v))
         return PearsonIVAmplitudeParametrizationHPW.GetHWHMOfPearson4Original(
             w / sq, m, 2 * m * v, rightSide
         )
 
     def GetHWHMOfPearson4Original(w, m, v, rightSide):
+        """
+        Gets the half-width-half-maximum of the side of a peak
+        in dependence on the parameters 'w', 'm' and 'v'.
+        ATTENTION: Here, the parameters 'w', 'm' and 'v'
+        are from the original definition of PearsonIV, not
+        the parametrized definition used in this class!
+        If 'rightSide' is true, the HWHM of the right side
+        of the peak is returned, else that of the left side.
+        """
         if not m > 0:
             return np.NaN
 
@@ -279,11 +351,29 @@ class PearsonIVAmplitudeParametrizationHPW:
     def GetPositionAreaHeightFWHMFromSinglePeakParameters(
         self, parameters, indexOfPeak, cv=None
     ):
+        """
+        Get position, area, height, and FWHM of one peak from the peak parameters.
+        If the covariance matrix is given, the corresponding errors are calculated.
+
+        Parameters
+        ----------
+        parameters: Parameters
+            Existing instance of Parameters, which contains the result of the fit.
+        indexOfPeak: int
+            The index of the peak into consideration.
+        cv: np.array
+            Covariance matrix of the fit.
+        """
         amp = parameters[f"a{indexOfPeak}"]
         loc = parameters[f"pos{indexOfPeak}"]
         wm = parameters[f"w{indexOfPeak}"]
         m = parameters[f"m{indexOfPeak}"]
         vm = parameters[f"v{indexOfPeak}"]
+        if cv is not None:
+            cv = cv[
+                indexOfPeak * 5: (indexOfPeak + 1) * 5,
+                indexOfPeak * 5: (indexOfPeak + 1) * 5,
+            ]
 
         area = PearsonIVAmplitudeParametrizationHPW.GetArea(amp, wm, m, vm)
         pos = loc
@@ -367,6 +457,26 @@ class PearsonIVAmplitudeParametrizationHPW:
         minimalFWHM=None,
         maximalFWHM=None,
     ):
+        """
+        Amends the parameters in an existing Parameters instance
+        with fit boundaries.
+
+        Parameters
+        ----------
+        params: Parameters
+            Existing instance of Parameters, which already contain all parameters.
+        minimalPosition: float (or None)
+            The minimal allowed position of a peak.
+        maximalPosition: float (or None)
+            The maximal allowed position of a peak.
+        minimalFWHM: float (or None)
+            The minimal allowed FWHM value of a peak.
+        maximalFWHM: float (or None)
+            The maximal allowed FWHM value of a peak.
+
+        Note: the minimal height is set to 0 in order to disallow negative peaks.
+              the maximal height of a peak is not limited
+        """
         DefaultMinWidth = 1.4908919308538355e-81  # Math.Pow(double.Epsilon, 0.25);
         DefaultMaxWidth = 1.157920892373162e77  # Math.Pow(double.MaxValue, 0.25);
 
