@@ -347,3 +347,112 @@ def test_DerivativesOfAreaFwhm():
         assert almostequal(np.abs(xmaxDerivs[i]), result.PositionStdDev, 1e-13, 1e-7)
         assert almostequal(np.abs(areaDerivs[i]), result.AreaStdDev, 1e-13, 1e-4)
         assert almostequal(np.abs(fwhmDerivs[i]), result.FWHMStdDev, 1e-13, 1e-4)
+
+
+def test_fit_without_derivatives_oneterm():
+    ff = PearsonIVAmplitudeParametrizationHPW(1, -1)
+    x = np.linspace(0, 99, 100)
+    a = 7
+    pos = 50
+    w = 5
+    m = 16 / 11.0
+    v = 1 / 4.0
+    data = PearsonIVAmplitudeParametrizationHPW.GetYOfOneTerm(x, a, pos, w, m, v)
+    params = lmfit.Parameters()
+    params.add("a0", 10)
+    params.add("pos0", 49)
+    params.add("w0", 6)
+    params.add("m0", 1)
+    params.add("v0", 0)
+
+    min1 = lmfit.Minimizer(ff.func, params, fcn_args=(x,), fcn_kws={"data": data})
+    out1 = min1.leastsq()
+    np.testing.assert_almost_equal(out1.params["a0"], a, 12)
+    np.testing.assert_almost_equal(out1.params["pos0"], pos, 12)
+    np.testing.assert_almost_equal(out1.params["w0"], w, 12)
+    np.testing.assert_almost_equal(out1.params["m0"], m, 12)
+    np.testing.assert_almost_equal(out1.params["v0"], v, 12)
+
+
+def test_fit_with_derivatives_oneterm():
+    ff = PearsonIVAmplitudeParametrizationHPW(1, -1)
+    x = np.linspace(0, 99, 100)
+    a = 7
+    pos = 50
+    w = 5
+    m = 16 / 11.0
+    v = 1 / 4.0
+    data = PearsonIVAmplitudeParametrizationHPW.GetYOfOneTerm(x, a, pos, w, m, v)
+    params = lmfit.Parameters()
+    # important: the parameters must be added in exactly the order
+    # as you can see here (area0, pos0, w0, nu0, ... areaN, posN, wN, nuN, b0, b1, ... bM)
+    params.add("a0", 10)
+    params.add("pos0", 49)
+    params.add("w0", 6)
+    params.add("m0", 1)
+    params.add("v0", 0)
+
+    min1 = lmfit.Minimizer(ff.func, params, fcn_args=(x,), fcn_kws={"data": data})
+    out1 = min1.leastsq(Dfun=ff.dfunc, col_deriv=1)
+    np.testing.assert_almost_equal(out1.params["a0"], a, 12)
+    np.testing.assert_almost_equal(out1.params["pos0"], pos, 12)
+    np.testing.assert_almost_equal(out1.params["w0"], w, 12)
+    np.testing.assert_almost_equal(out1.params["m0"], m, 12)
+    np.testing.assert_almost_equal(out1.params["v0"], v, 12)
+
+
+def test_fit_with_derivatives_twoterms_linearbaseline():
+    ff = PearsonIVAmplitudeParametrizationHPW(2, 1)
+    x = np.linspace(0, 99, 100)
+    a0 = 7
+    pos0 = 25
+    w0 = 5
+    m0 = 16 / 11.0
+    v0 = 1 / 4.0
+    a1 = 6
+    pos1 = 75
+    w1 = 6
+    m1 = 21 / 11.0
+    v1 = 1 / 8.0
+    b0 = 100
+    b1 = 0.25
+    data = (
+        PearsonIVAmplitudeParametrizationHPW.GetYOfOneTerm(x, a0, pos0, w0, m0, v0)
+        + PearsonIVAmplitudeParametrizationHPW.GetYOfOneTerm(x, a1, pos1, w1, m1, v1)
+        + b0
+        + b1 * x
+    )
+
+    # important: the parameters must be added in exactly the order
+    # as you can see here (b0, b1, ... bM, area0, pos0, w0, nu0, ... areaN, posN, wN, nuN, )
+    params = lmfit.Parameters()
+    params.add("b0", 99)
+    params.add("b1", 0.24)
+    params.add("a0", 10)
+    params.add("pos0", 24)
+    params.add("w0", 6)
+    params.add("m0", 1)
+    params.add("v0", 0)
+    params.add("a1", 10)
+    params.add("pos1", 74)
+    params.add("w1", 7)
+    params.add("m1", 1)
+    params.add("v1", 0)
+
+    min1 = lmfit.Minimizer(ff.func, params, fcn_args=(x,), fcn_kws={"data": data})
+    out1 = min1.leastsq(Dfun=ff.dfunc, col_deriv=1)
+    cv = out1.covar
+    print(np.shape(cv))
+
+    np.testing.assert_almost_equal(out1.params["b0"], b0, 12)
+    np.testing.assert_almost_equal(out1.params["b1"], b1, 12)
+    np.testing.assert_almost_equal(out1.params["a0"], a0, 12)
+    np.testing.assert_almost_equal(out1.params["pos0"], pos0, 12)
+    np.testing.assert_almost_equal(out1.params["w0"], w0, 12)
+    np.testing.assert_almost_equal(out1.params["m0"], m0, 12)
+    np.testing.assert_almost_equal(out1.params["v0"], v0, 12)
+    np.testing.assert_almost_equal(out1.params["a1"], a1, 12)
+    np.testing.assert_almost_equal(out1.params["pos1"], pos1, 12)
+    np.testing.assert_almost_equal(out1.params["w1"], w1, 12)
+    np.testing.assert_almost_equal(out1.params["m1"], m1, 12)
+    np.testing.assert_almost_equal(out1.params["v1"], v1, 12)
