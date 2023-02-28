@@ -53,11 +53,17 @@ class PearsonIVAmplitudeParametrizationHPW:
 
     def WithOrderOfBaselinePolynomial(self, orderOfBaselinePolynomial):
         """Returns a new instance of the class with the given order of the baseline polynomial."""
-        return PearsonIVAmplitudeParametrizationHPW(self.numberOfTerms, orderOfBaselinePolynomial)
+        return PearsonIVAmplitudeParametrizationHPW(
+            self.numberOfTerms, orderOfBaselinePolynomial
+        )
 
     def GetNumberOfParametersPerPeak(self):
         """Returns the number of parameters per peak term."""
         return 5
+
+    def GetParameterNamesForPeak(self, indexOfPeak):
+        """Returns the parameter names for a given peak index."""
+        return [f'a{indexOfPeak}', f'pos{indexOfPeak}', f'w{indexOfPeak}', f'm{indexOfPeak}', f'v{indexOfPeak}']
 
     def GetYOfOneTerm(x, height, pos, w, m, v):
         """Returns the y-value of one peak in dependence on x and the peak parameters."""
@@ -106,7 +112,8 @@ class PearsonIVAmplitudeParametrizationHPW:
         if self.orderOfBaselinePolynomial >= 0:
             xn = np.ones(len(x))
             for i in range(self.orderOfBaselinePolynomial + 1):
-                result.append(np.copy(xn))
+                if pars[f"b{i}"].vary:
+                    result.append(np.copy(xn))
                 xn *= x
 
         # second the derivatives of the peak terms
@@ -118,6 +125,9 @@ class PearsonIVAmplitudeParametrizationHPW:
                 pars[f"m{i}"],
                 pars[f"v{i}"],
             )
+            if not (height.vary or pos.vary or w.vary or m.vary or v.vary):
+                continue
+
             twoToOneByM_1 = np.power(2, 1 / m) - 1
             ww = w / np.sqrt(twoToOneByM_1 * (1 + v * v))
             z = (x - pos) / ww - v
@@ -159,11 +169,16 @@ class PearsonIVAmplitudeParametrizationHPW:
                 )
             )
 
-            result.append(dfdheight)
-            result.append(dfdpos)
-            result.append(dfdw)
-            result.append(dfdm)
-            result.append(dfdv)
+            if height.vary:
+                result.append(dfdheight)
+            if pos.vary:
+                result.append(dfdpos)
+            if w.vary:
+                result.append(dfdw)
+            if m.vary:
+                result.append(dfdm)
+            if v.vary:
+                result.append(dfdv)
 
         return np.array(result)
 
@@ -206,11 +221,11 @@ class PearsonIVAmplitudeParametrizationHPW:
         apwmv = PearsonIVAmplitudeParametrizationHPW.GetInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
             height, position, fullWidth, relativeHeight
         )
-        paras.add(f"area{indexOfPeak}", apwmv[0])
+        paras.add(f"a{indexOfPeak}", apwmv[0])
         paras.add(f"pos{indexOfPeak}", apwmv[1])
         paras.add(f"w{indexOfPeak}", apwmv[2])
         paras.add(f"m{indexOfPeak}", apwmv[3])
-        paras.add(f"v{indexOfPeak}", apwmv[3])
+        paras.add(f"v{indexOfPeak}", apwmv[4])
 
     def AddInitialParametersForBaselinePolynomial(self, paras):
         """Add the required parameters for the baseline polynomial"""

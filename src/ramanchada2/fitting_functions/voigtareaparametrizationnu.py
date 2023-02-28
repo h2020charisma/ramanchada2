@@ -86,6 +86,10 @@ class VoigtAreaParametrizationNu:
         """Returns the number of parameters per peak term."""
         return 4
 
+    def GetParameterNamesForPeak(self, indexOfPeak):
+        """Returns the parameter names for a given peak index."""
+        return [f'area{indexOfPeak}', f'pos{indexOfPeak}', f'w{indexOfPeak}', f'nu{indexOfPeak}']
+
     def func(self, pars, x, data=None):
         """Returns the y-values of the fitting function."""
         sum = np.zeros(len(x))
@@ -116,7 +120,8 @@ class VoigtAreaParametrizationNu:
         if self.orderOfBaselinePolynomial >= 0:
             xn = np.ones(len(x))
             for i in range(self.orderOfBaselinePolynomial + 1):
-                result.append(np.copy(xn))
+                if pars[f"b{i}"].vary:
+                    result.append(np.copy(xn))
                 xn *= x
 
         # second the derivatives of the peak terms
@@ -127,6 +132,9 @@ class VoigtAreaParametrizationNu:
                 pars[f"w{i}"],
                 pars[f"nu{i}"],
             )
+            if not (area.vary or xc.vary or w.vary or nu.vary):
+                continue
+
             arg = x - xc
             sigma = w * np.sqrt(nu) * OneBySqrtLog4
             gamma = w * (1 - nu)
@@ -178,10 +186,14 @@ class VoigtAreaParametrizationNu:
                         * np.real((dbodydz * argwonepnu / (Sqrt2 * sigma) + body))
                     )  # Derivative w.r.t. nu
 
-            result.append(dfdarea)
-            result.append(dfdpos)
-            result.append(dfdw)
-            result.append(dfdnu)
+            if area.vary:
+                result.append(dfdarea)
+            if xc.vary:
+                result.append(dfdpos)
+            if w.vary:
+                result.append(dfdw)
+            if nu.vary:
+                result.append(dfdnu)
 
         return np.array(result)
 
@@ -238,7 +250,7 @@ class VoigtAreaParametrizationNu:
         paras.add(f"w{indexOfPeak}", apwnu[2])
         paras.add(f"nu{indexOfPeak}", apwnu[3])
 
-    def AddParametersForBaselinePolynomial(self, paras):
+    def AddInitialParametersForBaselinePolynomial(self, paras):
         """Add the required parameters for the baseline polynomial"""
         for i in range(self.orderOfBaselinePolynomial + 1):
             paras.add(f"b{i}", 0.0)
