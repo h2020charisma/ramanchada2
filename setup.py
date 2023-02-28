@@ -32,7 +32,7 @@ PACKAGES = find_packages(where='src')
 
 PACKAGE_DIR = {'': 'src'}
 
-PACKAGE_DATA = {'': ['aux/**/*.txt']}
+PACKAGE_DATA = {'': ['auxiliary/**/*.txt']}
 
 DATA_FILES = []
 
