@@ -334,23 +334,23 @@ def test_derivatives_generalcase():
     expectedDerivativeWrtW = -0.200053913246762862681244
     expectedDerivativeWrtNu = 0.677517478495227285639865
     p = lmfit.Parameters()
+    p.add("b0", b0)
+    p.add("b1", b1)
     p.add("area0", area)
     p.add("pos0", position)
     p.add("w0", w)
     p.add("nu0", nu)
-    p.add("b0", b0)
-    p.add("b1", b1)
     x = np.array([9, 9])
     y = ff.func(p, x)
     np.testing.assert_almost_equal(y[0], expectedFunctionValue + b0 + b1 * x[0], 12)
     np.testing.assert_almost_equal(y[1], expectedFunctionValue + b0 + b1 * x[1], 12)
     dy = ff.dfunc(p, x)
-    np.testing.assert_almost_equal(dy[0, 0], expectedDerivativeWrtArea, decimal=12)
-    np.testing.assert_almost_equal(dy[1, 0], expectedDerivativeWrtPosition, decimal=12)
-    np.testing.assert_almost_equal(dy[2, 0], expectedDerivativeWrtW, decimal=12)
-    np.testing.assert_almost_equal(dy[3, 0], expectedDerivativeWrtNu, decimal=12)
-    np.testing.assert_almost_equal(dy[4, 0], 1, decimal=12)
-    np.testing.assert_almost_equal(dy[5, 0], x[0], decimal=12)
+    np.testing.assert_almost_equal(dy[0, 0], 1, decimal=12)
+    np.testing.assert_almost_equal(dy[1, 0], x[0], decimal=12)
+    np.testing.assert_almost_equal(dy[2, 0], expectedDerivativeWrtArea, decimal=12)
+    np.testing.assert_almost_equal(dy[3, 0], expectedDerivativeWrtPosition, decimal=12)
+    np.testing.assert_almost_equal(dy[4, 0], expectedDerivativeWrtW, decimal=12)
+    np.testing.assert_almost_equal(dy[5, 0], expectedDerivativeWrtNu, decimal=12)
 
 
 def test_derivatives_lorentzlimit():
@@ -481,8 +481,10 @@ def test_fit_with_derivatives_twoterms_linearbaseline():
     )
 
     # important: the parameters must be added in exactly the order
-    # as you can see here (area0, pos0, w0, nu0, ... areaN, posN, wN, nuN, b0, b1, ... bM)
+    # as you can see here (b0, b1, ... bM, area0, pos0, w0, nu0, ... areaN, posN, wN, nuN, )
     params = lmfit.Parameters()
+    params.add("b0", 99)
+    params.add("b1", 0.24)
     params.add("area0", 10)
     params.add("pos0", 24)
     params.add("w0", 3.5)
@@ -491,14 +493,14 @@ def test_fit_with_derivatives_twoterms_linearbaseline():
     params.add("pos1", 74)
     params.add("w1", 4.5)
     params.add("nu1", 0.5)
-    params.add("b0", 99)
-    params.add("b1", 0.24)
 
     min1 = lmfit.Minimizer(ff.func, params, fcn_args=(x,), fcn_kws={"data": data})
     out1 = min1.leastsq(Dfun=ff.dfunc, col_deriv=1)
     cv = out1.covar
     print(np.shape(cv))
 
+    np.testing.assert_almost_equal(out1.params["b0"], b0, 12)
+    np.testing.assert_almost_equal(out1.params["b1"], b1, 12)
     np.testing.assert_almost_equal(out1.params["area0"], area0, 12)
     np.testing.assert_almost_equal(out1.params["pos0"], pos0, 12)
     np.testing.assert_almost_equal(out1.params["w0"], w0, 12)
@@ -507,8 +509,6 @@ def test_fit_with_derivatives_twoterms_linearbaseline():
     np.testing.assert_almost_equal(out1.params["pos1"], pos1, 12)
     np.testing.assert_almost_equal(out1.params["w1"], w1, 12)
     np.testing.assert_almost_equal(out1.params["nu1"], nu1, 12)
-    np.testing.assert_almost_equal(out1.params["b0"], b0, 12)
-    np.testing.assert_almost_equal(out1.params["b1"], b1, 12)
 
 
 def test_voigt_hwhm_exact_vargamma():

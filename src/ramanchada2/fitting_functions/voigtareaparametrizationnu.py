@@ -78,6 +78,10 @@ class VoigtAreaParametrizationNu:
         """Returns a new instance of the class with the given number of peak terms."""
         return VoigtAreaParametrizationNu(numberOfTerms, self.orderOfBaselinePolynomial)
 
+    def WithOrderOfBaselinePolynomial(self, orderOfBaselinePolynomial):
+        """Returns a new instance of the class with the given order of the baseline polynomial."""
+        return VoigtAreaParametrizationNu(self.numberOfTerms, orderOfBaselinePolynomial)
+
     def GetNumberOfParametersPerPeak(self):
         """Returns the number of parameters per peak term."""
         return 4
@@ -107,9 +111,15 @@ class VoigtAreaParametrizationNu:
     def dfunc(self, pars, x, data=None):
         """Returns the derivatives of the fitting function w.r.t. the parameters."""
         result = []
-        k = 0
 
-        # first the derivatives of the peak terms
+        # first the baseline derivatives
+        if self.orderOfBaselinePolynomial >= 0:
+            xn = np.ones(len(x))
+            for i in range(self.orderOfBaselinePolynomial + 1):
+                result.append(np.copy(xn))
+                xn *= x
+
+        # second the derivatives of the peak terms
         for i in range(self.numberOfTerms):
             area, xc, w, nu = (
                 pars[f"area{i}"],
@@ -172,15 +182,7 @@ class VoigtAreaParametrizationNu:
             result.append(dfdpos)
             result.append(dfdw)
             result.append(dfdnu)
-            k += 4
 
-        # second the baseline derivatives
-        if self.orderOfBaselinePolynomial >= 0:
-            xn = np.ones(len(x))
-            for i in range(self.orderOfBaselinePolynomial + 1):
-                result.append(np.copy(xn))
-                k += 1
-                xn *= x
         return np.array(result)
 
     def GetInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
@@ -208,7 +210,7 @@ class VoigtAreaParametrizationNu:
             return [area, position, w, 1]
 
     def AddInitialParametersFromHeightPositionAndWidthAtRelativeHeight(
-        paras, indexOfPeak, height, position, fullWidth, relativeHeight=0.5
+        self, paras, indexOfPeak, height, position, fullWidth, relativeHeight=0.5
     ):
         """
         Add to an existing 'Parameters' instance the initial parameters for a peak.
@@ -235,6 +237,11 @@ class VoigtAreaParametrizationNu:
         paras.add(f"pos{indexOfPeak}", apwnu[1])
         paras.add(f"w{indexOfPeak}", apwnu[2])
         paras.add(f"nu{indexOfPeak}", apwnu[3])
+
+    def AddParametersForBaselinePolynomial(self, paras):
+        """Add the required parameters for the baseline polynomial"""
+        for i in range(self.orderOfBaselinePolynomial + 1):
+            paras.add(f"b{i}", 0.0)
 
     def VoigtHalfWidthHalfMaximumOfSigmaGammaApproximation(sigma, gamma):
         """
