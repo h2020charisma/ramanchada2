@@ -37,8 +37,11 @@ def from_delta_lines(
     if xcal is None:
         dk = list(deltas.keys())
         dkmin, dkmax = np.min(dk), np.max(dk)
-        dkmin -= (dkmax-dkmin) * .1
-        dkmax += (dkmax-dkmin) * .1
+        if dkmin == dkmax:
+            dkmin, dkmax = dkmin*.8, dkmax*1.2
+        else:
+            dkmin -= (dkmax-dkmin) * .1
+            dkmax += (dkmax-dkmin) * .1
         x = np.linspace(dkmin, dkmax, nbins, endpoint=False, dtype=float)
     else:
         x = np.linspace(xcal(0), xcal(nbins), nbins, endpoint=False)
