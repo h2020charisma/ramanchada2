@@ -63,10 +63,34 @@ class PearsonIVAmplitudeParametrizationHPW:
 
     def GetParameterNamesForPeak(self, indexOfPeak):
         """Returns the parameter names for a given peak index."""
-        return [f'a{indexOfPeak}', f'pos{indexOfPeak}', f'w{indexOfPeak}', f'm{indexOfPeak}', f'v{indexOfPeak}']
+        return [
+            f"a{indexOfPeak}",
+            f"pos{indexOfPeak}",
+            f"w{indexOfPeak}",
+            f"m{indexOfPeak}",
+            f"v{indexOfPeak}",
+        ]
 
-    def GetYOfOneTerm(x, height, pos, w, m, v):
+    def GetYOfOneTerm(x, height=1.0, center=0.0, sigma=1.0, expon=1.0, skew=0.0):
         """Returns the y-value of one peak in dependence on x and the peak parameters."""
+        arg = np.sqrt((np.power(2, 1 / expon) - 1) * (1 + skew * skew)) * (x - center) / sigma - skew
+        return height * np.exp(
+            expon
+            * (
+                np.log((1 + skew * skew) / (1 + arg * arg))
+                - 2 * skew * (np.arctan(arg) + np.arctan(skew))
+            )
+        )
+
+    def funcOneTerm(pars, x, data=None):
+        """Returns the y-values of the fitting function, but only for one term without baseline."""
+        height, pos, w, m, v = (
+            pars["a"],
+            pars["pos"],
+            pars["w"],
+            pars["m"],
+            pars["v"],
+        )
         arg = np.sqrt((np.power(2, 1 / m) - 1) * (1 + v * v)) * (x - pos) / w - v
         return height * np.exp(
             m
