@@ -88,7 +88,18 @@ class VoigtAreaParametrizationNu:
 
     def GetParameterNamesForPeak(self, indexOfPeak):
         """Returns the parameter names for a given peak index."""
-        return [f'area{indexOfPeak}', f'pos{indexOfPeak}', f'w{indexOfPeak}', f'nu{indexOfPeak}']
+        return [
+            f"area{indexOfPeak}",
+            f"pos{indexOfPeak}",
+            f"w{indexOfPeak}",
+            f"nu{indexOfPeak}",
+        ]
+
+    def GetYOfOneTerm(x, amplitude=1.0, center=0.0, sigma=1.0, nu=1.0):
+        """Returns the y-value of one peak in dependence on x and the peak parameters."""
+        return amplitude * voigt_profile(
+            x - center, sigma * np.sqrt(nu) * OneBySqrtLog4, sigma * (1 - nu)
+        )
 
     def func(self, pars, x, data=None):
         """Returns the y-values of the fitting function."""
