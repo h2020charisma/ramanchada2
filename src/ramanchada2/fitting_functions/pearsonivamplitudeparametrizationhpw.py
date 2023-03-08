@@ -82,24 +82,6 @@ class PearsonIVAmplitudeParametrizationHPW:
             )
         )
 
-    def funcOneTerm(pars, x, data=None):
-        """Returns the y-values of the fitting function, but only for one term without baseline."""
-        height, pos, w, m, v = (
-            pars["a"],
-            pars["pos"],
-            pars["w"],
-            pars["m"],
-            pars["v"],
-        )
-        arg = np.sqrt((np.power(2, 1 / m) - 1) * (1 + v * v)) * (x - pos) / w - v
-        return height * np.exp(
-            m
-            * (
-                np.log((1 + v * v) / (1 + arg * arg))
-                - 2 * v * (np.arctan(arg) + np.arctan(v))
-            )
-        )
-
     def func(self, pars, x, data=None):
         """Returns the y-values of the fitting function."""
         sum = np.zeros(len(x))
