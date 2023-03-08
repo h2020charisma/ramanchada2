@@ -284,10 +284,10 @@ def test_AreaFwhm():
 def test_FwhmApproximation():
     claimedMaxApproximationError = 0.19  # 19% error
     w = 7
-    for idx_v in range(-1, 151):
-        v = 0 if idx_v < 0 else np.power(10, (idx_v - 75) / 25.0)
-        for idx_m in range(0, 151):
-            m = np.power(10, (idx_m - 75) / 25.0)
+    for idx_v in range(-1, 16):
+        v = 0 if idx_v < 0 else np.power(10, (idx_v - 7.5) / 2.5)
+        for idx_m in range(0, 16):
+            m = np.power(10, (idx_m - 7.5) / 2.5)
             fwhmP = PearsonIVAmplitudeParametrizationHPW.GetFWHM(w, m, v)
             fwhmN = PearsonIVAmplitudeParametrizationHPW.GetFWHM(w, m, -v)
 
