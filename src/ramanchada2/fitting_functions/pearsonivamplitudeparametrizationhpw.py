@@ -73,7 +73,12 @@ class PearsonIVAmplitudeParametrizationHPW:
 
     def GetYOfOneTerm(x, height=1.0, center=0.0, sigma=1.0, expon=1.0, skew=0.0):
         """Returns the y-value of one peak in dependence on x and the peak parameters."""
-        arg = np.sqrt((np.power(2, 1 / expon) - 1) * (1 + skew * skew)) * (x - center) / sigma - skew
+        arg = (
+            np.sqrt((np.power(2, 1 / expon) - 1) * (1 + skew * skew))
+            * (x - center)
+            / sigma
+            - skew
+        )
         return height * np.exp(
             expon
             * (
@@ -397,12 +402,28 @@ class PearsonIVAmplitudeParametrizationHPW:
         wm = parameters[f"w{indexOfPeak}"]
         m = parameters[f"m{indexOfPeak}"]
         vm = parameters[f"v{indexOfPeak}"]
+
         if cv is not None:
             cv = cv[
                 indexOfPeak * 5: (indexOfPeak + 1) * 5,
                 indexOfPeak * 5: (indexOfPeak + 1) * 5,
             ]
+        return PearsonIVAmplitudeParametrizationHPW.GetPositionAreaHeightFWHMFromPeakParameters(
+            amp, loc, wm, m, vm, cv
+        )
 
+    def GetPositionAreaHeightFWHMFromPeakParameters(amp, loc, wm, m, vm, cv=None):
+        """
+        Get position, area, height, and FWHM of one peak from the peak parameters.
+        If the covariance matrix is given, the corresponding errors are calculated.
+
+        Parameters
+        ----------
+        amp, loc, wm, m, vm:
+            Peak parameters height, center, sigma, m, v
+        cv: np.array
+            Covariance matrix of the fit (5 x 5 matrix)
+        """
         area = PearsonIVAmplitudeParametrizationHPW.GetArea(amp, wm, m, vm)
         pos = loc
         height = amp

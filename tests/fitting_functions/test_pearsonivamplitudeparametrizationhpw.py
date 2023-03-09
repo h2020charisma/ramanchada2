@@ -1,6 +1,7 @@
 from ramanchada2.fitting_functions.pearsonivamplitudeparametrizationhpw import (
     PearsonIVAmplitudeParametrizationHPW,
-)
+    )
+from ramanchada2.fitting_functions.models import PearsonIVParametrizationHPWModel
 import lmfit
 import numpy as np
 
@@ -456,3 +457,21 @@ def test_fit_with_derivatives_twoterms_linearbaseline():
     np.testing.assert_almost_equal(out1.params["w1"], w1, 12)
     np.testing.assert_almost_equal(out1.params["m1"], m1, 12)
     np.testing.assert_almost_equal(out1.params["v1"], v1, 12)
+
+
+def test_fit_with_model_oneterm():
+    x = np.linspace(0, 99, 100)
+    a = 7
+    pos = 50
+    w = 5
+    m = 16 / 11.0
+    v = 1 / 4.0
+    data = PearsonIVAmplitudeParametrizationHPW.GetYOfOneTerm(x, a, pos, w, m, v)
+    model = PearsonIVParametrizationHPWModel(x=x)
+    params = model.guess(data, x)
+    result = model.fit(data, x=x, params=params)
+    np.testing.assert_almost_equal(result.params["height"], a, 7)
+    np.testing.assert_almost_equal(result.params["center"], pos, 7)
+    np.testing.assert_almost_equal(result.params["sigma"], w, 7)
+    np.testing.assert_almost_equal(result.params["expon"], m, 7)
+    np.testing.assert_almost_equal(result.params["skew"], v, 7)
