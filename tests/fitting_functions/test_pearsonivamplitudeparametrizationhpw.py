@@ -475,3 +475,5 @@ def test_fit_with_model_oneterm():
     np.testing.assert_almost_equal(result.params["sigma"], w, 7)
     np.testing.assert_almost_equal(result.params["expon"], m, 7)
     np.testing.assert_almost_equal(result.params["skew"], v, 7)
+    np.testing.assert_almost_equal(result.params["amplitude"], 92.774482626349894596, 7)
+    np.testing.assert_almost_equal(result.params["fwhm"], 10.02952431724565395, 7)

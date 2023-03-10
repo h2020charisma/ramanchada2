@@ -7,7 +7,6 @@ from ramanchada2.fitting_functions.pearsonivamplitudeparametrizationhpw import (
 from ramanchada2.fitting_functions.voigtareaparametrizationnu import (
     VoigtAreaParametrizationNu,
 )
-import numpy as np
 
 
 class PearsonIVParametrizationHPWModel(Model):
@@ -113,14 +112,55 @@ class VoigtAreaParametrizationNuModel(Model):
         self._set_paramhints_prefix()
 
     def _set_paramhints_prefix(self):
-        self.set_param_hint("sigma", min=np.tiny)
-        self.set_param_hint("nu", min=0, max=1)
-
-        fexpr = "2.0*{pre:s}sigma"
-        self.set_param_hint("fwhm", expr=fexpr.format(pre=self.prefix))
+        self.set_param_hint("sigma", min=1E-100)
+        self.set_param_hint("nu", min=0.0, max=1.0)
 
     def guess(self, data, x, negative=False, **kwargs):
         """Estimate initial model parameter values from data."""
         pars = guess_from_peak(self, data, x, negative)
         pars[f"{self.prefix}nu"].set(value=1.0)
         return update_param_vals(pars, self.prefix, **kwargs)
+
+    def fit(
+        self,
+        data,
+        params=None,
+        weights=None,
+        method="leastsq",
+        iter_cb=None,
+        scale_covar=True,
+        verbose=False,
+        fit_kws=None,
+        nan_policy=None,
+        calc_covar=True,
+        max_nfev=None,
+        **kwargs,
+    ):
+        """overwrite fit in order to amend area and fwhm to the parameters"""
+        result = super().fit(
+            data,
+            params=params,
+            weights=weights,
+            method=method,
+            iter_cb=iter_cb,
+            scale_covar=scale_covar,
+            verbose=verbose,
+            fit_kws=fit_kws,
+            nan_policy=nan_policy,
+            calc_covar=calc_covar,
+            max_nfev=max_nfev,
+            **kwargs,
+        )
+        pahf = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromPeakParameters(
+            result.params[f"{self.prefix}amplitude"],
+            result.params[f"{self.prefix}center"],
+            result.params[f"{self.prefix}sigma"],
+            result.params[f"{self.prefix}nu"],
+            result.covar
+        )
+        p1 = Parameter(f"{self.prefix}height", value=pahf.Height)
+        p1.stderr = pahf.HeightStdDev
+        p2 = Parameter(f"{self.prefix}fwhm", value=pahf.FWHM)
+        p2.stderr = pahf.FWHMStdDev
+        result.params.add_many(p1, p2)
+        return result
