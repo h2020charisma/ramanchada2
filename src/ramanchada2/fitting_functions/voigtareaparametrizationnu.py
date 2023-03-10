@@ -388,14 +388,32 @@ class VoigtAreaParametrizationNu:
         pos = parameters[f"pos{indexOfPeak}"]
         w = parameters[f"w{indexOfPeak}"]
         nu = parameters[f"nu{indexOfPeak}"]
-        sigma = w * np.sqrt(nu) * OneBySqrtLog4
-        gamma = w * (1 - nu)
 
         if cv is not None:
             cv = cv[
                 indexOfPeak * 4: (indexOfPeak + 1) * 4,
                 indexOfPeak * 4: (indexOfPeak + 1) * 4,
             ]
+        return VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromPeakParameters(area, pos, w, nu, cv)
+
+    def GetPositionAreaHeightFWHMFromPeakParameters(
+        area, pos, w, nu, cv=None
+    ):
+        """
+        Get position, area, height, and FWHM of one peak from the peak parameters.
+        If the covariance matrix is given, the corresponding errors are calculated.
+
+        Parameters
+        ----------
+        parameters: Parameters
+            Existing instance of Parameters, which contains the result of the fit.
+        indexOfPeak: int
+            The index of the peak into consideration.
+        cv: np.array
+            Covariance matrix of the fit.
+        """
+        sigma = w * np.sqrt(nu) * OneBySqrtLog4
+        gamma = w * (1 - nu)
 
         if cv is not None:
             areaStdDev = SafeSqrt(cv[0, 0])

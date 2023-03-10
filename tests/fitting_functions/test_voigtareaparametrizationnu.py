@@ -1,4 +1,5 @@
 from ramanchada2.fitting_functions import voigtareaparametrizationnu
+from ramanchada2.fitting_functions.models import VoigtAreaParametrizationNuModel
 from ramanchada2.fitting_functions.voigtareaparametrizationnu import (
     VoigtAreaParametrizationNu,
 )
@@ -794,3 +795,23 @@ def test_parameter_boundaries():
     c.add(d)
     assert c["foo"] == 34
     assert c["foo"].max == 77
+
+
+def test_fit_with_model_oneterm():
+    x = np.linspace(0, 99, 100)
+    a = 7
+    pos = 50
+    w = 5
+    nu = 6 / 11.0
+    sigma = w * np.sqrt(nu) * voigtareaparametrizationnu.OneBySqrtLog4
+    gamma = w * (1 - nu)
+    data = a * voigt_profile(x - pos, sigma, gamma)
+    model = VoigtAreaParametrizationNuModel(x=x)
+    params = model.guess(data, x)
+    result = model.fit(data, x=x, params=params)
+    np.testing.assert_almost_equal(result.params["amplitude"], a, 3)
+    np.testing.assert_almost_equal(result.params["center"], pos, 3)
+    np.testing.assert_almost_equal(result.params["sigma"], w, 3)
+    np.testing.assert_almost_equal(result.params["nu"], nu, 3)
+    np.testing.assert_almost_equal(result.params["height"], 0.542599801404569082663570, 3)
+    np.testing.assert_almost_equal(result.params["fwhm"], 10.111072472153491175127, 3)
