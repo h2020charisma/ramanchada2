@@ -50,7 +50,7 @@ INSTALL_REQUIRES = [
         "uncertainties",
         "renishawWiRE",  # rc1-parser
         "opusFC",  # rc1-parser
-        "spc-spectra",  # rc1-parser
+        "spc-io~=0.0.2",  # rc1-parser
 ]
 
 CLASSIFIERS = [

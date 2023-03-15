@@ -1,7 +1,7 @@
 import numpy as np
 
 from renishawWiRE import WDFReader
-from spc_spectra import spc
+from spc_io import SPC
 import opusFC
 
 
@@ -23,12 +23,13 @@ def readWDF(file):
 
 
 def readSPC(file):
-    s = spc.File(file)
-    if len(s.sub) != 1:
-        raise ValueError(f'Only 1 sub supported, {len(s.sub)} found')
-    x_data = s.x
-    y_data = s.sub[0].y
-    static_metadata = s.log_dict
+    with open(file, 'rb') as f:
+        spc = SPC.from_bytes_io(f)
+    if len(spc) != 1:
+        raise ValueError(f'Only 1 sub supported, {len(spc)} found')
+    x_data = spc[0].xarray
+    y_data = spc[0].yarray
+    static_metadata = spc.log_book.text
     return x_data, y_data, static_metadata
 
 
