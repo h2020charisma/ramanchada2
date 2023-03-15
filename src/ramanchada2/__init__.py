@@ -94,7 +94,7 @@ from __future__ import annotations
 from . import spectrum
 from . import theoretical_lines
 __all__ = ['spectrum', 'theoretical_lines']
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 
 import logging
