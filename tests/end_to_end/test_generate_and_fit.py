@@ -7,9 +7,9 @@ def test_generate_and_fit():
     shift = 50
     spe = spectrum.from_delta_lines(lines).convolve('voigt', sigma=3)
     spe = spe.add_baseline(n_freq=5, amplitude=3, pedestal=0, rng_seed=1111)
-    spe = spe.add_poisson_noise(.0002, rng_seed=1111)
+    spe = spe.add_gaussian_noise(.1, rng_seed=1111)
     spe = spe.scale_xaxis_fun(lambda x: x - shift)
-    candidates = spe.find_peak_multipeak(prominence=spe.y_noise*15, wlen=40, sharpening=None)
+    candidates = spe.find_peak_multipeak(prominence=spe.y_noise*5, wlen=40, sharpening=None)
 
     true_pos = np.array(list(lines.keys()))
     calc_pos = [i for gr in candidates for i in gr.positions]
