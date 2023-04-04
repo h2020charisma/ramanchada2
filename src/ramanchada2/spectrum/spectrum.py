@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
-from typing import Set, Union, Dict, List, Tuple
-from copy import deepcopy
+
 import logging
+from copy import deepcopy
+from typing import Dict, List, Set, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 import pydantic
+from scipy.signal import convolve, savgol_coeffs, savgol_filter
 from scipy.stats import rv_histogram
 
-from ramanchada2.misc.plottable import Plottable
-from ramanchada2.misc.types import SpeMetadataModel
-from ramanchada2.misc.types.spectrum import (SpeProcessingListModel,
-                                             SpeProcessingModel)
 from ramanchada2.io.HSDS import write_cha
 from ramanchada2.io.output.write_csv import write_csv as io_write_csv
+from ramanchada2.misc.plottable import Plottable
+from ramanchada2.misc.types import PositiveOddInt, SpeMetadataModel
+from ramanchada2.misc.types.spectrum import (SpeProcessingListModel,
+                                             SpeProcessingModel)
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +141,28 @@ class Spectrum(Plottable):
 
     @property
     def y_noise(self):
-        return np.std(np.sort(np.diff(self.y))[len(self.y)//4:len(self.y)*3//4])
+        return self.y_noise_savgol()
+
+    def y_noise_savgol_DL(self, order: PositiveOddInt = PositiveOddInt(1)):
+        npts = order + 2
+        summ = np.sum((self.y - savgol_filter(self.y, npts, order))**2)
+        coeff = savgol_coeffs(npts, order)
+        coeff[(len(coeff) - 1) // 2] -= 1
+        scale = np.sqrt(np.sum(coeff**2))
+        return np.sqrt(summ/len(self.y))/scale
+
+    @pydantic.validate_arguments
+    def y_noise_savgol(self, order: PositiveOddInt = PositiveOddInt(1)):
+        npts = order + 2
+
+        # subtract smoothed signal from original
+        coeff = - savgol_coeffs(npts, order)
+        coeff[(len(coeff)-1)//2] += 1
+
+        # normalize coefficients so that `sum(coeff**2) == 1`
+        coeff /= np.sqrt(np.sum(coeff**2))
+
+        return np.std(convolve(self.y, coeff, mode='same'))
 
     @property
     def x_err(self):

@@ -5,39 +5,16 @@ from scipy.signal import wiener
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 
-from pydantic import validate_arguments, PositiveInt, NonNegativeInt
+from pydantic import validate_arguments, PositiveInt
+from ramanchada2.misc.types import PositiveOddInt
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
-class NonNegativeOddInt(NonNegativeInt):
-    class Config:
-        arbitrary_types_allowed = True
-
-    @classmethod
-    def __get_validators__(cls):
-        for val in super().__get_validators__():
-            yield val
-        yield cls.validate_odd
-
-    @classmethod
-    def validate_odd(cls, value) -> int:
-        if value % 2 != 1:
-            raise ValueError(f'Expected odd positive int, got {value}')
-        return value
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        super().__modify_schema__(field_schema)
-        field_schema.update({
-            'not': {'multipleOf': 2}
-        })
-
-
 @validate_arguments
 def baseline_als(y, lam: float = 1e5, p: float = 0.001, niter: PositiveInt = 100,
-                 smooth: Union[NonNegativeOddInt, Literal[0]] = NonNegativeOddInt(7)):
+                 smooth: Union[PositiveOddInt, Literal[0]] = PositiveOddInt(7)):
     if smooth > 0:
         y = wiener(y, smooth)
     L = len(y)
