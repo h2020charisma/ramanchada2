@@ -1,6 +1,7 @@
-from os import path
-from setuptools import find_packages, setup
 import ast
+from os import path
+
+from setuptools import find_packages, setup
 
 NAME = 'ramanchada2'
 
@@ -84,6 +85,8 @@ def setup_package():
         long_description_content_type=LONG_DESCRIPTION_CONTENT_TYPE,
         name=NAME,
         package_dir=PACKAGE_DIR,
+        package_data=PACKAGE_DATA,
+        include_package_data=True,
         packages=PACKAGES,
         python_requires=PYTHON_REQUIRES,
         url=URL,
