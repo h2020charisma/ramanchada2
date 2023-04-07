@@ -1,143 +1,23 @@
 #!/usr/bin/env python3
 
-import re
-from typing import Literal, List, Union
-from collections import UserList, defaultdict
 import logging
+from typing import List, Literal, Union
 
 import numpy as np
-import pandas as pd
+from lmfit.models import LinearModel, lmfit_models
 from pydantic import validate_arguments
-from lmfit.models import lmfit_models, LinearModel
-from lmfit.model import ModelResult, Parameters, Model
 
-from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
-                                            add_spectrum_filter)
-from ramanchada2.misc.plottable import Plottable
-from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel, PeakCandidateMultiModel
+from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
+                                            add_spectrum_method)
+from ramanchada2.misc.types.fit_peaks_result import FitPeaksResult
+from ramanchada2.misc.types.peak_candidates import (
+    ListPeakCandidateMultiModel, PeakCandidateMultiModel)
 
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
 available_models = ['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
-
-
-class FitPeaksResult(UserList, Plottable):
-    def valuesdict(self):
-        ret = dict()
-        for i in self:
-            ret.update(i.params.valuesdict())
-        return ret
-
-    @property
-    def locations(self):
-        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('center')])
-
-    @property
-    def centers(self):
-        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('center')])
-
-    @property
-    def fwhm(self):
-        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')])
-
-    def boundaries(self, n_sigma=5):
-        bounds = list()
-        for group in self:
-            pos = np.array([v for k, v in group.values.items() if k.endswith('center')])
-            sig = np.array([v for k, v in group.values.items() if k.endswith('fwhm')])
-            sig /= 2.35
-            sig *= n_sigma
-            bounds.append((np.min(pos - sig), np.max(pos+sig)))
-        return bounds
-
-    def center_amplitude(self, threshold):
-        return np.array([
-            (v.value, peak.params[k[:-6] + 'amplitude'].value)
-            for peak in self
-            for k, v in peak.params.items()
-            if k.endswith('center')
-            if hasattr(v, 'stderr') and v.stderr is not None and v.stderr < threshold
-        ]).T
-
-    @property
-    def centers_err(self):
-        return np.array([
-            (v.value, v.stderr)
-            for peak in self
-            for k, v in peak.params.items()
-            if k.endswith('center')
-            if hasattr(v, 'stderr') and v.stderr is not None
-            ])
-
-    @property
-    def fwhms(self):
-        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('fwhm')])
-
-    @property
-    def amplitudes(self):
-        return np.array([v for peak in self for k, v in peak.values.items() if k.endswith('amplitude')])
-
-    def dumps(self):
-        return [peak.dumps() for peak in self]
-
-    def loads(self, json_str: List[str]):
-        self.clear()
-        for p in json_str:
-            params = Parameters()
-            modres = ModelResult(Model(lambda x: x, None), params)
-            self.append(modres.loads(p))
-        return self
-
-    def _plot(self, ax, peak_candidate_groups=None, individual_peaks=False, xarr=None, **kwargs):
-        def group_plot(x, fitres):
-            if individual_peaks:
-                color = None
-                for component in fitres.components:
-                    line, = ax.plot(x, component.eval(x=x, params=fitres.params), color=color, **kwargs)
-                    color = line.get_c()
-            else:
-                ax.plot(x, fitres.eval(x=x), **kwargs)
-
-        if peak_candidate_groups is None:
-            for bound, fitres in zip(self.boundaries(), self):
-                x = np.linspace(*bound, 200)
-                group_plot(x, fitres)
-        elif isinstance(peak_candidate_groups, ListPeakCandidateMultiModel):
-            for cand, fitres in zip(peak_candidate_groups, self):
-                x = np.linspace(*cand.boundaries, 2000)
-                group_plot(x, fitres)
-        else:
-            for i, fitres in enumerate(self):
-                left, right = peak_candidate_groups[i].boundaries(n_sigma=3)
-                x = np.linspace(left, right, 100)
-                group_plot(x, fitres)
-
-    def to_dataframe(self):
-        return pd.DataFrame(
-            [
-                dict(name=f'g{group:02d}_{key}', value=val.value, stderr=val.stderr)
-                for group, res in enumerate(self)
-                for key, val in res.params.items()
-            ]
-        ).sort_values('name')
-
-    def to_dataframe_peaks(self):
-        regex = re.compile(r'p([0-1]+)_(.*)')
-        ret = defaultdict(dict)
-        for group_i, group in enumerate(self):
-            for par in group.params:
-                m = regex.match(par)
-                if m is None:
-                    continue
-                peak_i, par_name = m.groups()
-                ret[f'g{group_i:02d}_p{peak_i}'][par_name] = group.params[par].value
-                ret[f'g{group_i:02d}_p{peak_i}'][f'{par_name}_stderr'] = group.params[par].stderr
-        return pd.DataFrame.from_dict(ret, orient='index')
-
-    def to_csv(self, path_or_buf=None, sep=',', **kwargs):
-        return self.to_dataframe_peaks().to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
 
 
 @validate_arguments(config=dict(arbitrary_types_allowed=True))

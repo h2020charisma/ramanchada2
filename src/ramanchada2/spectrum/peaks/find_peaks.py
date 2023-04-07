@@ -47,16 +47,16 @@ def find_peak_multipeak(
         width: Union[int, Tuple[int, int], None] = None,
         hht_chain: Union[List[PositiveInt], None] = None,
         bgm_kwargs={},
-        sharpening: Union[Literal['hht'], None] = 'hht',
+        sharpening: Union[Literal['hht'], None] = None,
         strategy: Literal['topo', 'bayesian_gaussian_mixture', 'bgm'] = 'topo'
         ) -> ListPeakCandidateMultiModel:
 
-    if not prominence:
-        prominence = spe.y_noise*15
+    if prominence is None:
+        prominence = spe.y_noise
     if not wlen:
-        wlen = 50
+        wlen = 200
     if width is None:
-        width = 1
+        width = 2
 
     if sharpening == 'hht':
         if hht_chain is None:
@@ -125,7 +125,7 @@ def find_peak_multipeak(
             for peak_i, peak_pos in enumerate(peaks):
                 if li < peak_pos < ri:
                     pos_maximum = x_arr[peak_pos]
-                    amplitude = y_arr[peak_pos]
+                    amplitude = props['prominences'][peak_i]
                     lwhm = pos_maximum - interpolate(props['left_ips'][peak_i])
                     rwhm = interpolate(props['right_ips'][peak_i]) - pos_maximum
                     fwhm = lwhm + rwhm
