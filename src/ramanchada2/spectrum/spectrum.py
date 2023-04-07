@@ -145,11 +145,12 @@ class Spectrum(Plottable):
 
     def y_noise_savgol_DL(self, order: PositiveOddInt = PositiveOddInt(1)):
         npts = order + 2
-        summ = np.sum((self.y - savgol_filter(self.y, npts, order))**2)
+        ydata = self.y - np.min(self.y)
+        summ = np.sum((ydata - savgol_filter(ydata, npts, order))**2)
         coeff = savgol_coeffs(npts, order)
         coeff[(len(coeff) - 1) // 2] -= 1
         scale = np.sqrt(np.sum(coeff**2))
-        return np.sqrt(summ/len(self.y))/scale
+        return np.sqrt(summ/len(ydata))/scale
 
     @pydantic.validate_arguments
     def y_noise_savgol(self, order: PositiveOddInt = PositiveOddInt(1)):
@@ -162,7 +163,9 @@ class Spectrum(Plottable):
         # normalize coefficients so that `sum(coeff**2) == 1`
         coeff /= np.sqrt(np.sum(coeff**2))
 
-        return np.std(convolve(self.y, coeff, mode='same'))
+        # remove the common floor
+        ydata = self.y - np.min(self.y)
+        return np.std(convolve(ydata, coeff, mode='same'))
 
     @property
     def x_err(self):
