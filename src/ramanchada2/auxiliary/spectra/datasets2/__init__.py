@@ -197,4 +197,8 @@ def get_filters(**kwargs):
 
 def get_filenames(**kwargs):
     df_tmp = filtered_df(**kwargs)
-    return [str(loc.joinpath(fn)) for fn in df_tmp['filename']]
+    return df_tmp['filename']
+
+
+def prepend_prefix(filenames):
+    return [str(loc.joinpath(fn)) for fn in filenames]

@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-from typing import Dict, List, Union, Literal
+from typing import Dict, List, Literal, Union
+
 import lmfit
-
-
 import numpy as np
-from pydantic import validate_arguments, NonNegativeInt
+import numpy.typing as npt
+from pydantic import NonNegativeInt, validate_arguments
+from scipy import interpolate
 
-from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
-from ..spectrum import Spectrum
+from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
+                                            add_spectrum_method)
+
 from ...misc import utils as rc2utils
+from ..spectrum import Spectrum
 
 
 class DeltaSpeModel:
@@ -183,3 +186,42 @@ def xcal_fine(old_spe: Spectrum,
         spe_cal = old_spe.scale_xaxis_fun(  # type: ignore
             (lambda x, *args: np.sum(cal_func(x, *args), axis=0)), args=p)
     new_spe.x = spe_cal.x
+
+
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def xcal_fine_RBF(old_spe: Spectrum,
+                  new_spe: Spectrum, /, *,
+                  ref: Union[Dict[float, float], List[float], npt.NDArray],
+                  should_fit=False,
+                  kernel: Literal['thin_plate_spline', 'cubic', 'quintic',
+                                  'multiquadric', 'inverse_multiquadric',
+                                  'inverse_quadratic', 'gaussian',
+                                  ] = 'thin_plate_spline',
+                  find_peaks_kw={},
+                  **kwargs,
+                  ):
+    """Wavelength calibration using Radial basis fuction interpolation
+
+    Please be cautious! Interpolation might not be the most appropriate
+    approach for this type of calibration.
+
+    **kwargs are passed to RBFInterpolator
+    """
+
+    if isinstance(ref, dict):
+        ref_pos = np.array(list(ref.keys()))
+    else:
+        ref_pos = np.array(ref)
+
+    if should_fit:
+        spe_pos_dict = old_spe.fit_peak_positions(center_err_threshold=1, find_peaks_kw=find_peaks_kw)  # type: ignore
+    else:
+        find_kw = dict(sharpening=None)
+        find_kw.update(find_peaks_kw)
+        spe_pos_dict = old_spe.find_peak_multipeak(**find_kw).get_pos_ampl_dict()  # type: ignore
+    spe_cent = np.array(list(spe_pos_dict.keys()))
+
+    spe_idx, ref_idx = rc2utils.find_closest_pairs_idx(spe_cent, ref_pos)
+    interp = interpolate.RBFInterpolator(spe_cent[spe_idx].reshape(-1, 1), ref_pos[ref_idx], **kwargs)
+    new_spe.x = interp(old_spe.x.reshape(-1, 1))
