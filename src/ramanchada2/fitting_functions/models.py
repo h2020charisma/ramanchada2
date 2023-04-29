@@ -114,6 +114,7 @@ class VoigtAreaParametrizationNuModel(Model):
     def _set_paramhints_prefix(self):
         self.set_param_hint("sigma", min=1E-100)
         self.set_param_hint("nu", min=0.0, max=1.0)
+        self.set_param_hint("gamma", expr='sigma*(1-nu)')
 
     def guess(self, data, x, negative=False, **kwargs):
         """Estimate initial model parameter values from data."""
