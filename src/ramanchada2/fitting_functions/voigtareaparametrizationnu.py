@@ -95,10 +95,10 @@ class VoigtAreaParametrizationNu:
             f"nu{indexOfPeak}",
         ]
 
-    def GetYOfOneTerm(x, amplitude=1.0, center=0.0, sigma=1.0, nu=1.0):
+    def GetYOfOneTerm(x, amplitude=1.0, center=0.0, w=1.0, nu=1.0):
         """Returns the y-value of one peak in dependence on x and the peak parameters."""
         return amplitude * voigt_profile(
-            x - center, sigma * np.sqrt(nu) * OneBySqrtLog4, sigma * (1 - nu)
+            x - center, w * np.sqrt(nu) * OneBySqrtLog4, w * (1 - nu)
         )
 
     def func(self, pars, x, data=None):

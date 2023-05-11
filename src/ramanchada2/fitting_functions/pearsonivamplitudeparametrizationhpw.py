@@ -71,12 +71,12 @@ class PearsonIVAmplitudeParametrizationHPW:
             f"v{indexOfPeak}",
         ]
 
-    def GetYOfOneTerm(x, height=1.0, center=0.0, sigma=1.0, expon=1.0, skew=0.0):
+    def GetYOfOneTerm(x, height=1.0, center=0.0, w=1.0, expon=1.0, skew=0.0):
         """Returns the y-value of one peak in dependence on x and the peak parameters."""
         arg = (
             np.sqrt((np.power(2, 1 / expon) - 1) * (1 + skew * skew))
             * (x - center)
-            / sigma
+            / w
             - skew
         )
         return height * np.exp(

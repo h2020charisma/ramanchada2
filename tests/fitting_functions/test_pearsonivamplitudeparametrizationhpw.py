@@ -472,7 +472,7 @@ def test_fit_with_model_oneterm():
     result = model.fit(data, x=x, params=params)
     np.testing.assert_almost_equal(result.params["height"], a, 7)
     np.testing.assert_almost_equal(result.params["center"], pos, 7)
-    np.testing.assert_almost_equal(result.params["sigma"], w, 7)
+    np.testing.assert_almost_equal(result.params["w"], w, 7)
     np.testing.assert_almost_equal(result.params["expon"], m, 7)
     np.testing.assert_almost_equal(result.params["skew"], v, 7)
     np.testing.assert_almost_equal(result.params["amplitude"], 92.774482626349894596, 7)
