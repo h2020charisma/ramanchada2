@@ -1,6 +1,7 @@
 from lmfit import Model
 from lmfit import Parameter
 from lmfit.models import guess_from_peak, update_param_vals
+import numpy as np
 from ramanchada2.fitting_functions.pearsonivamplitudeparametrizationhpw import (
     PearsonIVAmplitudeParametrizationHPW,
 )
@@ -12,7 +13,7 @@ from ramanchada2.fitting_functions.voigtareaparametrizationnu import (
 class PearsonIVParametrizationHPWModel(Model):
     r"""A model based on a Pearson IV distribution.
     The model has five parameters: `height` (:math:`a`), `position`,
-    `sigma` (:math:`\sigma`), `expon` (:math:`m`) and `skew` (:math:`\nu`).
+    `w` (:math:`w`), `expon` (:math:`m`) and `skew` (:math:`\nu`).
     """
 
     def __init__(self, independent_vars=["x"], prefix="", nan_policy="raise", **kwargs):
@@ -33,6 +34,7 @@ class PearsonIVParametrizationHPWModel(Model):
     def guess(self, data, x, negative=False, **kwargs):
         """Estimate initial model parameter values from data."""
         pars = guess_from_peak(self, data, x, negative)
+        del pars['sigma']  # sigma is no longer needed
         return update_param_vals(pars, self.prefix, **kwargs)
 
     def make_params(self, verbose=False, **kwargs):
@@ -40,8 +42,16 @@ class PearsonIVParametrizationHPWModel(Model):
         pars[f"{self.prefix}height"].set(
             value=kwargs[f"{self.prefix}amplitude"] / kwargs[f"{self.prefix}sigma"]
         )
+        pars[f"{self.prefix}w"].set(kwargs[f"{self.prefix}sigma"])
         pars[f"{self.prefix}expon"].set(value=1.0)
         pars[f"{self.prefix}skew"].set(value=0.0)
+
+        # Here a parameter sigma is added again, but this is merely
+        # to not make guess_from_peak crashing
+        # sigma is deleted from the dictionary after the call to 'guess_from_peak'
+        par = Parameter(name='sigma')
+        pars.add(par)
+
         return pars
 
     def fit(
@@ -77,7 +87,7 @@ class PearsonIVParametrizationHPWModel(Model):
         pahf = PearsonIVAmplitudeParametrizationHPW.GetPositionAreaHeightFWHMFromPeakParameters(
             result.params[f"{self.prefix}height"],
             result.params[f"{self.prefix}center"],
-            result.params[f"{self.prefix}sigma"],
+            result.params[f"{self.prefix}w"],
             result.params[f"{self.prefix}expon"],
             result.params[f"{self.prefix}skew"],
             result.covar
@@ -112,7 +122,7 @@ class VoigtAreaParametrizationNuModel(Model):
         self._set_paramhints_prefix()
 
     def _set_paramhints_prefix(self):
-        self.set_param_hint("sigma", min=1E-100)
+        self.set_param_hint("w", min=1E-100)
         self.set_param_hint("nu", min=0.0, max=1.0)
         self.set_param_hint("gamma", expr='sigma*(1-nu)')
 
@@ -120,7 +130,21 @@ class VoigtAreaParametrizationNuModel(Model):
         """Estimate initial model parameter values from data."""
         pars = guess_from_peak(self, data, x, negative)
         pars[f"{self.prefix}nu"].set(value=1.0)
+        del pars['sigma']  # sigma is no longer needed
         return update_param_vals(pars, self.prefix, **kwargs)
+
+    def make_params(self, verbose=False, **kwargs):
+        pars = super().make_params(verbose=verbose, **kwargs)
+
+        pars[f"{self.prefix}w"].set(kwargs[f"{self.prefix}sigma"])
+
+        # Here a parameter sigma is added again, but this is merely
+        # to avoid crashing in the call to  'guess_from_peak'
+        # sigma is deleted from the dictionary after the call to 'guess_from_peak'
+        par = Parameter(name='sigma')
+        pars.add(par)
+
+        return pars
 
     def fit(
         self,
@@ -155,7 +179,7 @@ class VoigtAreaParametrizationNuModel(Model):
         pahf = VoigtAreaParametrizationNu.GetPositionAreaHeightFWHMFromPeakParameters(
             result.params[f"{self.prefix}amplitude"],
             result.params[f"{self.prefix}center"],
-            result.params[f"{self.prefix}sigma"],
+            result.params[f"{self.prefix}w"],
             result.params[f"{self.prefix}nu"],
             result.covar
         )
@@ -163,5 +187,12 @@ class VoigtAreaParametrizationNuModel(Model):
         p1.stderr = pahf.HeightStdDev
         p2 = Parameter(f"{self.prefix}fwhm", value=pahf.FWHM)
         p2.stderr = pahf.FWHMStdDev
-        result.params.add_many(p1, p2)
+        p3 = Parameter(f"{self.prefix}sigma",
+                       value=result.params[f"{self.prefix}w"] * np.sqrt(result.params[f"{self.prefix}nu"] / np.log(4)))
+        p3.stderr = 0.0  # TBD
+        p4 = Parameter(f"{self.prefix}gamma",
+                       value=result.params[f"{self.prefix}w"] * (1 - result.params[f"{self.prefix}nu"]))
+        p4.stderr = 0.0  # TBD
+
+        result.params.add_many(p1, p2, p3, p4)
         return result
