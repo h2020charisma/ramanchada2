@@ -5,6 +5,7 @@ from typing import Literal, Union
 
 from pydantic import validate_arguments
 
+import os
 from ..spectrum import Spectrum
 from ramanchada2.misc.types import SpeMetadataModel
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
@@ -18,7 +19,7 @@ def from_local_file(
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                       'wdf', 'ngs', 'jdx', 'dx',
                                       'txt', 'txtr', 'csv', 'prn', 'rruf']] = None,
-        backend: Literal['native', 'rc1_parser'] = 'rc1_parser'):
+        backend: Union[None, Literal['native', 'rc1_parser']] = None):
     """
     Read experimental spectrum from a local file.
 
@@ -31,26 +32,43 @@ def from_local_file(
         `spc`, `sp`, `spa`, `0`, `1`, `2`, `wdf`, `ngs`, `jdx`,
         `dx`, `txt`, `txtr`, `csv`, `prn`, `rruf` or `None`
         `None` used to determine by extension of the file.
-    backend : Literal['native', 'rc1_parser'], default 'native'
+    backend : Literal['native', 'rc1_parser'], default None==both
 
     Raises
     ------
     ValueError
         When called with unsupported file formats
     """
-    if backend == 'native':
-        if filetype in {'txt', 'txtr', 'prn', 'rruf'}:
+    def load_native():
+        if filetype is None:
+            ft = os.path.splitext(in_file_name)[1][1:]
+        else:
+            ft = filetype
+        if ft in {'txt', 'txtr', 'prn', 'rruf'}:
             with open(in_file_name) as fp:
                 x, y, meta = read_txt(fp)
-                spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
-        elif filetype in {'csv'}:
+        elif ft in {'csv'}:
             with open(in_file_name) as fp:
                 x, y, meta = read_csv(fp)
-                spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
         else:
-            raise ValueError(f'filetype {filetype} not supported')
-    elif backend == 'rc1_parser':
+            raise ValueError(f'filetype {ft} not supported')
+        meta["Original file"] = os.path.basename(in_file_name)
+        spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
+        return spe
+
+    def load_rc1():
         x, y, meta = rc1_parser.parse(in_file_name, filetype)
         spe = Spectrum(x=x, y=y, metadata=SpeMetadataModel.parse_obj(meta))
+        return spe
+
+    if backend == 'native':
+        spe = load_native()
+    elif backend == 'rc1_parser':
+        spe = load_rc1()
+    elif backend is None:
+        try:
+            spe = load_native()
+        except Exception:
+            spe = load_rc1()
     spe._sort_x()
     return spe
