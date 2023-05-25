@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-from typing import Dict, Union, Any, List
 import datetime
 import json
+from typing import Any, Dict, List, Union
 
-import pydantic
 import numpy as np
 import numpy.typing as npt
+import pydantic
 
 from ..pydantic_base_model import PydBaseModel
-
 
 SpeMetadataFieldTyping = Union[
     npt.NDArray, PydBaseModel,
@@ -63,7 +62,7 @@ class SpeMetadataModel(PydBaseModel):
         return str(self.serialize())
 
     def serialize(self):
-        return {k: v.serialize() for k, v in self.__root__.items()}
+        return {k: v.serialize() for k, v in sorted(self.__root__.items())}
 
     def __getitem__(self, key: str) -> SpeMetadataFieldTyping:
         return self.__root__[key].__root__
