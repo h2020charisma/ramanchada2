@@ -88,9 +88,12 @@ def fit_peak_multimodel(spe, /, *,
                         profile: Union[available_models_type, List[available_models_type]],
                         candidates: ListPeakCandidateMultiModel,
                         no_fit=False,
+                        should_break=[False],
                         kwargs_fit={},
                         vary_baseline: bool = False,
                         ) -> FitPeaksResult:
+    def iter_cb(params, iter, resid, *args, **kws):
+        return should_break[0]
     if no_fit:
         kwargs_fit = dict(kwargs_fit)
         kwargs_fit['max_nfev'] = 1
@@ -102,13 +105,13 @@ def fit_peak_multimodel(spe, /, *,
         y = spe.y[idx]
         for i in range(len(group.peaks)):
             par[f'p{i}_center'].set(vary=False)
-        fr = mod.fit(y, x=x, params=par, **kwargs_fit)
+        fr = mod.fit(y, x=x, params=par, iter_cb=iter_cb,  **kwargs_fit)
         for i in range(len(group.peaks)):
             par[f'p{i}_center'].set(vary=True)
         if vary_baseline:
             par['bl_slope'].set(vary=True)
             par['bl_intercept'].set(vary=True)
-        fr = mod.fit(y, x=x, params=par, **kwargs_fit)
+        fr = mod.fit(y, x=x, params=par, iter_cb=iter_cb, **kwargs_fit)
         fit_res.append(fr)
     return fit_res
 
@@ -118,6 +121,7 @@ def fit_peak_multimodel(spe, /, *,
 def fit_peaks_filter(
         old_spe: Spectrum,
         new_spe: Spectrum, /, *args,
+        should_break=[False],
         kwargs_fit={},
         **kwargs,
         ):
@@ -127,5 +131,6 @@ def fit_peaks_filter(
     cand_groups = ListPeakCandidateMultiModel.validate(old_spe.result)
     new_spe.result = old_spe.fit_peak_multimodel(*args,  # type: ignore
                                                  candidates=cand_groups,
+                                                 should_break=should_break,
                                                  kwargs_fit=kwargs_fit,
                                                  **kwargs).dumps()

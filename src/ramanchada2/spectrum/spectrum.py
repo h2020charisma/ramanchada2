@@ -179,6 +179,14 @@ class Spectrum(Plottable):
     def meta(self) -> SpeMetadataModel:
         return self._metadata
 
+    @meta.setter
+    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    def meta(self, val: Union[Dict, SpeMetadataModel]):
+        if isinstance(val, dict):
+            self._metadata = SpeMetadataModel.parse_obj(val)
+        else:
+            self._metadata = val
+
     @property
     def result(self):
         return self.meta['ramanchada2_filter_result']
