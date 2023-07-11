@@ -12,7 +12,7 @@ import pydantic
 from scipy.signal import convolve, savgol_coeffs, savgol_filter
 from scipy.stats import median_abs_deviation, rv_histogram
 
-from ramanchada2.io.HSDS import write_cha
+from ramanchada2.io.HSDS import write_cha, write_nexus
 from ramanchada2.io.output.write_csv import write_csv as io_write_csv
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.types import PositiveOddInt, SpeMetadataModel
@@ -76,6 +76,10 @@ class Spectrum(Plottable):
         write_cha(chafile, dataset,
                   self.x, self.y, self.meta.serialize())
 
+    def write_nexus(self, chafile, dataset):
+        write_nexus(chafile, dataset,
+                  self.x, self.y, self.meta.serialize())
+        
     def write_cache(self):
         if self._cachefile:
             self.write_cha(
