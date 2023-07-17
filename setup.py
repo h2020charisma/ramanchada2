@@ -43,7 +43,7 @@ INSTALL_REQUIRES = [
         "matplotlib",
         "numpy",
         "pandas",
-        "pydantic",
+        "pydantic==1.*",
         "pyhht",
         "scikit-learn",
         "scipy>=1.8.0",

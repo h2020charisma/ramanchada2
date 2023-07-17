@@ -12,7 +12,7 @@ dependencies:
   - matplotlib
   - numpy
   - pandas
-  - pydantic
+  - pydantic==1.*
   - scipy
   - uncertainties
   - pip:
