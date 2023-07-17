@@ -12,7 +12,7 @@ setup(
         "h5pyd",
         "scipy",
         "uncertainties",
-        "pydantic",
+        "pydantic==1.*",
         "lmfit",
         "pandas",
     ],

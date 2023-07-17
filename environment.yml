@@ -10,7 +10,7 @@ dependencies:
   - numpy
   - pandas
   - pip
-  - pydantic
+  - pydantic==1.*
   - scipy
   - uncertainties
   - pip:
