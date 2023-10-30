@@ -1,11 +1,15 @@
+# ramanchada2
+
 [![build](https://github.com/h2020charisma/ramanchada2/workflows/build/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/build.yml)
 [![docs](https://github.com/h2020charisma/ramanchada2/workflows/docs/badge.svg)](https://h2020charisma.github.io/ramanchada2/index.html)
 
-Harmonising Raman Spectroscopy
-==============================
+Harmonising Raman spectroscopy: meant to fill the gap between the theoretical Raman analysis and the experimental Raman spectroscopy by providing means to compare data of different origin.
 
-RamanChada v2
---------------
+- 📖 [Documentation](https://h2020charisma.github.io/ramanchada2/ramanchada2.html)
+- ⚗️ [Examples](https://github.com/h2020charisma/ramanchada2/tree/main/examples)
+
+
+## Quick start
 
 Clone the repo using https
 ```bash
