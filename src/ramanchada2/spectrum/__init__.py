@@ -16,16 +16,3 @@ from .creators.from_spectral_component_collection import from_spectral_component
 from .creators.from_delta_lines import from_delta_lines
 from .creators.from_test_spe import from_test_spe
 from .creators.hdr_from_multi_exposure import hdr_from_multi_exposure
-
-
-__all__ = ['Spectrum',
-           'from_cache_or_calc',
-           'from_chada',
-           'from_local_file',
-           'from_simulation',
-           'from_test_spe',
-           'from_theoretical_lines',
-           'from_spectral_component_collection',
-           'from_delta_lines',
-           'hdr_from_multi_exposure',
-           ]
