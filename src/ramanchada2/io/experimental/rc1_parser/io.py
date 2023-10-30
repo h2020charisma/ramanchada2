@@ -38,17 +38,17 @@ def parse(source_path, file_type=None):
 
 def cleanMeta(meta):
     # This cleans complex-strcutures metadata, and returns a dict
-    if type(meta) == dict:
+    if isinstance(meta, dict):
         meta = {i: meta[i] for i in meta if i != ""}
         for key, value in meta.items():
             meta[key] = cleanMeta(value)
-    if type(meta) == list:
+    if isinstance(meta, list):
         for ii, value in enumerate(meta):
             meta[ii] = cleanMeta(value)
-    if type(meta) == str:
+    if isinstance(meta, str):
         meta = meta.replace('\\x00', '')
         meta = meta.replace('\x00', '')
-    if type(meta) == bytes:
+    if isinstance(meta, bytes):
         try:
             meta = meta.decode('utf-8')
             meta = cleanMeta(meta)
