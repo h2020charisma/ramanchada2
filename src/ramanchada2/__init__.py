@@ -93,7 +93,14 @@ from __future__ import annotations
 
 from . import spectrum
 from . import theoretical_lines
-__all__ = ['spectrum', 'theoretical_lines']
+__all__ = [
+    'auxiliary',
+    'io',
+    'misc',
+    'spectral_components',
+    'spectrum',
+    'theoretical_lines',
+]
 __version__ = '0.0.8'
 
 
