@@ -61,6 +61,9 @@ def write_nexus(filename: str,
     except ValueError as e:
         logger.warning(repr(e))        
 
+class DatasetExistsError(Exception):
+    pass
+
 @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
 def write_cha(filename: str,
               dataset: str,
@@ -73,9 +76,9 @@ def write_cha(filename: str,
                 ds = h5.create_dataset(dataset, data=data)
                 ds.attrs.update(meta)
             else:
-                logger.warning(f'dataset `{dataset}` already exists in file `{filename}`')
+                raise DatasetExistsError(f'dataset `{dataset}` already exists in file `{filename}`')
     except ValueError as e:
-        logger.warning(repr(e))
+        raise(e)
 
 
 def read_cha(filename: str,
