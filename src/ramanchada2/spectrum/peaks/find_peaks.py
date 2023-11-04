@@ -12,7 +12,7 @@ from ramanchada2.misc.spectrum_deco import (add_spectrum_method,
                                             add_spectrum_filter)
 
 from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel
-
+from scipy.signal import find_peaks_cwt
 
 def peak_boundaries(spe, wlen, width, prominence):
     peaks = signal.find_peaks(spe.y, prominence=prominence, width=width, wlen=wlen)
@@ -48,7 +48,7 @@ def find_peak_multipeak(
         hht_chain: Union[List[PositiveInt], None] = None,
         bgm_kwargs={},
         sharpening: Union[Literal['hht'], None] = None,
-        strategy: Literal['topo', 'bayesian_gaussian_mixture', 'bgm'] = 'topo'
+        strategy: Literal['topo', 'bayesian_gaussian_mixture', 'bgm','cwt'] = 'topo'
         ) -> ListPeakCandidateMultiModel:
 
     if prominence is None:
@@ -112,7 +112,34 @@ def find_peak_multipeak(
             if peak_group:
                 peak_groups.append(dict(boundaries=(x_arr[li], x_arr[ri]),
                                         peaks=peak_group))
-
+    elif strategy == 'cwt':
+        #cwt_args tbd
+        peaks = find_peaks_cwt(spe.y, **bgm_kwargs)
+        peak_list = list()
+        for peak_index in peaks:
+            half_max = spe.y[peak_index] / 2.0
+            left_index = np.where(spe.y[:peak_index] <= half_max)[0][-1]
+            right_index = np.where(spe.y[peak_index:] <= half_max)[0][0] + peak_index
+            fwhm = spe.x[right_index] - spe.x[left_index]         
+            #rough sigma estimation based on fwhm
+            sqrt2ln2 = 2 * np.sqrt(2 * np.log(2))
+            #print(spe.x[peak_index],spe.y[peak_index],fwhm / sqrt2ln2 )
+            peak_list.append(dict(amplitude=spe.y[peak_index],
+                                  position=spe.x[peak_index],
+                                  sigma = fwhm / sqrt2ln2 ,
+                                  fwhm = fwhm
+                                  ))
+        for li, ri in boundaries:
+            peak_group = list()
+            for peak in peak_list:
+                if li < peak['position'] < ri:
+                    peak_group.append(dict(position=peak['position'],
+                                           amplitude=peak['amplitude'],
+                                           sigma = peak['sigma'])
+                                      )
+            if peak_group:
+                peak_groups.append(dict(boundaries=(x_arr[li], x_arr[ri]),
+                                        peaks=peak_group))    
     elif strategy == 'topo':
         for li, ri in boundaries:
             peak_group = list()
