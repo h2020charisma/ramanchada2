@@ -15,4 +15,5 @@ from .argmin2d import (argmin2d,
                        find_closest_pairs,
                        find_closest_pairs_idx,
                        align, align_shift,
+                       match_peaks
                        )
