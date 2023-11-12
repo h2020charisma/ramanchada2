@@ -164,7 +164,7 @@ class ShiftCalibrationComponent(CalibrationComponent):
 
     def process(self,old_spe: Spectrum, spe_units="cm-1",convert_back=False):
         print(self)
-        spe_to_process = self.convert_units(self.spe,"nm",self.ref_units,laser_wl=self.model)
+        spe_to_process = self.convert_units(old_spe,"nm",self.ref_units,laser_wl=self.model)
         print(self.ref.keys())
         spe_to_process.x = spe_to_process.x +  list(self.ref.keys())[0]
         return spe_to_process   
