@@ -4,6 +4,7 @@ import numpy as np
 from scipy import interpolate
 from ramanchada2.misc.plottable import Plottable
 import matplotlib.pyplot as plt
+import ramanchada2.misc.constants  as rc2const
 
 class ProcessingModel:
 
@@ -159,7 +160,7 @@ class ShiftCalibrationComponent(CalibrationComponent):
         #init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
         fit_res = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, **fit_peaks_kw)
         df = fit_res.to_dataframe_peaks()
-        df  = df.sort_values(by='amplitude', ascending=False)
+        df  = df.sort_values(by='height', ascending=False)
         self.set_model( df.iloc[0]["position"], "nm", df,"Shift calibration using".format(self.ref,self.ref_units))
 
     def process(self,old_spe: Spectrum, spe_units="cm-1",convert_back=False):
@@ -174,6 +175,12 @@ class CalibrationModel(ProcessingModel,Plottable):
         super(ProcessingModel, self).__init__()
         super(Plottable, self).__init__()
         self.set_laser_wavelength(laser_wl)
+        self.neon_wl = {
+            785: rc2const.neon_wl_785_nist_dict,
+            633: rc2const.neon_wl_633_nist_dict,
+            532: rc2const.neon_wl_532_nist_dict
+        }    
+        self.prominence_coeff = 10
 
     def set_laser_wavelength(self,laser_wl):
         self.clear()
@@ -183,20 +190,18 @@ class CalibrationModel(ProcessingModel,Plottable):
         self.laser_wl = None
         self.components = []
 
-    def derive_model_x(self,spe,ref,spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="X calibration"):
+    def derive_model_x(self,spe_neon,spe_neon_units="cm-1",ref_neon=None,ref_neon_units="nm",spe_sil=None,spe_sil_units="cm-1",ref_sil=None,ref_sil_units="cm-1"):
+        model_neon = self.derive_model_curve(spe_neon,self.neon_wl[self.laser_wl],spe_units=spe_neon_units,ref_units=ref_neon_units,find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
+        spe_sil_ne_calib = model_neon.process(spe_sil,spe_units=spe_sil_units,convert_back=False)
+        find_kw = {"prominence" :spe_sil_ne_calib.y_noise * prominence_coeff , "wlen" : 200, "width" :  1 }
+        model_si = calmodel.derive_model_shift(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units=ref_sil_units,find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si calibration")
+        return (model_neon,model_si)
+
+    def derive_model_curve(self,spe,ref,spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="X calibration"):
         calibration_x = XCalibrationComponent(self.laser_wl, spe, spe_units, ref, ref_units)
-        print(calibration_x)
         calibration_x.derive_model(find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = should_fit,name=name)
-        print(calibration_x)
         self.components.append(calibration_x)
         return calibration_x
-        #if should_fit:
-        #    spe_pos_dict = spe_to_process.fit_peak_positions(center_err_threshold=1, 
-        #                        find_peaks_kw=find_kw,  fit_peaks_kw=fit_peaks_kw)  # type: ignore   
-        #else:
-        #    find_kw = dict(sharpening=None)
-        #    spe_pos_dict = spe_to_process.find_peak_multipeak(**find_kw).get_pos_ampl_dict()  # type: ignore
-        #prominence=prominence, wlen=wlen, width=width
 
     def derive_model_shift(self,spe,ref,spe_units="cm-1",ref_units="cm-1",find_kw={},fit_peaks_kw={},should_fit = False,name="X Shift"):
         calibration_shift = ShiftCalibrationComponent(self.laser_wl, spe, spe_units, ref, ref_units)
@@ -205,14 +210,7 @@ class CalibrationModel(ProcessingModel,Plottable):
         print(calibration_shift)
         self.components.append(calibration_shift)
         return calibration_shift
-        #if should_fit:
-        #    spe_pos_dict = spe_to_process.fit_peak_positions(center_err_threshold=1, 
-        #                        find_peaks_kw=find_kw,  fit_peaks_kw=fit_peaks_kw)  # type: ignore   
-        #else:
-        #    find_kw = dict(sharpening=None)
-        #    spe_pos_dict = spe_to_process.find_peak_multipeak(**find_kw).get_pos_ampl_dict()  # type: ignore
-        #prominence=prominence, wlen=wlen, width=width        
-       
+ 
     def apply_calibration_x(self,old_spe: Spectrum, spe_units="cm-1"):
         new_spe = old_spe
         for model in self.components:
