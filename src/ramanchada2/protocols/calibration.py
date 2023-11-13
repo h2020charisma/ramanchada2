@@ -13,7 +13,7 @@ class ProcessingModel:
         pass
 
 class CalibrationComponent(Plottable):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units):
+    def __init__(self, laser_wl, spe, spe_units, ref, ref_units,sample=None):
         super(CalibrationComponent, self).__init__()
         self.laser_wl = laser_wl
         self.spe = spe
@@ -24,6 +24,7 @@ class CalibrationComponent(Plottable):
         self.model = None
         self.model_units = None        
         self.peaks = None
+        self.sample = sample
 
     def set_model(self, model, model_units, peaks, name=None):
         self.model = model
@@ -75,8 +76,8 @@ class CalibrationComponent(Plottable):
         #spe_to_process.plot(ax=ax[1],label=ref_units)    
 
 class XCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units):
-        super(XCalibrationComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units)
+    def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
+        super(XCalibrationComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units,sample)
 
     def process(self,old_spe: Spectrum, spe_units="cm-1",convert_back=False):
         print("convert to ", spe_units, self.model_units)
@@ -150,8 +151,8 @@ class XCalibrationComponent(CalibrationComponent):
 
 
 class ShiftCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units):
-        super(ShiftCalibrationComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units)
+    def __init__(self, laser_wl, spe, spe_units, ref, ref_units,sample="Silicon"):
+        super(ShiftCalibrationComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units,sample)
 
     def derive_model(self,find_kw={},fit_peaks_kw={},should_fit = True,name=None):    
         find_kw = dict(sharpening=None)
