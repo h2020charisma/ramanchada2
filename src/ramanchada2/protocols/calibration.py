@@ -5,6 +5,7 @@ from scipy import interpolate
 from ramanchada2.misc.plottable import Plottable
 import matplotlib.pyplot as plt
 import ramanchada2.misc.constants  as rc2const
+import pickle
 
 class ProcessingModel:
 
@@ -181,6 +182,12 @@ class CalibrationModel(ProcessingModel,Plottable):
             532: rc2const.neon_wl_532_nist_dict
         }    
         self.prominence_coeff = 10
+    
+    def peaks(self,spe, profile='Gaussian',wlen=300, width=1):
+        cand = spe.find_peak_multipeak(prominence=spe.y_noise*self.prominence_coeff, wlen=wlen, width=width)
+        init_guess = spe.fit_peak_multimodel(profile=profile, candidates=cand, no_fit=True)
+        fit_res = spe.fit_peak_multimodel(profile=profile, candidates=cand)
+        return cand, init_guess, fit_res    
 
     def set_laser_wavelength(self,laser_wl):
         self.clear()
@@ -190,11 +197,22 @@ class CalibrationModel(ProcessingModel,Plottable):
         self.laser_wl = None
         self.components = []
 
-    def derive_model_x(self,spe_neon,spe_neon_units="cm-1",ref_neon=None,ref_neon_units="nm",spe_sil=None,spe_sil_units="cm-1",ref_sil=None,ref_sil_units="cm-1"):
+    def save(self,filename):
+        with open(filename, "wb") as file:
+            pickle.dump(self, file)        
+
+    @staticmethod
+    def from_file(filename):
+        with open(filename, "rb") as file:
+            return pickle.load(file)   
+
+ 
+
+    def derive_model_x(self,spe_neon,spe_neon_units="cm-1",ref_neon=None,ref_neon_units="nm",spe_sil=None,spe_sil_units="cm-1",ref_sil=None,ref_sil_units="cm-1",find_kw={},fit_kw={}):
         model_neon = self.derive_model_curve(spe_neon,self.neon_wl[self.laser_wl],spe_units=spe_neon_units,ref_units=ref_neon_units,find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units=spe_sil_units,convert_back=False)
-        find_kw = {"prominence" :spe_sil_ne_calib.y_noise * prominence_coeff , "wlen" : 200, "width" :  1 }
-        model_si = calmodel.derive_model_shift(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units=ref_sil_units,find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si calibration")
+        find_kw = {"prominence" :spe_sil_ne_calib.y_noise * 10 , "wlen" : 200, "width" :  1 }
+        model_si = self.derive_model_shift(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units=ref_sil_units,find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si calibration")
         return (model_neon,model_si)
 
     def derive_model_curve(self,spe,ref,spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="X calibration"):
