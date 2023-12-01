@@ -32,5 +32,4 @@ def vasp_simulation_dat_file():
 
 @pytest.fixture
 def opus_experimental_file():
-    with open(test_data_dir + '/data/experimental/test_opus.0') as f:
-        yield f
+    return test_data_dir + '/data/experimental/test_opus.0'
