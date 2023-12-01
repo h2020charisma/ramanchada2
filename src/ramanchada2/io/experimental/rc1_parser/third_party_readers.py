@@ -39,11 +39,11 @@ def readOPUS(file, obj_no=0):
     y = opus_data["AB"]
     meta = {}
     for key in opus_data:
-        if key=="AB":
+        if key == "AB":
             continue
-        if isinstance( opus_data[key], dict):
+        if isinstance(opus_data[key], dict):
             for subkey in opus_data[key]:
-                meta["{}.{}".format(key,subkey)]=opus_data[key][subkey]
+                meta["{}.{}".format(key, subkey)] = opus_data[key][subkey]
         else:
-            meta[key]=opus_data[key]
-    return x,y,meta
+            meta[key] = opus_data[key]
+    return x, y, meta
