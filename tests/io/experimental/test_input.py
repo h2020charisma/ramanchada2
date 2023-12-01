@@ -7,6 +7,6 @@ def test_opus(opus_experimental_file):
     assert 4096 == len(y)
     assert 96 == len(meta)
     if "NPT" in meta:
-        assert meta["NPT"] == 4096
+        assert 4096 == meta["NPT"]
     elif "AB Data Parameter.NPT" in meta:
-        assert meta["AB Data Parameter.NPT"] == 4096
+        assert 4096 == meta["AB Data Parameter.NPT"]
