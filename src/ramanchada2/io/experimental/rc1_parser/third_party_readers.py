@@ -2,7 +2,7 @@ import numpy as np
 
 from renishawWiRE import WDFReader
 from spc_io import SPC
-import opusFC
+from brukeropusreader import read_file
 
 
 def readWDF(file):
@@ -34,6 +34,16 @@ def readSPC(file):
 
 
 def readOPUS(file, obj_no=0):
-    c = opusFC.listContents(file)
-    data = opusFC.getOpusData(file, c[obj_no])
-    return data.x, data.y, data.parameters
+    opus_data = read_file(file)
+    x = opus_data.get_range("AB")
+    y = opus_data["AB"]
+    meta = {}
+    for key in opus_data:
+        if key=="AB":
+            continue
+        if isinstance( opus_data[key], dict):
+            for subkey in opus_data[key]:
+                meta["{}.{}".format(key,subkey)]=opus_data[key][subkey]
+        else:
+            meta[key]=opus_data[key]
+    return x,y,meta
