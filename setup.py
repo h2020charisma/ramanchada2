@@ -38,6 +38,7 @@ PACKAGE_DATA = {'': ['auxiliary/**/*.txt']}
 DATA_FILES = []
 
 INSTALL_REQUIRES = [
+        "brukeropusreader",  # rc1-parser
         "h5py",
         "lmfit",
         "matplotlib",
@@ -45,13 +46,12 @@ INSTALL_REQUIRES = [
         "pandas",
         "pydantic==1.*",
         "pyhht",
+        "renishawWiRE",  # rc1-parser
         "scikit-learn",
         "scipy>=1.8.0",
+        "spc-io~=0.0.2",  # rc1-parser
         "statsmodels",
         "uncertainties",
-        "renishawWiRE",  # rc1-parser
-        "opusFC",  # rc1-parser
-        "spc-io~=0.0.2",  # rc1-parser
 ]
 
 CLASSIFIERS = [
