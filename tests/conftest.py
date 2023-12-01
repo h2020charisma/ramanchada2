@@ -29,3 +29,8 @@ def crystal_simulation_raw_dat_file():
 def vasp_simulation_dat_file():
     with open(test_data_dir + '/data/simulations/vasp/snCAL_vasp_raman_ALL.dat') as f:
         yield f
+
+@pytest.fixture
+def opus_experimental_file():
+    with open(test_data_dir + '/data/experimental/test_opus.0') as f:
+        yield f
