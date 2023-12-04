@@ -3,16 +3,16 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python<=3.10
-  - mamba
-  - pip
   - h5py
   - jupyter
   - lmfit
+  - mamba
   - matplotlib
   - numpy
   - pandas
+  - pip
   - pydantic==1.*
+  - python
   - scipy
   - uncertainties
   - pip:
