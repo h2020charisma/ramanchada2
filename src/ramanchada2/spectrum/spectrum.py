@@ -10,7 +10,7 @@ import numpy as np
 import numpy.typing as npt
 import pydantic
 from scipy.signal import convolve, savgol_coeffs, savgol_filter
-from scipy.stats import rv_histogram
+from scipy.stats import rv_histogram, median_abs_deviation
 
 from ramanchada2.io.HSDS import write_cha
 from ramanchada2.io.output.write_csv import write_csv as io_write_csv
@@ -142,6 +142,9 @@ class Spectrum(Plottable):
     @property
     def y_noise(self):
         return self.y_noise_savgol()
+
+    def y_noise_MAD(self):
+        return median_abs_deviation((np.diff(self.y, prepend=[0])))
 
     def y_noise_savgol_DL(self, order: PositiveOddInt = PositiveOddInt(1)):
         npts = order + 2
