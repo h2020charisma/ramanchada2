@@ -17,3 +17,4 @@ from .filters import *  # noqa
 from .multimap import *  # noqa
 from .peaks import *  # noqa
 from .spectrum import Spectrum  # noqa
+from .spikes import spikes
