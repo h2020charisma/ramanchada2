@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def laplacian(intensity, threshold=200):
+def metric(intensity):
     """
     This function returns the indices of posible spikes in a spectrum.
     The function calculates the second derivative (laplacian) in one dimension of a spectrum and identifies the
@@ -17,20 +17,20 @@ def laplacian(intensity, threshold=200):
     exceeds the threshold).
     """
 
-    # ################ TO BE DONE #################
-    #  Include calculation of automatic threshold #
-    # ############################################
-
-    # I did not used this because it results on a spike on the first and last indeces.
-    # y_merit = np.abs(np.diff(intensity, prepend=[0], append = [0]))
+    # TODO: Include calculation of automatic threshold #
 
     y_merit = np.diff(intensity, n=2)
     y_merit = np.pad(y_merit, (1, 1), 'constant')
 
+
+def indices(intensity, threshold=200):
+
     # Compare the y_merit (absolute value of the second derivative or laplacian) with the threshold.
     # This creates a boolean array where True (1) indicates a point
     # where the absolute value of the derivative exceeds the threshold (spike).
-    spikes_yesno = y_merit > threshold
+
+    y_merit = metric(intensity)
+    spikes_yesno = np.abs(y_merit) > threshold
 
     # Extract the indices where spikes_yesno is True (i.e., where the merit function exceeds the threshold).
     # np.where returns a tuple, and [0] accesses the first element of the tuple, which contains the indices.
