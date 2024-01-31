@@ -60,7 +60,7 @@ def spikes_linfix(old_spe: Spectrum,
 
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
-def spikes_interpol_fix(old_spe: Spectrum,
+def spikes_multi_spike_fix(old_spe: Spectrum,
                   new_spe: Spectrum, /,
                   method,
                   threshold=None,
