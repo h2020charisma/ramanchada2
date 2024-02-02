@@ -32,17 +32,17 @@ def spikes_metric(spe: Spectrum, /,
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def spikes_indices(spe: Spectrum, /,
                    method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
-                   threshold=None):
-    return METHODS[method].indices(spe.y, threshold=threshold)
+                   **kwargs):
+    return METHODS[method].indices(spe.y, **kwargs)
 
 
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def spikes_drop(old_spe: Spectrum,
                 new_spe: Spectrum, /,
-                method,
-                threshold=None):
-    idx = METHODS[method].indices(old_spe.y, threshold=threshold)
+                method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                **kwargs):
+    idx = METHODS[method].indices(old_spe.y, **kwargs)
     new_spe.x = np.delete(old_spe.x, idx)
     new_spe.y = np.delete(old_spe.y, idx)
 
@@ -51,9 +51,9 @@ def spikes_drop(old_spe: Spectrum,
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def spikes_linfix(old_spe: Spectrum,
                   new_spe: Spectrum, /,
-                  method,
-                  threshold=None):
-    idx = METHODS[method].indices(old_spe.y, threshold=threshold)
+                  method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                  **kwargs):
+    idx = METHODS[method].indices(old_spe.y, **kwargs)
     x = np.delete(old_spe.x, idx)
     y = np.delete(old_spe.y, idx)
     new_spe.y = np.interp(old_spe.x, x, y)
@@ -63,12 +63,12 @@ def spikes_linfix(old_spe: Spectrum,
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def spikes_multi_spike_fix(old_spe: Spectrum,
                            new_spe: Spectrum, /,
-                           method,
-                           threshold=None,
+                           method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
                            moving_window=10,
-                           interp_type='linear'):
+                           interp_type='linear',
+                           **kwargs):
     y_out = old_spe.y.copy()
-    idx = METHODS[method].indices(old_spe.y, threshold=threshold)
+    idx = METHODS[method].indices(old_spe.y, **kwargs)
     for i, spike in enumerate(idx):
         if spike != 0:  # If we have an spike in position i
             # we select 2 * moving_window + 1 points around our spike
@@ -93,9 +93,9 @@ def spikes_multi_spike_fix(old_spe: Spectrum,
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def spikes_only(old_spe: Spectrum,
                 new_spe: Spectrum, /,
-                method,
-                threshold=None):
-    idx = METHODS[method].indices(old_spe.y, threshold=threshold)
+                method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                **kwargs):
+    idx = METHODS[method].indices(old_spe.y, **kwargs)
     x = np.delete(old_spe.x, idx)
     y = np.delete(old_spe.y, idx)
     new_spe.y = old_spe.y - np.interp(old_spe.x, x, y)
