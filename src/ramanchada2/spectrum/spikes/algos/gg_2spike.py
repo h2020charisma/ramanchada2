@@ -1,4 +1,7 @@
+from typing import Union
+
 import numpy as np
+from pydantic import validate_arguments
 from scipy.stats import median_abs_deviation
 
 
@@ -13,7 +16,8 @@ def metric(s):
     return m
 
 
-def indices(s, threshold=None):
+@validate_arguments()
+def indices(s, threshold: Union[None, float] = None):
     if threshold is None:
         threshold = 12
     return np.where(metric(s) > threshold)[0]
