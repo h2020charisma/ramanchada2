@@ -32,7 +32,7 @@ def generate_baseline(
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
-                 n_freq, amplitude, pedestal, func: Union[Callable, None] = None, rng_seed=None):
+                 n_freq, amplitude, pedestal=0, func: Union[Callable, None] = None, rng_seed=None):
     """
     Add artificial baseline to the spectrum.
     A random baseline is generated in frequency domain using uniform random numbers.
