@@ -99,3 +99,16 @@ def spikes_only(old_spe: Spectrum,
     x = np.delete(old_spe.x, idx)
     y = np.delete(old_spe.y, idx)
     new_spe.y = old_spe.y - np.interp(old_spe.x, x, y)
+
+
+@add_spectrum_filter
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def add_spike(old_spe: Spectrum,
+              new_spe: Spectrum, /,
+              location: float,
+              values: list[float],
+              ):
+    idx = np.argmin(np.abs(location - old_spe.x))
+    y = old_spe.y.copy()
+    y[idx+(-len(values))//2:idx+(len(values))//2] += values
+    new_spe.y = y
