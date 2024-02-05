@@ -21,6 +21,7 @@ def metric(intensity):
 
     y_merit = np.diff(intensity, n=2)
     y_merit = np.pad(y_merit, (1, 1), 'constant')
+    return y_merit
 
 
 def indices(intensity, threshold=200):
