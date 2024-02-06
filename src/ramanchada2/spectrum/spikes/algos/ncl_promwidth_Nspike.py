@@ -3,6 +3,12 @@ from scipy.signal import find_peaks, peak_widths
 from scipy.stats import median_abs_deviation
 
 
+def metric(y):
+    metr = np.zeros_like(y)
+    metr[indices(y)] = 1
+    return metr
+
+
 def indices(y, width_threshold=None, prominence_threshold=None, width_param_rel=None):
     if width_threshold is None:
         width_threshold = 3
