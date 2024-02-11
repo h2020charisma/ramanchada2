@@ -57,14 +57,15 @@ def spikes_drop(old_spe: Spectrum,
 
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
-def spikes_linfix(old_spe: Spectrum,
-                  new_spe: Spectrum, /,
-                  method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
-                  **kwargs):
+def spikes_fix_interp(old_spe: Spectrum,
+                      new_spe: Spectrum, /,
+                      method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                      kind='linear',
+                      **kwargs):
     idx = METHODS[method].indices(old_spe.y, **kwargs)
     x = np.delete(old_spe.x, idx)
     y = np.delete(old_spe.y, idx)
-    new_spe.y = np.interp(old_spe.x, x, y)
+    new_spe.y = interpolate.interp1d(x, y, kind=kind)(old_spe.x)
 
 
 @add_spectrum_filter
