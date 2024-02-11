@@ -20,4 +20,6 @@ def metric(s):
 def indices(s, threshold: Union[None, float] = None):
     if threshold is None:
         threshold = 12
-    return np.where(metric(s) > threshold)[0]
+    left_idx = np.where(metric(s) > threshold)[0]
+    right_idx = left_idx+1
+    return np.unique([left_idx, right_idx])
