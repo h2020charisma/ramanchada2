@@ -9,13 +9,19 @@ from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
 
 from ..spectrum import Spectrum
 from .algos import (first_derivative, gg_1spike, gg_2spike, gg_lin_reg_extrap,
-                    laplacian, mod_z_scores, ncl_promwidth_Nspike)
+                    gg_lr_n2o1, gg_lr_n2o2, gg_lr_n2o2_n3o1, gg_lr_n3o1,
+                    gg_lr_n3o2, laplacian, mod_z_scores, ncl_promwidth_Nspike)
 
 METHODS = {
     'first_derivative': first_derivative,
     'gg_1spike': gg_1spike,
     'gg_2spike': gg_2spike,
     'gg_lin_reg_extrap': gg_lin_reg_extrap,
+    'gg_lr_n2o1': gg_lr_n2o1,
+    'gg_lr_n2o2': gg_lr_n2o2,
+    'gg_lr_n2o2_n3o1': gg_lr_n2o2_n3o1,
+    'gg_lr_n3o1': gg_lr_n3o1,
+    'gg_lr_n3o2': gg_lr_n3o2,
     'laplacian': laplacian,
     'mod_z_scores': mod_z_scores,
     'ncl_promwidth_Nspike': ncl_promwidth_Nspike,
