@@ -21,11 +21,11 @@ def metric(intensity):
     # Calculate the first derivative (y_merit) of the intensity array.
     # np.diff computes the difference between consecutive elements in the array.
     # 'prepend=[0]' adds a 0 at the beginning to keep the size of the array consistent.
-    y_merit = np.abs(np.diff(intensity, prepend=[0]))
+    y_merit = np.pad(np.diff(intensity), (1, 0), 'edge')
     return y_merit
 
 
 def indices(intensity, threshold=None):
     if threshold is None:
         threshold = 3.5
-    return np.where(metric(intensity) > threshold)[0]
+    return np.where(np.abs(metric(intensity)) > threshold)[0]
