@@ -14,7 +14,7 @@ def metric(y, prominence_threshold=None):
     y_merit = np.zeros_like(y)
     for peak, width in zip(peaks, widths):
         y_merit[peak] = width
-    return y_merit
+    return 1/y_merit  # First approaximation, maybe log(prominence)/width
 
 
 def indices(y, width_threshold=None, prominence_threshold=None, width_param_rel=None):
