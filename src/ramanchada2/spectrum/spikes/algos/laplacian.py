@@ -20,7 +20,10 @@ def metric(intensity):
     # TODO: Include calculation of automatic threshold #
 
     y_merit = np.diff(intensity, n=2)
-    y_merit = np.pad(y_merit, (1, 1), 'constant')
+    y_merit = np.abs(np.pad(y_merit, (1, 1), 'constant'))
+
+    y_merit[:2] = 0
+    y_merit[-2:] = 0
     return y_merit
 
 

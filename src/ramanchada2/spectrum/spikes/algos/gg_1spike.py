@@ -2,7 +2,6 @@ from typing import Union
 
 import numpy as np
 from pydantic import validate_arguments
-from scipy.stats import median_abs_deviation
 
 
 def metric(s):
@@ -12,7 +11,8 @@ def metric(s):
 
     m = [np.abs(-s[i-1]-s[i+1]+2*s[i]) - np.abs(s[i+1]-s[i-1]) for i in range(1, len(s)-1)]
     m = np.pad(m, [1, 1], mode='edge')
-    m /= median_abs_deviation(np.diff(s))
+    m[:2] = 0
+    m[-2:] = 0
     return m
 
 

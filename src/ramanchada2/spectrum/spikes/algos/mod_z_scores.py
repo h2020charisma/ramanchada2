@@ -20,6 +20,8 @@ def metric(ys):
     modified_z_scores = 0.6745 * (ys_diff - median_y) / median_absolute_deviation_y
 
     y_merit = np.insert(np.abs(np.array(modified_z_scores)), 0, 0)
+    y_merit[:2] = 0
+    y_merit[-2:] = 0
     return y_merit
 
 
