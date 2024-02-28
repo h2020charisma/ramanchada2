@@ -14,8 +14,14 @@ from ..spectrum import Spectrum
 def generate_baseline(
         n_freq: int = Field(..., gt=2),
         size: int = Field(..., gt=2),
-        rng_seed: Union[int, None] = None):
-    rng = np.random.default_rng(rng_seed)
+        # validation for rng_seed is removed because
+        # it makes in-place modification impossible
+        rng_seed=None):
+    if isinstance(rng_seed, dict):
+        rng = np.random.default_rng()
+        rng.__setstate__(rng_seed)
+    else:
+        rng = np.random.default_rng(rng_seed)
     k = rng.normal(0, size, size=(2, n_freq))
     k[1][0] = 0
     z = k[0] + k[1]*1j
@@ -26,6 +32,8 @@ def generate_baseline(
     base = base[:size]
     base -= base.min()
     base /= base.max()
+    if isinstance(rng_seed, dict):
+        rng_seed.update(rng.__getstate__())
     return base
 
 
