@@ -8,16 +8,27 @@ from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
 
 from ..spectrum import Spectrum
-from .algos import (first_derivative, gg_1spike, gg_2spike, gg_lin_reg_extrap,
-                    gg_lr_n2o1, gg_lr_n2o2, gg_lr_n2o2_n3o1, gg_lr_n3o1,
-                    gg_lr_n3o2, laplacian, mod_z_scores, ncl_promwidth_Nspike)
+from .algos import (first_derivative, gg_1spike, gg_1spike_2spike_extend,
+                    gg_1spike_n2o2_extend, gg_2spike, gg_lin_reg_extrap,
+                    gg_lr_n2o1, gg_lr_n2o1_n2o2_and,
+                    gg_lr_n2o1_n2o2_and_extend, gg_lr_n2o1_n2o2_extend,
+                    gg_lr_n2o1_n2o2_mix, gg_lr_n2o1_n2o2_mix_extend,
+                    gg_lr_n2o2, gg_lr_n2o2_n3o1, gg_lr_n3o1, gg_lr_n3o2,
+                    laplacian, mod_z_scores, ncl_promwidth_Nspike)
 
 METHODS = {
     'first_derivative': first_derivative,
     'gg_1spike': gg_1spike,
+    'gg_1spike_2spike_extend': gg_1spike_2spike_extend,
+    'gg_1spike_n2o2_extend': gg_1spike_n2o2_extend,
     'gg_2spike': gg_2spike,
     'gg_lin_reg_extrap': gg_lin_reg_extrap,
     'gg_lr_n2o1': gg_lr_n2o1,
+    'gg_lr_n2o1_n2o2_and_extend': gg_lr_n2o1_n2o2_and_extend,
+    'gg_lr_n2o1_n2o2_and': gg_lr_n2o1_n2o2_and,
+    'gg_lr_n2o1_n2o2_extend': gg_lr_n2o1_n2o2_extend,
+    'gg_lr_n2o1_n2o2_mix_extend': gg_lr_n2o1_n2o2_mix_extend,
+    'gg_lr_n2o1_n2o2_mix': gg_lr_n2o1_n2o2_mix,
     'gg_lr_n2o2': gg_lr_n2o2,
     'gg_lr_n2o2_n3o1': gg_lr_n2o2_n3o1,
     'gg_lr_n3o1': gg_lr_n3o1,
@@ -26,6 +37,31 @@ METHODS = {
     'mod_z_scores': mod_z_scores,
     'ncl_promwidth_Nspike': ncl_promwidth_Nspike,
 }
+
+
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def calc_spikes_metric(y, /,
+                       method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                       ):
+    return METHODS[method].metric(y)
+
+
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def calc_spikes_fix_interp(x0, y, /,
+                           method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                           kind='linear',
+                           **kwargs):
+    idx = calc_spikes_indices(y, method=method, **kwargs)
+    x = np.delete(x0, idx)
+    y = np.delete(y, idx)
+    return interpolate.interp1d(x, y, kind=kind)(x0)
+
+
+@validate_arguments(config=dict(arbitrary_types_allowed=True))
+def calc_spikes_indices(y, /,
+                        method: Literal[tuple(METHODS.keys())],  # type: ignore [valid-type]
+                        **kwargs):
+    return METHODS[method].indices(y, **kwargs)
 
 
 @add_spectrum_method

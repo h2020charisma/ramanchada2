@@ -21,7 +21,9 @@ def metric(intensity):
     # Calculate the first derivative (y_merit) of the intensity array.
     # np.diff computes the difference between consecutive elements in the array.
     # 'prepend=[0]' adds a 0 at the beginning to keep the size of the array consistent.
-    y_merit = np.pad(np.diff(intensity), (1, 0), 'edge')
+    y_merit = np.abs(np.pad(np.diff(intensity), (1, 0), 'edge'))
+    y_merit[:2] = 0
+    y_merit[-2:] = 0
     return y_merit
 
 
