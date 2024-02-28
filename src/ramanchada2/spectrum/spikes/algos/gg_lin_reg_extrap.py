@@ -12,6 +12,8 @@ def metric(y):
     max = np.max([le, ri], axis=0)
     min = np.min([le, ri], axis=0)
     metric = np.max([y-max, min-y], axis=0)
+    metric[:2] = 0
+    metric[-2:] = 0
     return metric
 
 
