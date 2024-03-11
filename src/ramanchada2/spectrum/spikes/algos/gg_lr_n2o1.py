@@ -5,8 +5,10 @@ from pydantic import validate_arguments
 
 
 def metric(y):
-    l2o1 = [2*y[i-1]-y[i-2] for i in range(2, len(y)-2)]
-    r2o1 = [2*y[i+1]-y[i+2] for i in range(2, len(y)-2)]
+    #l2o1 = [2*y[i-1]-y[i-2] for i in range(2, len(y)-2)]
+    #r2o1 = [2*y[i+1]-y[i+2] for i in range(2, len(y)-2)]
+    l2o1 = 2*y[1:-3]-y[:-4]
+    r2o1 = 2*y[3:-1]-y[4:]
     y = y[2:-2]
     metric = np.max([y-np.max([l2o1, r2o1], axis=0), np.min([l2o1, r2o1], axis=0)-y], axis=0)
     return np.pad(metric, (2, 2))
