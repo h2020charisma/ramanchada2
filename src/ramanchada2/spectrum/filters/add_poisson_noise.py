@@ -24,10 +24,17 @@ def add_poisson_noise(
     ----------
     scale : float, optional
         scale the amplitude of the noise, by default 1
-    rng_seed : int, optional
+    rng_seed : int or rng state, optional
         seed for the random generator
+        If a state is provided it is updated in-place
     """
-    rng = np.random.default_rng(rng_seed)
+    if isinstance(rng_seed, dict):
+        rng = np.random.default_rng()
+        rng.__setstate__(rng_seed)
+    else:
+        rng = np.random.default_rng(rng_seed)
     dat = old_spe.y + [rng.normal(0., np.sqrt(i*scale)) for i in old_spe.y]
     dat[dat < 0] = 0
+    if isinstance(rng_seed, dict):
+        rng_seed.update(rng.__getstate__())
     new_spe.y = np.array(dat)
