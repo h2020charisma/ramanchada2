@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 from pydantic import validate_arguments, confloat, PositiveInt
 from scipy import signal, fft
-import pyhht
+import emd
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
@@ -41,16 +41,20 @@ def hht_sharpening(old_spe: Spectrum,
                    new_spe: Spectrum, /,
                    movmin=100
                    ):
-    imfs = pyhht.emd.EMD(old_spe.y, old_spe.x).decompose()
+    imfs = emd.sift.sift(old_spe.y).T
     freq_list = list()
     for ansig in signal.hilbert(imfs):
-        freq_list.append(pyhht.utils.inst_freq(ansig)[0])
+        freq_list.append(emd.spectra.freq_from_phase(
+            emd.spectra.phase_from_complex_signal(ansig, ret_phase='unwrapped'), 1))
     freq = np.array(freq_list)
-    imfsall = imfs[:, 1:-1].copy()
+    freq[freq < 0] = 0
+    freq[np.isnan(freq)] = 0
+    imfsall = imfs.copy()
+    imfsall[np.isnan(imfsall)] = 0
     imfsall[freq > .3] = 0
     imfsall *= freq**.5
     ynew = np.sum(imfsall, axis=0)
-    new_spe.y = np.pad(ynew, 1)
+    new_spe.y = ynew
     new_spe.y = new_spe.subtract_moving_minimum(movmin).normalize().y  # type: ignore
     new_spe.y = new_spe.y * old_spe.y.max() + old_spe.y.min()
 
