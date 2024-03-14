@@ -59,7 +59,8 @@ def build_multipeak_model_params(profile: Union[available_models_type, List[avai
 
         elif profile == 'Pearson4':
             fwhm_factor = 1
-            fit_params[f'p{peak_i}_height'].set(value=peak.amplitude)
+            # p{peak_i}_amplitude or p{peak_i}_height
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude)
             fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
 
         elif profile == 'Pearson7':
