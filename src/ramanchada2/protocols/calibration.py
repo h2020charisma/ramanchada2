@@ -25,6 +25,7 @@ class CalibrationComponent(Plottable):
         self.model_units = None        
         self.peaks = None
         self.sample = sample
+        self.enabled = True
 
     def set_model(self, model, model_units, peaks, name=None):
         self.model = model
@@ -80,18 +81,21 @@ class XCalibrationComponent(CalibrationComponent):
         super(XCalibrationComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units,sample)
 
     def process(self,old_spe: Spectrum, spe_units="cm-1",convert_back=False):
-        print("convert to ", spe_units, self.model_units)
+        print("convert spe_units {} --> model units {}".format( spe_units, self.model_units))
         new_spe = self.convert_units(old_spe,spe_units,self.model_units)
         print("process", self)
         if self.model is None: 
-            return new_spe        
-        elif isinstance(self.model, interpolate.RBFInterpolator):
-            new_spe.x = self.model(new_spe.x.reshape(-1, 1)) 
-        elif isinstance(self.model, float):
-            new_spe.x = new_spe.x + self.model
+            return new_spe     
+        elif self.enabled:           
+            if isinstance(self.model, interpolate.RBFInterpolator):
+                new_spe.x = self.model(new_spe.x.reshape(-1, 1)) 
+            elif isinstance(self.model, float):
+                new_spe.x = new_spe.x + self.model
+        else:
+            return new_spe                
         #convert back
-        print("convert back", spe_units)
         if convert_back:
+            print("convert back", spe_units)
             return self.convert_units(new_spe,self.model_units,spe_units)
         else:
             return new_spe
@@ -99,9 +103,9 @@ class XCalibrationComponent(CalibrationComponent):
     def derive_model(self,find_kw={},fit_peaks_kw={},should_fit = False,name=None):
 
         #convert to ref_units
-        print("convert to ref_units",self.spe_units,self.ref_units)
+        print("[{}]: convert spe_units {} to ref_units {}".format(self.name,self.spe_units,self.ref_units))
         spe_to_process = self.convert_units(self.spe,self.spe_units,self.ref_units)
-        print(max(spe_to_process.x))
+        print("max x",max(spe_to_process.x),self.ref_units)
         fig, ax = plt.subplots(3,1,figsize=(12,4))
         self.spe.plot(ax=ax[0].twinx(),label=self.spe_units)    
         spe_to_process.plot(ax=ax[1],label=self.ref_units)
@@ -130,7 +134,7 @@ class XCalibrationComponent(CalibrationComponent):
     
         x_spe,x_reference,x_distance,df = rc2utils.match_peaks(spe_pos_dict, self.ref)
         sum_of_differences = np.sum(np.abs(x_spe - x_reference)) / len(x_spe)
-        #print("sum_of_differences original {} {}".format(sum_of_differences, ref_units))
+        print("sum_of_differences original {} {}".format(sum_of_differences, self.ref_units))
         if len(x_reference)==1:
             _offset = ( x_reference[0] - x_spe[0])
             print("ref",x_reference[0],"sample", x_spe[0],"offset", _offset, self.ref_units)
@@ -144,33 +148,50 @@ class XCalibrationComponent(CalibrationComponent):
                 kwargs = {"kernel" : "thin_plate_spline"}
                 interp = interpolate.RBFInterpolator(x_spe.reshape(-1, 1),x_reference,**kwargs)
                 self.set_model( interp, self.ref_units, df,name)
+                x_plot = np.linspace(min(x_spe),max(x_spe),20)
+                y_plot = interp(x_plot.reshape(-1, 1))
+                ax.scatter(x_plot,y_plot,marker='.',label=kwargs["kernel"])
       
             except Exception as err:
                 raise(err)     
 
 
 
-class ShiftCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units,sample="Silicon"):
-        super(ShiftCalibrationComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units,sample)
+class LazerZeroingComponent(CalibrationComponent):
+    def __init__(self, laser_wl, spe, spe_units="nm", ref={520.45:1}, ref_units="cm-1",sample="Silicon"):
+        super(LazerZeroingComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units,sample)
 
     def derive_model(self,find_kw={},fit_peaks_kw={},should_fit = True,name=None):    
         find_kw = dict(sharpening=None)
-
         cand = self.spe.find_peak_multipeak(**find_kw)
-        print(cand)
+        #print("shift model",cand)
         #init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
         fit_res = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, **fit_peaks_kw)
         df = fit_res.to_dataframe_peaks()
         df  = df.sort_values(by='height', ascending=False)
-        self.set_model( df.iloc[0]["position"], "nm", df,"Shift calibration using".format(self.ref,self.ref_units))
+        zero_peak_nm = df.iloc[0]["position"]
+        print(self.name, "peak",zero_peak_nm)
+        #https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
+        self.set_model(zero_peak_nm, "nm", df,"Lazer zeroing using {}".format(zero_peak_nm))        
+        # laser_wl should be calculated  based on the peak position and set instead of the nominal 
+        # 
 
-    def process(self,old_spe: Spectrum, spe_units="cm-1",convert_back=False):
-        print(self)
-        spe_to_process = self.convert_units(old_spe,"nm",self.ref_units,laser_wl=self.model)
-        print(self.ref.keys())
-        spe_to_process.x = spe_to_process.x +  list(self.ref.keys())[0]
-        return spe_to_process   
+    def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
+        return 1e7*(1/zero_pos_nm - 1/wl) + zero_ref_cm_1
+
+    # we do not do shift (as initially implemented)
+    # just convert the spectrum nm->cm-1 using the Si measured peak in nm and reference in cm-1
+    # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
+    def process(self,old_spe: Spectrum, spe_units="nm",convert_back=False):
+        wl_si_ref = list(self.ref.keys())[0]                
+        print(self.name, "process", self.model,wl_si_ref)
+        new_x = self.zero_nm_to_shift_cm_1(old_spe.x,self.model,wl_si_ref)
+        new_spe = Spectrum(x=new_x, y=old_spe.y, metadata=old_spe.meta)
+        #new_spe =  old_spe.lazer_zero_nm_to_shift_cm_1(self.model,wl_si_ref)   
+        #print("old si",old_spe.x)
+        #print("new si",new_spe.x)
+        return new_spe
+
 
 class CalibrationModel(ProcessingModel,Plottable):
     def __init__(self, laser_wl:int):
@@ -213,7 +234,7 @@ class CalibrationModel(ProcessingModel,Plottable):
         model_neon = self.derive_model_curve(spe_neon,self.neon_wl[self.laser_wl],spe_units=spe_neon_units,ref_units=ref_neon_units,find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units=spe_sil_units,convert_back=False)
         find_kw = {"prominence" :spe_sil_ne_calib.y_noise * 10 , "wlen" : 200, "width" :  1 }
-        model_si = self.derive_model_shift(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units=ref_sil_units,find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si calibration")
+        model_si = self.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units=ref_sil_units,find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si laser zeroing")
         return (model_neon,model_si)
 
     def derive_model_curve(self,spe,ref,spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="X calibration"):
@@ -222,19 +243,20 @@ class CalibrationModel(ProcessingModel,Plottable):
         self.components.append(calibration_x)
         return calibration_x
 
-    def derive_model_shift(self,spe,ref,spe_units="cm-1",ref_units="cm-1",find_kw={},fit_peaks_kw={},should_fit = False,name="X Shift"):
-        calibration_shift = ShiftCalibrationComponent(self.laser_wl, spe, spe_units, ref, ref_units)
-        print(calibration_shift)
+    def derive_model_zero(self,spe,ref,spe_units="nm",ref_units="cm-1",find_kw={},fit_peaks_kw={},should_fit = False,name="X Shift"):
+        calibration_shift = LazerZeroingComponent(self.laser_wl, spe, spe_units, ref, ref_units)
         calibration_shift.derive_model(find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = should_fit,name=name)
-        print(calibration_shift)
         self.components.append(calibration_shift)
         return calibration_shift
  
     def apply_calibration_x(self,old_spe: Spectrum, spe_units="cm-1"):
+        # neon calibration converts to nm 
+        # silicon calibration takes nm and converts back to cm-1 using laser zeroing
         new_spe = old_spe
         for model in self.components:
-            #find out if ot convert units
-            new_spe = model.process(new_spe,spe_units,convert_back=False)
+            #tbd find out if to convert units
+            if model.enabled:
+                new_spe = model.process(new_spe,spe_units,convert_back=False)
         return new_spe
 
     def _plot(self, ax, **kwargs):
