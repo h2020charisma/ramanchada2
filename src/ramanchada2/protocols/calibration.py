@@ -160,19 +160,26 @@ class XCalibrationComponent(CalibrationComponent):
 class LazerZeroingComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units="nm", ref={520.45:1}, ref_units="cm-1",sample="Silicon"):
         super(LazerZeroingComponent, self).__init__( laser_wl, spe, spe_units, ref, ref_units,sample)
+        self.profile = "Pearson4"
 
     def derive_model(self,find_kw={},fit_peaks_kw={},should_fit = True,name=None):    
         find_kw = dict(sharpening=None)
         cand = self.spe.find_peak_multipeak(**find_kw)
-        #print("shift model",cand)
+        print(self.name,cand)
         #init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
-        fit_res = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, **fit_peaks_kw)
+        fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
         df = fit_res.to_dataframe_peaks()
         df  = df.sort_values(by='height', ascending=False)
-        zero_peak_nm = df.iloc[0]["position"]
-        print(self.name, "peak",zero_peak_nm)
-        #https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-        self.set_model(zero_peak_nm, "nm", df,"Lazer zeroing using {}".format(zero_peak_nm))        
+        if df.empty:
+            raise Exception("No peaks found")
+        else:
+            if "position" in df.columns:
+                zero_peak_nm = df.iloc[0]["position"]
+            elif "center" in df.columns:
+                zero_peak_nm = df.iloc[0]["center"]
+            print(self.name, "peak",zero_peak_nm)
+            #https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
+            self.set_model(zero_peak_nm, "nm", df,"Lazer zeroing using {}".format(zero_peak_nm))        
         # laser_wl should be calculated  based on the peak position and set instead of the nominal 
         # 
 
@@ -245,6 +252,7 @@ class CalibrationModel(ProcessingModel,Plottable):
 
     def derive_model_zero(self,spe,ref,spe_units="nm",ref_units="cm-1",find_kw={},fit_peaks_kw={},should_fit = False,name="X Shift"):
         calibration_shift = LazerZeroingComponent(self.laser_wl, spe, spe_units, ref, ref_units)
+        calibration_shift.profile = "Gaussian"
         calibration_shift.derive_model(find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = should_fit,name=name)
         self.components.append(calibration_shift)
         return calibration_shift
