@@ -146,8 +146,8 @@ class XCalibrationComponent(CalibrationComponent):
         else:
             fig, ax = plt.subplots(1, 1, figsize=(3, 3))
             ax.scatter(x_spe, x_reference, marker='o')
-            ax.set_xlabel("spectrum x ".format(self.ref_units))
-            ax.set_ylabel("reference x ".format(self.ref_units))
+            ax.set_xlabel("spectrum x ({})".format(self.ref_units))
+            ax.set_ylabel("reference x ({})".format(self.ref_units))
             try:
                 kwargs = {"kernel": "thin_plate_spline"}
                 interp = interpolate.RBFInterpolator(x_spe.reshape(-1, 1), x_reference, **kwargs)
