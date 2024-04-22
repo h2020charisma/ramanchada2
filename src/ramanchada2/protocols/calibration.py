@@ -4,6 +4,7 @@ import pickle
 import ramanchada2.misc.constants as rc2const
 from ..misc import utils as rc2utils
 from ..spectrum import Spectrum
+from matplotlib.axes import Axes
 from ramanchada2.misc.plottable import Plottable
 from scipy import interpolate
 
@@ -63,7 +64,7 @@ class CalibrationComponent(Plottable):
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
         raise NotImplementedError(self)
 
-    def plot(self, ax=None, label=' ', **kwargs) -> plt.axes:
+    def plot(self, ax=None, label=' ', **kwargs) -> Axes:
         if ax is None:
             fig, ax = plt.subplots(3, 1)
         self._plot(ax[0], label=label, **kwargs)
