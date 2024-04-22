@@ -23,7 +23,7 @@ def convolve(
                          Literal[
                               'gaussian', 'lorentzian',
                               'voigt', 'pvoigt', 'moffat',
-                              'pearson4','pearson7'
+                              'pearson4', 'pearson7'
                               ]],
         **kwargs):
     """
