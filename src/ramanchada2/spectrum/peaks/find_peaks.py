@@ -75,7 +75,7 @@ def find_peak_multipeak(
 
     peaks, props = signal.find_peaks(y_arr,
                                      prominence=prominence,
-                                     width=1,
+                                     width=width,
                                      wlen=wlen)
     peak_groups = list()
 

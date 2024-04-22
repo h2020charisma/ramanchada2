@@ -11,7 +11,7 @@ from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.types import PositiveOddInt, SpeMetadataModel
 from ramanchada2.misc.types.spectrum import SpeProcessingListModel, SpeProcessingModel
 from scipy.signal import convolve, savgol_coeffs, savgol_filter
-from scipy.stats import rv_histogram
+from scipy.stats import median_abs_deviation, rv_histogram
 from typing import Dict, List, Set, Tuple, Union
 
 logger = logging.getLogger(__name__)
@@ -139,6 +139,9 @@ class Spectrum(Plottable):
     @property
     def y_noise(self):
         return self.y_noise_savgol()
+
+    def y_noise_MAD(self):
+        return median_abs_deviation(np.diff(self.y))
 
     def y_noise_savgol_DL(self, order: PositiveOddInt = PositiveOddInt(1)):
         npts = order + 2
