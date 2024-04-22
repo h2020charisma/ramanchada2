@@ -8,6 +8,7 @@ from lmfit.model import Model, ModelResult, Parameters
 
 from ..plottable import Plottable
 from .peak_candidates import ListPeakCandidateMultiModel
+from ramanchada2.spectrum.spectrum import Spectrum
 
 
 class FitPeaksResult(UserList, Plottable):
@@ -130,3 +131,18 @@ class FitPeaksResult(UserList, Plottable):
 
     def to_csv(self, path_or_buf=None, sep=',', **kwargs):
         return self.to_dataframe_peaks().to_csv(path_or_buf=path_or_buf, sep=sep, **kwargs)
+
+    def gen_fake_spectrum(self, xarr):
+        summ = np.zeros_like(xarr)
+        last_i = 0
+        last_y = 0
+        for m in self:
+            mx = m.userkws['x']
+            xi = np.searchsorted(xarr, mx)
+            evalm = m.eval()
+            summ[xi] = evalm
+            summ[np.arange(last_i, xi[0])] = np.interp(np.arange(last_i, xi[0]), [last_i, xi[0]], [last_y, evalm[0]])
+            last_i = xi[-1]
+            last_y = evalm[-1]
+        fake_spe = Spectrum(x=xarr, y=summ)
+        return fake_spe
