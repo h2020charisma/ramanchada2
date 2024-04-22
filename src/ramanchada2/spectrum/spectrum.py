@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
-
 from __future__ import annotations
-
 import logging
-from copy import deepcopy
-from typing import Dict, List, Set, Tuple, Union
-
 import numpy as np
 import numpy.typing as npt
 import pydantic
-from scipy.signal import convolve, savgol_coeffs, savgol_filter
-from scipy.stats import median_abs_deviation, rv_histogram
-
+from copy import deepcopy
 from ramanchada2.io.HSDS import write_cha, write_nexus
 from ramanchada2.io.output.write_csv import write_csv as io_write_csv
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.types import PositiveOddInt, SpeMetadataModel
-from ramanchada2.misc.types.spectrum import (SpeProcessingListModel,
-                                             SpeProcessingModel)
+from ramanchada2.misc.types.spectrum import SpeProcessingListModel, SpeProcessingModel
+from scipy.signal import convolve, savgol_coeffs, savgol_filter
+from scipy.stats import median_abs_deviation, rv_histogram
+from typing import Dict, List, Set, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -73,13 +68,11 @@ class Spectrum(Plottable):
                 f.write(c)
 
     def write_cha(self, chafile, dataset):
-        write_cha(chafile, dataset,
-                  self.x, self.y, self.meta.serialize())
+        write_cha(chafile, dataset, self.x, self.y, self.meta.serialize())
 
     def write_nexus(self, chafile, dataset):
-        write_nexus(chafile, dataset,
-                  self.x, self.y, self.meta.serialize())
-        
+        write_nexus(chafile, dataset, self.x, self.y, self.meta.serialize())
+
     def write_cache(self):
         if self._cachefile:
             self.write_cha(
