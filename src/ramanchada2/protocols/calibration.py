@@ -202,8 +202,37 @@ class LazerZeroingComponent(CalibrationComponent):
         # print("new si", new_spe.x)
         return new_spe
 
-
 class CalibrationModel(ProcessingModel, Plottable):
+    """
+    A class representing a calibration model for Raman spectrum.
+
+    Parameters:
+        laser_wl (int): The wavelength of the laser used for calibration.
+
+    Methods:
+        __init__(self, laser_wl)
+            Initializes a CalibrationModel instance.
+
+        set_laser_wavelength(self, laser_wl)
+            Sets the wavelength of the laser used for calibration.
+        
+        clear(self)
+            Clears the calibration model.
+        
+        save(self, filename)
+            Saves the calibration model to a file.
+        
+        from_file(filename)
+            Loads a calibration model from a file.
+        
+        derive_model_x(self, spe_neon, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", 
+                       spe_sil=None, spe_sil_units="cm-1", ref_sil=None, ref_sil_units="cm-1", find_kw={}, fit_kw={})
+            Derives x-calibration models using Neon and Silicon spectra.
+        
+        apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1")
+            Applies the x-calibration model to Raman spectrum.
+
+    """    
     def __init__(self, laser_wl: int):
         super(ProcessingModel, self).__init__()
         super(Plottable, self).__init__()
