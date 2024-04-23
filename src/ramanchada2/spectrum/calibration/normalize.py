@@ -16,14 +16,11 @@ def normalize(old_spe: Spectrum,
     """
     Normalize the spectrum.
 
-    Parameters
-    ----------
-    strategy :
-        'unity' : normalize to sum(y)
-        'min_unity' : subtract the minimum and normalize to 'unity'
-        'unity_density : normalize to Σ(y_i*Δx_i)
-        'unity_area : same as 'unity_density'
-        'minmax : scale amplitudes in range [0, 1]
+    Args:
+        strategy:
+            If `unity`: normalize to `sum(y)`. If `min_unity`: subtract the minimum and normalize to 'unity'. If
+            `unity_density`: normalize to `Σ(y_i*Δx_i)`. If `unity_area`: same as `unity_density`. If `minmax`: scale
+            amplitudes in range `[0, 1]`.
     """
     if strategy == 'unity':
         res = old_spe.y

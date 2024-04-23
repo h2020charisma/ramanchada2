@@ -20,19 +20,21 @@ def from_delta_lines(
     """
     Generate `Spectrum` with delta lines.
 
-    Parameters
-    ----------
-    deltas : Dict[float, float]
-        keys of the dictionary are the x positions of the deltas;
-        values are the amplitudes of the corresponding deltas
-    xcal : Callable, optional
-        x axis calibration function
-    nbins : int, optional
-        Number of bins in the spectrum
-    Example
-    -------
-    xcal=lambda x: x*3 -1000, nbins=1000
-    will produce spectrum with 1000 bins in the range [-1000, 2000)
+    Args:
+        deltas:
+            Keys of the dictionary are the `x` positions of the deltas; values are the amplitudes of the corresponding
+            deltas.
+        xcal:
+            Callable, optional. `x` axis calibration function.
+        nbins:
+            `int`, optional. Number of bins in the spectrum.
+
+    Example:
+
+    This will produce spectrum with 1000 bins in the range `[-1000, 2000)`:
+    ```py
+    xcal = lambda x: x*3 -1000, nbins=1000
+    ```
     """
     if xcal is None:
         dk = list(deltas.keys())

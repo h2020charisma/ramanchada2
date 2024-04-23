@@ -29,15 +29,13 @@ def convolve(
     """
     Convole spectrum with arbitrary lineshape.
 
-    Parameters
-    ----------
-    lineshape : callable, str or np.ndarray
-                callable: should have a single positional argument x, ex: `lambda x: np.exp((x/5)**2)`
-                predefined peak profile:
-                    'gaussian', 'lorentzian', 'voigt', 'pvoigt', 'moffat','pearson4'
-                np.ndarray: lineshape in samples
-    **kwargs :
-        additional kwargs will be passed to lineshape function
+    Args:
+        lineshape:
+            Can be a callable, `str` or `np.ndarray`. If callable: should have a single positional argument `x`, e.g.
+            `lambda x: np.exp((x/5)**2)`. If predefined peak profile: can be `gaussian`, `lorentzian`, `voigt`,
+            `pvoigt`, `moffat` or `pearson4`. If `np.ndarray`: lineshape in samples.
+        **kwargs:
+            Additional kwargs will be passed to lineshape function.
     """
 
     if isinstance(lineshape, np.ndarray):

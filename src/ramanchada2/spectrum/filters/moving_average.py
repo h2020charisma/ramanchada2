@@ -16,10 +16,9 @@ def moving_average(old_spe: Spectrum,
     """
     Moving average filter.
 
-    Parameters
-    ----------
-    window_size : int, optional
-        by default 10
+    Args:
+        window_size:
+            `int`, optional, default is `10`.
     """
     y = [np.average(old_spe.y[i:min(i + window_size, len(old_spe.y))])
          for i in range(len(old_spe.y))]

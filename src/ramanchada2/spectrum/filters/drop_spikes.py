@@ -15,10 +15,9 @@ def drop_spikes(old_spe: Spectrum,
     """
     Removes single-bin spikes.
 
-    Parameters
-    ----------
-    n_sigma : float, optional
-        by default 10
+    Args:
+        n_sigma:
+            `float`, optional, default is `10`.
     """
     yi = old_spe.y[1:-1]
     yi_1 = old_spe.y[:-2]
@@ -38,10 +37,9 @@ def recover_spikes(old_spe: Spectrum,
     """
     Recover single-bin spikes.
 
-    Parameters
-    ----------
-    n_sigma : float, optional
-        by default 10
+    Args:
+        n_sigma:
+            `float`, optional, default is `10`.
     """
     yi = old_spe.y[1:-1]
     yi_1 = old_spe.y[:-2]
@@ -60,10 +58,9 @@ def get_spikes(old_spe: Spectrum,
     """
     Get single-bin spikes only.
 
-    Parameters
-    ----------
-    n_sigma : float, optional
-        by default 10
+    Args:
+        n_sigma:
+            `float`, optional, default is `10`.
     """
     yi = old_spe.y[1:-1]
     yi_1 = old_spe.y[:-2]

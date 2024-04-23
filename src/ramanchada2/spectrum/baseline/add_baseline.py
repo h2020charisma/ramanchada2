@@ -39,8 +39,8 @@ def generate_baseline(
 
 @add_spectrum_filter
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
-def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
-                 n_freq, amplitude, pedestal=0, func: Union[Callable, None] = None, rng_seed=None):
+def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /, n_freq: int, amplitude: float, pedestal: float = 0,
+                 func: Union[Callable, None] = None, rng_seed=None):
     """
     Add artificial baseline to the spectrum.
     A random baseline is generated in frequency domain using uniform random numbers.
@@ -49,19 +49,17 @@ def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /,
     Additionaly by using `func` parameter the user can define arbitrary function
     to be added as baseline.
 
-    Parameters
-    ----------
-    n_freq : int > 2
-        number of lowest frequency bins distinct from zero
-    amplitude : float
-        upper boundary for the uniform random generator
-    pedestal : float
-        additive constant pedestal to the spectrum
-    func : callable
-        user defined function to be added as baseline.
-        Example: func=lambda x: x*.01 + x**2*.0001
-    rng_seed : int, optional
-        seed for the random generator
+    Args:
+        n_freq:
+            Must be `> 2`. Number of lowest frequency bins distinct from zero.
+        amplitude:
+            Upper boundary for the uniform random generator.
+        pedestal:
+            Additive constant pedestal to the spectrum.
+        func:
+            Callable. User-defined function to be added as baseline. Example: `func = lambda x: x*.01 + x**2*.0001`.
+        rng_seed:
+            `int`, optional. Seed for the random generator.
     """
     size = len(old_spe.y)
     base = generate_baseline(n_freq=n_freq, size=size, rng_seed=rng_seed)
