@@ -53,18 +53,11 @@ of applied filters.
 
 # File formats
 
-## `.cha` vs USID/NSID
+## `.cha`
 [ramanchada][] software package introduced `.cha` file format, which is an [HDF5][]
-with a specific architecture. Two spectroscopy specific file formats -- [USID][] and
-[NSID][] -- were considered as successors of `.cha`. USID and NSID are provided
-by [pycroscopy][] package as an extension of HDF5. Several jupyter notebooks were
-created in order to assess the advantages and disadvantages of such a change. These
-file formats are designed to handle multidimensional spectral data, keeping track
-of the modifications. These file formats does not provide big advantage in our case,
-so currently `ramanchada2` supports `.cha` file format and does not support USID
-or NSID.
+with a simple layout.
 
-## Cache
+### Cache in .cha files
 The concept to keep previous variants of data is employed in `ramanchada2`. If
 configured so, the software saves the data for all Spectrum instances to a
 tree-organized `.cha` file. When a particular chain of operations is requested
@@ -75,18 +68,20 @@ the needed steps are applied to provide the final result. The current implementa
 uses [h5py][] library to access local hdf files. It is foreseen to have implementation
 with [h5pyd][] that support network operations.
 
+## Nexus format
+
+The latest ramanchada2 package allows export of a spectrum to [NeXus][] format.
+
 
 [CRYSTAL]: https://www.crystal.unito.it/index.php
 [HDF5]: https://hdfgroup.org/
 [LMFIT]: https://lmfit.github.io/lmfit-py/index.html
-[NSID]: https://pycroscopy.github.io/pyNSID
-[USID]: https://pycroscopy.github.io/USID
 [VASP]: https://www.vasp.at/
 [algorithm]: https://doi.org/10.1103/PhysRevB.54.7830
 [h5py]: https://h5py.org/
 [h5pyd]: https://github.com/HDFGroup/h5pyd
-[pycroscopy]: https://pycroscopy.github.io/pycroscopy/
 [ramanchada]: https://github.com/h2020charisma/ramanchada
+[NeXus]: https://www.nexusformat.org/
 """
 
 from __future__ import annotations
@@ -97,9 +92,10 @@ __all__ = [
     'auxiliary',
     'io',
     'misc',
+    'protocols',
     'spectral_components',
     'spectrum',
-    'theoretical_lines',
+    'theoretical_lines'
 ]
 __version__ = '0.0.10'
 
