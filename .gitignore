@@ -1,3 +1,14 @@
+# Test files
+pearson4.png
+pearson4_synthetic.csv
+pearson4_synthetic.png
+pearson4_synthetic_noise.csv
+pearson4_synthetic_noise.png
+pearson4_synthetic_noise_shift.csv
+pearson4_synthetic_noise_shift.png
+pearson4_synthetic_single.csv
+pearson4_synthetic_single.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
