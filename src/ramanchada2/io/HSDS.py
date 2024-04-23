@@ -13,6 +13,63 @@ from ramanchada2.misc.exceptions import ChadaReadNotFoundError
 logger = logging.getLogger()
 
 
+# https://manual.nexusformat.org/examples/napi/python.html
+# https://manual.nexusformat.org/examples/python/simple_example_basic/index.html
+@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+def write_nexus(filename: str,
+                dataset: str,
+                x: npt.NDArray, y: npt.NDArray, meta: Dict, h5module=None):
+    _h5 = h5module or h5py
+    try:
+        with _h5.File(filename, 'a') as f:
+            f.attrs['default'] = dataset
+            try:
+                nxentry = f.require_group('sample')
+            except:  # noqa: E722
+                pass
+
+            nxentry = f.require_group('instrument')
+            for m in meta:
+                print(m, meta[m])
+
+            try:
+                nxentry = f.require_group(dataset)
+                nxentry.attrs["NX_class"] = 'NXentry'
+                nxentry.attrs['default'] = 'data'
+            except:  # noqa: E722
+                pass
+
+            try:
+                nxdata = nxentry.require_group('data')
+                nxdata.attrs["NX_class"] = 'NXdata'
+                nxdata.attrs['signal'] = 'spectrum'
+                nxdata.attrs['axes'] = 'raman_shift'
+                nxdata.attrs['raman_shift_indices'] = [0,]
+            except:  # noqa: E722
+                pass
+
+            try:
+                tth = nxdata.require_group('raman_shift', data=x)
+                tth.attrs['units'] = 'cm-1'
+                tth.attrs['long_name'] = 'Raman shift (cm-1)'
+            except:  # noqa: E722
+                pass
+
+            try:
+                counts = nxdata.create_dataset('spectrum', data=y)
+                counts.attrs['units'] = 'au'
+                counts.attrs['long_name'] = 'spectrum'
+            except:  # noqa: E722
+                pass
+
+    except ValueError as e:
+        logger.warning(repr(e))
+
+
+class DatasetExistsError(Exception):
+    pass
+
+
 @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
 def write_cha(filename: str,
               dataset: str,
@@ -25,9 +82,9 @@ def write_cha(filename: str,
                 ds = h5.create_dataset(dataset, data=data)
                 ds.attrs.update(meta)
             else:
-                logger.warning(f'dataset `{dataset}` already exists in file `{filename}`')
+                raise DatasetExistsError(f'dataset `{dataset}` already exists in file `{filename}`')
     except ValueError as e:
-        logger.warning(repr(e))
+        raise e
 
 
 def read_cha(filename: str,

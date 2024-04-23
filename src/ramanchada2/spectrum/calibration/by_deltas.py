@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-from typing import Dict, List, Literal, Union
-
 import lmfit
 import numpy as np
 import numpy.typing as npt
-from pydantic import NonNegativeInt, validate_arguments
-from scipy import interpolate
-
-from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
-                                            add_spectrum_method)
-
 from ...misc import utils as rc2utils
 from ..spectrum import Spectrum
+from pydantic import NonNegativeInt, validate_arguments
+from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
+from scipy import interpolate
+from typing import Dict, List, Literal, Union
 
 
 class DeltaSpeModel:
@@ -223,5 +219,10 @@ def xcal_fine_RBF(old_spe: Spectrum,
     spe_cent = np.array(list(spe_pos_dict.keys()))
 
     spe_idx, ref_idx = rc2utils.find_closest_pairs_idx(spe_cent, ref_pos)
-    interp = interpolate.RBFInterpolator(spe_cent[spe_idx].reshape(-1, 1), ref_pos[ref_idx], **kwargs)
-    new_spe.x = interp(old_spe.x.reshape(-1, 1))
+    if len(ref_idx) == 1:
+        _offset = (ref_pos[ref_idx][0] - spe_cent[spe_idx][0])
+        new_spe.x = old_spe.x + _offset
+    else:
+        kwargs["kernel"] = kernel
+        interp = interpolate.RBFInterpolator(spe_cent[spe_idx].reshape(-1, 1), ref_pos[ref_idx], **kwargs)
+        new_spe.x = interp(old_spe.x.reshape(-1, 1))

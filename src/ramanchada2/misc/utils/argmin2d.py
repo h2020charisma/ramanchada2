@@ -1,7 +1,10 @@
-import pydantic
 import numpy as np
 import numpy.typing as npt
+import pandas as pd
+import pydantic
 from scipy import linalg
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import euclidean_distances
 from typing import List, Union
 
 
@@ -77,3 +80,67 @@ def align_shift(x, y,
         if loss > loss_bak:
             return p_bak
     return p
+
+
+def match_peaks(spe_pos_dict, ref):
+    # Min-Max normalize the reference values
+    min_value = min(ref.values())
+    max_value = max(ref.values())
+    if len(ref.keys()) > 1:
+        normalized_ref = {key: (value - min_value) / (max_value - min_value) for key, value in ref.items()}
+    else:
+        normalized_ref = ref
+
+    min_value_spe = min(spe_pos_dict.values())
+    max_value_spe = max(spe_pos_dict.values())
+    # Min-Max normalize the spe_pos_dict
+    if len(spe_pos_dict.keys()) > 1:
+        normalized_spe = {
+                key: (value - min_value_spe) / (max_value_spe - min_value_spe) for key, value in spe_pos_dict.items()
+                }
+    else:
+        normalized_spe = spe_pos_dict
+    data_list = [
+        {'Wavelength': key, 'Intensity': value, 'Source': 'spe'} for key, value in normalized_spe.items()
+    ] + [
+        {'Wavelength': key, 'Intensity': value, 'Source': 'reference'} for key, value in normalized_ref.items()
+    ]
+
+    # Create a DataFrame from the list of dictionaries
+    df = pd.DataFrame(data_list)
+    feature_matrix = df[['Wavelength', 'Intensity']].to_numpy()
+
+    n_ref = len(ref.keys())
+    n_spe = len(spe_pos_dict.keys())
+    kmeans = KMeans(n_clusters=n_ref if n_ref > n_spe else n_spe)
+    kmeans.fit(feature_matrix)
+    labels = kmeans.labels_
+    # Extract cluster labels, x values, and y values
+    df['Cluster'] = labels
+    grouped = df.groupby('Cluster')
+    x_spe = np.array([])
+    x_reference = np.array([])
+    x_distance = np.array([])
+    clusters = np.array([])
+    # Iterate through each group
+    for cluster, group in grouped:
+        # Get the unique sources within the group
+        unique_sources = group['Source'].unique()
+        if 'reference' in unique_sources and 'spe' in unique_sources:
+            # Pivot the DataFrame to create the desired structure
+            for w_spe in group.loc[group["Source"] == "spe"]["Wavelength"].values:
+                x = None
+                r = None
+                e_min = None
+                for w_ref in group.loc[group["Source"] == "reference"]["Wavelength"].values:
+                    e = euclidean_distances(w_spe.reshape(-1, 1), w_ref.reshape(-1, 1))[0][0]
+                    if (e_min is None) or (e < e_min):
+                        x = w_spe
+                        r = w_ref
+                        e_min = e
+                x_spe = np.append(x_spe, x)
+                x_reference = np.append(x_reference, r)
+                x_distance = np.append(x_distance, e_min)
+                clusters = np.append(clusters, cluster)
+    sort_indices = np.argsort(x_spe)
+    return (x_spe[sort_indices], x_reference[sort_indices], x_distance[sort_indices], df)

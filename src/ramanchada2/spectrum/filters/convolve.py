@@ -23,6 +23,7 @@ def convolve(
                          Literal[
                               'gaussian', 'lorentzian',
                               'voigt', 'pvoigt', 'moffat',
+                              'pearson4', 'pearson7'
                               ]],
         **kwargs):
     """
@@ -33,7 +34,7 @@ def convolve(
     lineshape : callable, str or np.ndarray
                 callable: should have a single positional argument x, ex: `lambda x: np.exp((x/5)**2)`
                 predefined peak profile:
-                    'gaussian', 'lorentzian', 'voigt', 'pvoigt', 'moffat'
+                    'gaussian', 'lorentzian', 'voigt', 'pvoigt', 'moffat','pearson4'
                 np.ndarray: lineshape in samples
     **kwargs :
         additional kwargs will be passed to lineshape function
