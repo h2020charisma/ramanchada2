@@ -202,6 +202,7 @@ class LazerZeroingComponent(CalibrationComponent):
         # print("new si", new_spe.x)
         return new_spe
 
+
 class CalibrationModel(ProcessingModel, Plottable):
     """
     A class representing a calibration model for Raman spectrum.
@@ -215,37 +216,50 @@ class CalibrationModel(ProcessingModel, Plottable):
 
         set_laser_wavelength(self, laser_wl)
             Sets the wavelength of the laser used for calibration.
-        
+
         clear(self)
             Clears the calibration model.
-        
+
         save(self, filename)
             Saves the calibration model to a file.
-        
+
         from_file(filename)
             Loads a calibration model from a file.
-        
-        derive_model_x(self, spe_neon, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", 
+
+        derive_model_x(self, spe_neon, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm",
                        spe_sil=None, spe_sil_units="cm-1", ref_sil=None, ref_sil_units="cm-1", find_kw={}, fit_kw={})
             Derives x-calibration models using Neon and Silicon spectra.
-        
+
         apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1")
             Applies the x-calibration model to Raman spectrum.
 
         peaks(self, spe, profile='Gaussian', wlen=300, width=1)
-            Finds and fits peaks in the spectrum spe.            
+            Finds and fits peaks in the spectrum spe.
 
     Example:
         # Create an instance of CalibrationModel
         calmodel = CalibrationModel(laser_wl=785)
-        calmodel.derive_model_x(spe_neon,spe_neon_units="cm-1",ref_neon=None,ref_neon_units="nm",spe_sil=None,spe_sil_units="cm-1",ref_sil=None,ref_sil_units="cm-1")
-        #store
+        calmodel.derive_model_x(
+            spe_neon,
+            spe_neon_units="cm-1",
+            ref_neon=None,
+            ref_neon_units="nm",
+            spe_sil=None,
+            spe_sil_units="cm-1",
+            ref_sil=None,
+            ref_sil_units="cm-1"
+            )
+        # Store
         calmodel.save(modelfile)
-        #load
-        calmodel = CalibrationModel.from_file(modelfile)   
-        #apply to new spectrum
-        calmodel.apply_calibration_x(spe_to_calibrate,spe_units="cm-1")
-    """    
+        # Load
+        calmodel = CalibrationModel.from_file(modelfile)
+        # Apply to new spectrum
+        calmodel.apply_calibration_x(
+            spe_to_calibrate,
+            spe_units="cm-1"
+            )
+    """
+
     def __init__(self, laser_wl: int):
         super(ProcessingModel, self).__init__()
         super(Plottable, self).__init__()

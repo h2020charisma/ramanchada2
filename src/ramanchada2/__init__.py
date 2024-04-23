@@ -53,9 +53,9 @@ of applied filters.
 
 # File formats
 
-## `.cha` 
+## `.cha`
 [ramanchada][] software package introduced `.cha` file format, which is an [HDF5][]
-with a simple layout. 
+with a simple layout.
 
 ### Cache in .cha files
 The concept to keep previous variants of data is employed in `ramanchada2`. If
@@ -76,13 +76,10 @@ The latest ramanchada2 package allows export of a spectrum to [NeXus][] format.
 [CRYSTAL]: https://www.crystal.unito.it/index.php
 [HDF5]: https://hdfgroup.org/
 [LMFIT]: https://lmfit.github.io/lmfit-py/index.html
-[NSID]: https://pycroscopy.github.io/pyNSID
-[USID]: https://pycroscopy.github.io/USID
 [VASP]: https://www.vasp.at/
 [algorithm]: https://doi.org/10.1103/PhysRevB.54.7830
 [h5py]: https://h5py.org/
 [h5pyd]: https://github.com/HDFGroup/h5pyd
-[pycroscopy]: https://pycroscopy.github.io/pycroscopy/
 [ramanchada]: https://github.com/h2020charisma/ramanchada
 [NeXus]: https://www.nexusformat.org/
 """
@@ -95,10 +92,10 @@ __all__ = [
     'auxiliary',
     'io',
     'misc',
+    'protocols',
     'spectral_components',
     'spectrum',
-    'theoretical_lines',
-    'protocols'
+    'theoretical_lines'
 ]
 __version__ = '0.0.10'
 
