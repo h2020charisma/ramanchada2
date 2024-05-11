@@ -4,6 +4,10 @@ from .txt_format_readers import read_JCAMP, readTXT
 from .binary_readers import readSPA, read_ngs
 
 
+class UnsupportedFileTypeError(Exception):
+    pass
+
+
 def parse(source_path, file_type=None):
     filename, file_extension = os.path.splitext(source_path)
 
@@ -24,6 +28,10 @@ def parse(source_path, file_type=None):
         reader = read_JCAMP
     elif file_type in {'txt', 'txtr', 'csv', 'prn', 'rruf'}:
         reader = readTXT
+    else:
+        raise UnsupportedFileTypeError(
+            f'file type "{file_type}" is not supported'
+        )
 
     x_data, y_data, metadata = reader(source_path)
     # Get rid of bytes that are found in some of the formats
