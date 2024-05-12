@@ -13,10 +13,13 @@ def from_spectral_component_collection(
         spe_components: SpectralComponentCollection,
         x=2000):
     """
-    spe_components : SpectralComponentCollection
-    x : int or array-like, optional, default 2000
-        x axis of the spectrum
-    metadata : dict, optional
+    from_spectral_component_collection
+
+    Args:
+        spe_components:
+            SpectralComponentCollection
+        x:
+            `int` or array-like, optional, default `2000`. `x` axis of the spectrum.
     """
 
     spe = Spectrum(x=x, metadata={'origin': 'generated'})  # type: ignore

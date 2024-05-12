@@ -21,14 +21,13 @@ def from_theoretical_lines(
     """
     Generate spectrum from `lmfit` shapes.
 
-    Parameters
-    ----------
-    shapes : list of str
-        the shapes to be used for spectrum generation
-    params : list of dicts
-        shape parameters to be applied to be used with shapes
-    x : Union[int, npt.NDArray[np.float64]], optional
-        array with x values, by default np.array(2000)
+    Args:
+        shapes:
+            The shapes to be used for spectrum generation.
+        params:
+            Shape parameters to be applied to be used with shapes.
+        x:
+            Array with `x` values, by default `np.array(2000)`.
     """
     spe = Spectrum(x=x)
     x = spe.x

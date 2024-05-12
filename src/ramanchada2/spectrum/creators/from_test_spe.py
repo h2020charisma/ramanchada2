@@ -14,13 +14,12 @@ from ..spectrum import Spectrum
 def from_test_spe(index=None, **kwargs):
     """Create new spectrum from test data.
 
-    Parameters
-    ----------
-    index : int, None, Optional, default is None
-        if `index` is int it will be used as an index of filtered list
-        if `index` is None a random spectrum will be taken
-    **kwargs :
-        the rest of the parameters will be used as filter
+    Args:
+        index:
+            `int` or `None`, optional, default is `None`. If `int`: will be used as an index of filtered list. If
+            `None`: a random spectrum will be taken.
+        **kwargs:
+            The rest of the parameters will be used as filter.
     """
     filtered = prepend_prefix(get_filenames(**kwargs))
     if index is None:

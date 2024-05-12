@@ -20,13 +20,12 @@ def add_gaussian_noise(
     Add gaussian noise to the spectrum.
     Random number i.i.d. $N(0, \sigma)$ is added to every sample
 
-    Parameters
-    ----------
-    sigma : float
-        sigma of the gaussian noise
-    rng_seed : int or rng state, optional
-        seed for the random generator.
-        If a state is provided it is updated in-place
+    Args:
+        sigma:
+            Sigma of the gaussian noise.
+        rng_seed:
+            `int` or rng state, optional, seed for the random generator. If a state is provided, it is updated
+            in-place.
     """
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()

@@ -10,16 +10,12 @@ def two_column_spe(lines: List[str]) -> Tuple[NDArray, NDArray]:
     """
     Parse two column spectrum.
 
-    Parameters
-    ----------
-    lines : List[str]
-        list of lines to parse
+    Args:
+        lines:
+            List of lines to parse.
 
-    Returns
-    -------
-    Tuple[NDArray, NDArray]
-        - positions
-        - intensities
+    Returns:
+        Tuple[NDArray, NDArray]: positions and intensities.
     """
     positions, intensities = np.genfromtxt(lines).T
     return positions, intensities

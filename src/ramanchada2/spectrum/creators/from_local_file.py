@@ -23,21 +23,18 @@ def from_local_file(
     """
     Read experimental spectrum from a local file.
 
-    Parameters
-    ----------
-    in_file_name : str
-        path to a local file, containing a spectrum
-    filetype : optional, default is None
-        Specify the filetype. Filetype can be any of:
-        `spc`, `sp`, `spa`, `0`, `1`, `2`, `wdf`, `ngs`, `jdx`,
-        `dx`, `txt`, `txtr`, `csv`, `prn`, `rruf` or `None`
-        `None` used to determine by extension of the file.
-    backend : Literal['native', 'rc1_parser'], default None==both
+    Args:
+        in_file_name:
+            Path to a local file containing a spectrum.
+        filetype:
+            Specify the filetype. Filetype can be any of: `spc`, `sp`, `spa`, `0`, `1`, `2`, `wdf`, `ngs`, `jdx`, `dx`,
+            `txt`, `txtr`, `csv`, `prn`, `rruf` or `None`. `None` used to determine by extension of the file.
+        backend:
+            `native`, `rc1_parser` or `None`. `None` means both.
 
-    Raises
-    ------
-    ValueError
-        When called with unsupported file formats
+    Raises:
+        ValueError:
+            When called with unsupported file formats.
     """
     def load_native():
         if filetype is None:

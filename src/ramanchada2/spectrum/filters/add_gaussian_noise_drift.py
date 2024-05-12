@@ -57,16 +57,15 @@ def add_gaussian_noise_drift(
     .. math::
         \sigma(\Delta(a)) \approx 1.
 
-    Parameters
-    ----------
-    sigma : float
-        sigma of the gaussian noise
-    coef : float in [0, 1]
-        drifting coefficient. if `coef == 0` the result is
-        identical to `add_gaussian_noise()`.
-    rng_seed : int or rng state, optional
-        seed for the random generator.
-        If a state is provided it is updated in-place
+    Args:
+        sigma:
+            Sigma of the gaussian noise.
+        coef:
+            `float` in `[0, 1]`, drifting coefficient. If `coef == 0`, the result is identical to
+            `add_gaussian_noise()`.
+        rng_seed:
+            `int` or rng state, optional. Seed for the random generator. If a state is provided, it is updated
+            in-place.
     """
     new_spe.y = generate_add_gaussian_noise_drift(old_spe.y,
                                                   sigma=sigma,

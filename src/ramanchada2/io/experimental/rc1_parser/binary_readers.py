@@ -2,13 +2,16 @@ import numpy as np
 import struct
 
 
-def readSPA(filename, flip=True):
-    """function to read k-vector and spectrum from a *.SPA file
+def readSPA(filename: str, flip=True):
+    """
+    function to read k-vector and spectrum from a *.SPA file
 
-    :param filename: full path to the file to be read
-    :type filename: str
-    :return: k-vector and spectrum as separate arrays
-    :rtype: (np.array, np.array)
+    Args:
+        filename:
+            Full path to the file to be read.
+
+    Returns:
+        k-vector and spectrum as separate arrays: `(np.array, np.array)`.
     """
     k = None
     spec = None

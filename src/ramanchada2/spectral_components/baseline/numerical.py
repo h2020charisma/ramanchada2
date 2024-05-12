@@ -6,8 +6,9 @@ class BaselineNumerical(BaseLineBase):
         """
         Numerical baseline
 
-        Parameters
-        ----------
-        x : array-like
-        y : array-like
+        Args:
+            x:
+                array-like
+            y:
+                array-like
         """

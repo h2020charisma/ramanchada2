@@ -24,10 +24,9 @@ def moving_median(old_spe: Spectrum,
     """
     Moving median filter.
 
-    Parameters
-    ----------
-    window_size : int, optional
-        by default 10
+    Args:
+        window_size:
+            `int`, optional, default is `10`.
     """
 
     new_spe.y = _moving_median(old_spe.y, window_size)

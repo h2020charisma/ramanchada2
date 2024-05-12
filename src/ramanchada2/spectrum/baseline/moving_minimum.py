@@ -27,10 +27,6 @@ def moving_minimum(
     """
     Moving minimum baseline estimator.
     Successive values are calculated as minima of rolling rectangular window.
-
-    Parameters:
-    -----------
-        window_size : int
     """
     new_spe.y = _moving_minimum(old_spe.y, window_size)
 
