@@ -19,14 +19,14 @@
 | src/ramanchada2/io/experimental/rc1\_parser/third\_party\_readers.py       |       35 |       16 |     54% |9-22, 26-33 |
 | src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |      110 |     10% |11-43, 48-117, 121-141, 145-151, 155-166, 170-171 |
 | src/ramanchada2/io/experimental/read\_csv.py                               |       11 |        7 |     36% |     10-19 |
-| src/ramanchada2/io/experimental/read\_txt.py                               |       14 |        8 |     43% |     21-29 |
+| src/ramanchada2/io/experimental/read\_txt.py                               |       14 |        9 |     36% | 11, 21-29 |
 | src/ramanchada2/io/experimental/two\_column\_spe.py                        |        6 |        2 |     67% |     24-25 |
 | src/ramanchada2/io/output/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/io/output/write\_csv.py                                    |        3 |        1 |     67% |         5 |
 | src/ramanchada2/io/simulated/\_\_init\_\_.py                               |        1 |        0 |    100% |           |
 | src/ramanchada2/io/simulated/crystal/\_\_init\_\_.py                       |        0 |        0 |    100% |           |
 | src/ramanchada2/io/simulated/crystal/discrete\_lines\_dat.py               |        6 |        0 |    100% |           |
-| src/ramanchada2/io/simulated/crystal/discrete\_lines\_out.py               |       46 |        2 |     96% |    31, 36 |
+| src/ramanchada2/io/simulated/crystal/discrete\_lines\_out.py               |       46 |        3 |     93% |21, 31, 36 |
 | src/ramanchada2/io/simulated/lines\_from\_raw\_dat.py                      |        8 |        3 |     62% |     11-13 |
 | src/ramanchada2/io/simulated/read\_simulated\_lines.py                     |       38 |       29 |     24% |     23-56 |
 | src/ramanchada2/io/simulated/vasp/\_\_init\_\_.py                          |        0 |        0 |    100% |           |
@@ -110,7 +110,7 @@
 | src/ramanchada2/spectrum/filters/smoothing.py                              |       30 |       18 |     40% |     26-43 |
 | src/ramanchada2/spectrum/filters/trim\_axes.py                             |       16 |        8 |     50% |     19-26 |
 | src/ramanchada2/spectrum/peaks/\_\_init\_\_.py                             |        3 |        0 |    100% |           |
-| src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       38 |     68% |52, 57-59, 83-108, 112-134, 175-176 |
+| src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       40 |     66% |23, 30, 52, 57-59, 83-108, 112-134, 175-176 |
 | src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     22-30 |
 | src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       90 |       24 |     73% |48-52, 55-58, 66-76, 99-100, 113-114, 132-133 |
 | src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       17 |        9 |     47% |     20-31 |
@@ -128,7 +128,7 @@
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3125** | **1619** | **48%** |           |
+|                                                                  **TOTAL** | **3125** | **1623** | **48%** |           |
 
 
 ## Setup coverage badge
