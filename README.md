@@ -1,82 +1,85 @@
 # ramanchada2
 
-[![build](https://github.com/h2020charisma/ramanchada2/workflows/build/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/build.yml)
+[![CI](https://github.com/h2020charisma/ramanchada2/workflows/CI/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/ci.yml)
 [![docs](https://github.com/h2020charisma/ramanchada2/workflows/docs/badge.svg)](https://h2020charisma.github.io/ramanchada2/index.html)
 
-Harmonising Raman spectroscopy: meant to fill the gap between the theoretical Raman analysis and the experimental Raman spectroscopy by providing means to compare data of different origin.
+ramanchada2 is a Python library for Raman spectroscopy harmonization. It is meant to fill the gap between the theoretical Raman analysis and the experimental Raman spectroscopy by providing means to compare data of different origin.
+
+## Quick start
+
+```sh
+pip install ramanchada2
+```
 
 - 📖 [Documentation](https://h2020charisma.github.io/ramanchada2/ramanchada2.html)
 - ⚗️ [Examples](https://github.com/h2020charisma/ramanchada2/tree/main/examples)
 
+## Quick start with Jupyter notebook examples
 
-## Quick start
+[Install Poetry](https://python-poetry.org/docs/#installation).
 
-Clone the repo using https
-```bash
+```sh
 git clone https://github.com/h2020charisma/ramanchada2.git
-```
-or by using ssh
-```
-git clone git@github.com:h2020charisma/ramanchada2.git
-```
-
-
-and go inside
-```bash
-cd ramanchada2  # make sure you are in ramanchada2 directory
+cd ramanchada2
+poetry install --with=jupyter
+poetry run jupyter notebook examples
 ```
 
-Make sure you have virtualenv module and create a virtual environment
-```bash
-virtualenv .venv  # create virtual environment
+The browser should open Jupyter automatically.
 
-# activate the virtual environment
-source .venv/bin/activate  # on linux
-.venv\Scripts\activate  # on windows
+## Development
+
+This project uses [Poetry](https://python-poetry.org/) for dependency management. Make sure to [have it installed](https://python-poetry.org/docs/#installation). Also, using [pyenv](https://github.com/pyenv/pyenv) on UNIX/MacOS or [pyenv-win](https://github.com/pyenv-win/pyenv-win) for Windows is recommended for Python version management (the default Python version for this project is set in the `.python-version` file).
+
+For better Visual Studio Code integration it may be helpful to set `poetry config virtualenvs.in-project true`.
+
+### Setting up
+
+```sh
+git clone https://github.com/h2020charisma/ramanchada2.git
+cd ramanchada2
+poetry install
 ```
 
-Ramanchada package and all dependencies can be installed by runing:
+### Basic usage
 
-```bash
-pip install -r requirements-dev.txt  # install development environment
-hash -r  # make sure the newly created environment is in use
+```
+poetry shell
+python
+>>> import ramanchada2
 ```
 
-In order to create a jupyter kernel, from the already activated virtual environment execute following command:
+### Running the linters & tests
 
-```bash
-ipython kernel install --name=ramanchada2 --user  # set up a new jupyter kernel
+Everything:
+```
+poetry run tox
 ```
 
-The kernel can be removed by:
-```bash
-jupyter kernelspec remove ramanchada2
+Linter only:
+```
+poetry run tox -e flake8
 ```
 
-A jupyter server can be started from anywhere -- no need to activate the virtual environment:
-```bash
-jupyter-notebook
+### Playing with the Jupyter notebooks
+
+```
+poetry install --with=jupyter
+```
+then
+```
+poetry run jupyter notebook examples
 ```
 or
-```bash
-jupyter-lab
 ```
-
-A web browser with jupyter should start automaticaly.
-
-
-## Quick start with Conda
-
-[Install Miniconda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) and, optionally, Mamba:
+poetry run jupyter lab examples
 ```
-conda install mamba -n base -c conda-forge
+or
 ```
+poetry shell
+```
+and running `jupyter notebook` or `jupyter lab` from there.
 
-Run the following. If you haven't installed Mamba, replace `mamba` with `conda`.
-```
-mamba env update -f environment.yml
-conda activate ramanchada2
-jupyter notebook
-```
----
+## Acknowledgements
+
 🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under [grant agreement No. 952921](https://cordis.europa.eu/project/id/952921).
