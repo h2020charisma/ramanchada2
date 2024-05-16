@@ -54,9 +54,9 @@
             </div>
         </aside>
         <h2>
-            <span class="text">190 statements &nbsp;</span>
+            <span class="text">192 statements &nbsp;</span>
             <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">0<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">190<span class="text"> missing</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">192<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_198914f65c9f13b9___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.5.1">coverage.py v7.5.1</a>,
-            created at 2024-05-12 14:41 +0000
+            created at 2024-05-16 07:08 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -402,20 +402,19 @@
     <p class="mis show_mis"><span class="n"><a id="t320" href="#t320">320</a></span><span class="t">        <span class="key">return</span> <span class="nam">calibration_shift</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t321" href="#t321">321</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t322" href="#t322">322</a></span><span class="t">    <span class="key">def</span> <span class="nam">apply_calibration_x</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">old_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span> <span class="nam">spe_units</span><span class="op">=</span><span class="str">"cm-1"</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t323" href="#t323">323</a></span><span class="t">        <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t324" href="#t324">324</a></span><span class="t"><span class="str">        Applies the x-calibration model to Raman spectrum.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t325" href="#t325">325</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t326" href="#t326">326</a></span><span class="t">        <span class="com"># neon calibration converts to nm</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t327" href="#t327">327</a></span><span class="t">        <span class="com"># silicon calibration takes nm and converts back to cm-1 using laser zeroing</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">        <span class="nam">new_spe</span> <span class="op">=</span> <span class="nam">old_spe</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">        <span class="key">for</span> <span class="nam">model</span> <span class="key">in</span> <span class="nam">self</span><span class="op">.</span><span class="nam">components</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">            <span class="com"># TODO: tbd find out if to convert units</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">            <span class="key">if</span> <span class="nam">model</span><span class="op">.</span><span class="nam">enabled</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">                <span class="nam">new_spe</span> <span class="op">=</span> <span class="nam">model</span><span class="op">.</span><span class="nam">process</span><span class="op">(</span><span class="nam">new_spe</span><span class="op">,</span> <span class="nam">spe_units</span><span class="op">,</span> <span class="nam">convert_back</span><span class="op">=</span><span class="key">False</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">        <span class="key">return</span> <span class="nam">new_spe</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t334" href="#t334">334</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t335" href="#t335">335</a></span><span class="t">    <span class="key">def</span> <span class="nam">_plot</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">ax</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t336" href="#t336">336</a></span><span class="t">        <span class="key">pass</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t323" href="#t323">323</a></span><span class="t">        <span class="com"># neon calibration converts to nm</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t324" href="#t324">324</a></span><span class="t">        <span class="com"># silicon calibration takes nm and converts back to cm-1 using laser zeroing</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t325" href="#t325">325</a></span><span class="t">        <span class="nam">new_spe</span> <span class="op">=</span> <span class="nam">old_spe</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t326" href="#t326">326</a></span><span class="t">        <span class="nam">model_units</span> <span class="op">=</span> <span class="nam">spe_units</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t327" href="#t327">327</a></span><span class="t">        <span class="key">for</span> <span class="nam">model</span> <span class="key">in</span> <span class="nam">self</span><span class="op">.</span><span class="nam">components</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">            <span class="com"># TODO: tbd find out if to convert units</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">            <span class="key">if</span> <span class="nam">model</span><span class="op">.</span><span class="nam">enabled</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">                <span class="nam">new_spe</span> <span class="op">=</span> <span class="nam">model</span><span class="op">.</span><span class="nam">process</span><span class="op">(</span><span class="nam">new_spe</span><span class="op">,</span> <span class="nam">model_units</span><span class="op">,</span> <span class="nam">convert_back</span><span class="op">=</span><span class="key">False</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">                <span class="nam">model_units</span> <span class="op">=</span> <span class="nam">model</span><span class="op">.</span><span class="nam">model_units</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">        <span class="key">return</span> <span class="nam">new_spe</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t334" href="#t334">334</a></span><span class="t">    <span class="key">def</span> <span class="nam">_plot</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">ax</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t335" href="#t335">335</a></span><span class="t">        <span class="key">pass</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -425,7 +424,7 @@
             <a class="nav" href="z_198914f65c9f13b9___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.5.1">coverage.py v7.5.1</a>,
-            created at 2024-05-12 14:41 +0000
+            created at 2024-05-16 07:08 +0000
         </p>
     </div>
 </footer>

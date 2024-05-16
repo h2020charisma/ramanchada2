@@ -4,7 +4,7 @@
 
 | Name                                                                       |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| src/ramanchada2/\_\_init\_\_.py                                            |       30 |        4 |     87% |   131-134 |
+| src/ramanchada2/\_\_init\_\_.py                                            |       30 |        7 |     77% |125-127, 131-134 |
 | src/ramanchada2/\_\_main\_\_.py                                            |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        0 |        0 |    100% |           |
@@ -54,7 +54,7 @@
 | src/ramanchada2/misc/utils/ramanshift\_to\_wavelength.py                   |       17 |       11 |     35% |5-7, 11-13, 17, 21-23, 27 |
 | src/ramanchada2/misc/utils/svd.py                                          |       13 |       10 |     23% |8-13, 17-20 |
 | src/ramanchada2/protocols/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
-| src/ramanchada2/protocols/calibration.py                                   |      190 |      190 |      0% |     1-336 |
+| src/ramanchada2/protocols/calibration.py                                   |      192 |      192 |      0% |     1-335 |
 | src/ramanchada2/spectral\_components/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
 | src/ramanchada2/spectral\_components/baseline/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/ramanchada2/spectral\_components/baseline/analytical.py                |        0 |        0 |    100% |           |
@@ -128,7 +128,7 @@
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3125** | **1619** | **48%** |           |
+|                                                                  **TOTAL** | **3127** | **1624** | **48%** |           |
 
 
 ## Setup coverage badge
