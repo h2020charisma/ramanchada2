@@ -320,16 +320,15 @@ class CalibrationModel(ProcessingModel, Plottable):
         return calibration_shift
 
     def apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1"):
-        """
-        Applies the x-calibration model to Raman spectrum.
-        """
         # neon calibration converts to nm
         # silicon calibration takes nm and converts back to cm-1 using laser zeroing
         new_spe = old_spe
+        model_units = spe_units
         for model in self.components:
             # TODO: tbd find out if to convert units
             if model.enabled:
-                new_spe = model.process(new_spe, spe_units, convert_back=False)
+                new_spe = model.process(new_spe, model_units, convert_back=False)
+                model_units = model.model_units
         return new_spe
 
     def _plot(self, ax, **kwargs):
