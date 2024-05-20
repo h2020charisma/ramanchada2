@@ -7,6 +7,10 @@ from ..spectrum import Spectrum
 from matplotlib.axes import Axes
 from ramanchada2.misc.plottable import Plottable
 from scipy import interpolate
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProcessingModel:
@@ -44,7 +48,7 @@ class CalibrationComponent(Plottable):
     def convert_units(self, old_spe, spe_unit="cm-1", newspe_unit="nm", laser_wl=None):
         if laser_wl is None:
             laser_wl = self.laser_wl
-        print("convert laser_wl {} {} --> {}".format(laser_wl, spe_unit, newspe_unit))
+        logger.debug("convert laser_wl {} {} --> {}".format(laser_wl, spe_unit, newspe_unit))
         if spe_unit != newspe_unit:
             new_spe = old_spe.__copy__()
             if spe_unit == "nm":
@@ -54,7 +58,7 @@ class CalibrationComponent(Plottable):
             else:
                 raise Exception("Unsupported conversion {} to {}", spe_unit, newspe_unit)
         else:
-            new_spe = old_spe
+            new_spe = old_spe.__copy__()
         #    new_spe = old_spe.__copy__()
         return new_spe
 
@@ -86,9 +90,9 @@ class XCalibrationComponent(CalibrationComponent):
         super(XCalibrationComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
 
     def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
-        print("convert spe_units {} --> model units {}".format(spe_units, self.model_units))
+        logger.debug("convert spe_units {} --> model units {}".format(spe_units, self.model_units))
         new_spe = self.convert_units(old_spe, spe_units, self.model_units)
-        print("process", self)
+        logger.debug("process", self)
         if self.model is None:
             return new_spe
         elif self.enabled:
@@ -100,7 +104,7 @@ class XCalibrationComponent(CalibrationComponent):
             return new_spe
         # convert back
         if convert_back:
-            print("convert back", spe_units)
+            #print("convert back", spe_units)
             return self.convert_units(new_spe, self.model_units, spe_units)
         else:
             return new_spe
@@ -108,9 +112,9 @@ class XCalibrationComponent(CalibrationComponent):
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
 
         # convert to ref_units
-        print("[{}]: convert spe_units {} to ref_units {}".format(self.name, self.spe_units, self.ref_units))
+        logger.debug("[{}]: convert spe_units {} to ref_units {}".format(self.name, self.spe_units, self.ref_units))
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
-        print("max x", max(spe_to_process.x), self.ref_units)
+        logger.debug("max x", max(spe_to_process.x), self.ref_units)
         fig, ax = plt.subplots(3, 1, figsize=(12, 4))
         self.spe.plot(ax=ax[0].twinx(), label=self.spe_units)
         spe_to_process.plot(ax=ax[1], label=self.ref_units)
@@ -138,11 +142,13 @@ class XCalibrationComponent(CalibrationComponent):
         ax[2].twinx().stem(self.ref.keys(), self.ref.values(), linefmt='r-', basefmt=' ')
 
         x_spe, x_reference, x_distance, df = rc2utils.match_peaks(spe_pos_dict, self.ref)
+        #print(x_spe)
+        #print(df)
         sum_of_differences = np.sum(np.abs(x_spe - x_reference)) / len(x_spe)
-        print("sum_of_differences original {} {}".format(sum_of_differences, self.ref_units))
+        logger.debug("sum_of_differences original {} {}".format(sum_of_differences, self.ref_units))
         if len(x_reference) == 1:
             _offset = (x_reference[0] - x_spe[0])
-            print("ref", x_reference[0], "sample", x_spe[0], "offset", _offset, self.ref_units)
+            logger.debug("ref", x_reference[0], "sample", x_spe[0], "offset", _offset, self.ref_units)
             self.set_model(_offset, self.ref_units, df, name)
         else:
             fig, ax = plt.subplots(1, 1, figsize=(3, 3))
@@ -169,7 +175,7 @@ class LazerZeroingComponent(CalibrationComponent):
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
         find_kw = dict(sharpening=None)
         cand = self.spe.find_peak_multipeak(**find_kw)
-        print(self.name, cand)
+        logger.debug(self.name, cand)
         # init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
         fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
         df = fit_res.to_dataframe_peaks()
@@ -181,7 +187,7 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
-            print(self.name, "peak", zero_peak_nm)
+            #print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
             self.set_model(zero_peak_nm, "nm", df, "Lazer zeroing using {}".format(zero_peak_nm))
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
@@ -194,12 +200,83 @@ class LazerZeroingComponent(CalibrationComponent):
     # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
     def process(self, old_spe: Spectrum, spe_units="nm", convert_back=False):
         wl_si_ref = list(self.ref.keys())[0]
-        print(self.name, "process", self.model, wl_si_ref)
+        logger.debug(self.name, "process", self.model, wl_si_ref)
         new_x = self.zero_nm_to_shift_cm_1(old_spe.x, self.model, wl_si_ref)
         new_spe = Spectrum(x=new_x, y=old_spe.y, metadata=old_spe.meta)
         # new_spe = old_spe.lazer_zero_nm_to_shift_cm_1(self.model, wl_si_ref)
         # print("old si", old_spe.x)
         # print("new si", new_spe.x)
+        return new_spe
+
+class YCalibrationComponent(CalibrationComponent):
+    def __init__(self, laser_wl, reference_spe_calibrated,response_function):
+        super(YCalibrationComponent, self).__init__(laser_wl, spe = reference_spe_calibrated, spe_units = None, ref = response_function , ref_units = None)
+        self.laser_wl = laser_wl
+        self.spe = reference_spe_calibrated
+        self.ref = response_function
+        self.model = None
+        self.name = "Y calibration"
+        self.model = response_function
+
+    @staticmethod 
+    def Y_LED_532(x):
+        A = 8.30752731e-01
+        B = 2.54881472e-07
+        x0 = 1.42483359e+3
+        Y = A * np.exp(-B * (x - x0)**2)
+        return Y
+    
+    @staticmethod 
+    def Y_LED_785(x):
+        A0 = 5.90134423e-1
+        A = 5.52032185e-1
+        B = 5.72123096e-7
+        x0 = 2.65628776e+3
+        Y = A0 + A * np.exp(-B * (x - x0)**2)
+        return Y
+
+    @staticmethod
+    def Y_LED(x,wavelength=785):
+        if wavelength==785:
+            return YCalibrationComponent.Y_LED_785(x)
+        elif wavelength==532:
+            return YCalibrationComponent.Y_LED_532(x)
+        else:
+            raise Exception("not supported wavelength {}".format(wavelength))    
+        
+
+    @staticmethod
+    def Y_NIST(x,wavelength):
+        raise Exception("not supported yet")            
+        
+    def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
+       # measured reference spectrum as distribution, so we can resample
+       self.model = self.spe.spe_distribution(trim_range = None)
+
+    def safe_divide(self,spe_to_correct,spe_reference_resampled):
+        numerator = spe_to_correct.y
+        numerator_noise = spe_to_correct.y_noise 
+
+        scaling_denominator = spe_reference_resampled.y / self.ref(spe_reference_resampled.x,self.laser_wl)
+
+        denominator_noise = spe_reference_resampled.y_noise 
+        denominator = spe_reference_resampled.y
+        #_SNR = abs(denominator) / abs(denominator-denominator_noise)
+        # eventually ( _SNR < 1.* )
+
+        # Create a mask for dividing only where value is above noise !
+        mask =  (abs(denominator) > denominator_noise) & (abs(numerator) > numerator_noise) & (abs(scaling_denominator) > 0)  & (abs(denominator-numerator) > min(denominator_noise,numerator_noise))
+        result = np.zeros_like(numerator)
+        # Perform division where mask is true
+        result[mask] = numerator[mask] / scaling_denominator[mask]
+        return result
+    
+    def process(self, old_spe: Spectrum, spe_units="nm", convert_back=False):
+        #resample using probability density function
+        _tmp = self.model.pdf(old_spe.x) 
+        _tmp = _tmp *  max(self.spe.y) / max(_tmp)  # pdf sampling is normalized to area unity, scaling back
+        spe_reference_resampled = Spectrum(old_spe.x,_tmp)
+        new_spe = Spectrum(old_spe.x,self.safe_divide(old_spe,spe_reference_resampled))
         return new_spe
 
 
@@ -318,7 +395,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         calibration_shift.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
         self.components.append(calibration_shift)
         return calibration_shift
-
+    
     def apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1"):
         # neon calibration converts to nm
         # silicon calibration takes nm and converts back to cm-1 using laser zeroing
