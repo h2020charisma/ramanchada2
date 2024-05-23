@@ -235,6 +235,7 @@ class YCalibrationComponent(CalibrationComponent):
         Y = A0 + A * np.exp(-B * (x - x0)**2)
         return Y
 
+
     @staticmethod
     def Y_LED(x,wavelength=785):
         if wavelength==785:
@@ -251,6 +252,12 @@ class YCalibrationComponent(CalibrationComponent):
             return YCalibrationComponent.Y_NIST_SRM2241_587(x)
         elif wavelength==532:
             return YCalibrationComponent.Y_NIST_SRM2242a_532(x)
+        elif wavelength==1064:
+            return YCalibrationComponent.Y_NIST_SRM2244_1064(x)        
+        elif wavelength==633:
+            return YCalibrationComponent.Y_NIST_SRM2245_633(x)        
+        elif wavelength==830:
+            return YCalibrationComponent.Y_NIST_SRM2246a_830(x)                 
         else:
             raise Exception("not supported wavelength {}".format(wavelength))      
 
@@ -265,7 +272,45 @@ class YCalibrationComponent(CalibrationComponent):
         A4 = -9.77171e-14
         A5 = 1.15596e-17
         return A0 + A1 * x + A2 *x**2 + A3 * x**3 + A4 * x**4 + A5 *x**5
-
+    
+    @staticmethod
+    def Y_NIST_SRM2244_1064(x,wavelength=1064):
+        if wavelength!=1064:
+            raise ValueError("Unsupported wavelength")    
+        A0 = 0.405953
+        A1 = 5.20345E-04
+        A2 = 5.30390E-07
+        A3 = -6.84463E-10
+        A4 = 2.10286E-13
+        A5 = -2.05741E-17
+        return A0 + A1 * x + A2 *x**2 + A3 * x**3 + A4 * x**4 + A5 *x**5
+        
+    @staticmethod
+    def Y_NIST_SRM2245_633(x,wavelength=633):
+        if wavelength!=633:
+            raise ValueError("Unsupported wavelength")    
+        H = 9.5071e-01
+        w = 1.6577e03
+        ro = 9.5207e-01
+        x0 = 1.9600e03
+        m = 1.8981e-05
+        b =  1.1698e-02
+        _x = -np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)
+        return H * np.exp(_x) + m*x + b  
+    
+    @staticmethod
+    def Y_NIST_SRM2246a_830(x,wavelength=830):
+        if wavelength!=830:
+            raise ValueError("Unsupported wavelength")    
+        H = 1.0178
+        w = 3082.3
+        ro = 0.98252
+        x0 = 2353.1
+        m = -0.00000011825
+        b =  -0.017500
+        _x = -np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)
+        return H * np.exp(_x) + m*x + b  
+        
     @staticmethod
     def Y_NIST_SRM2242a_532(x,wavelength=532):
         if wavelength!=532:
