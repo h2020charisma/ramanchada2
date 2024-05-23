@@ -247,7 +247,37 @@ class YCalibrationComponent(CalibrationComponent):
 
     @staticmethod
     def Y_NIST(x,wavelength):
-        raise Exception("not supported yet")            
+        if wavelength==785:
+            return YCalibrationComponent.Y_NIST_SRM2241_587(x)
+        elif wavelength==532:
+            return YCalibrationComponent.Y_NIST_SRM2242a_532(x)
+        else:
+            raise Exception("not supported wavelength {}".format(wavelength))      
+
+    @staticmethod
+    def Y_NIST_SRM2241_587(x,wavelength=785):
+        if wavelength!=785:
+            raise ValueError("Unsupported wavelength")    
+        A0 = 9.71937e-02
+        A1 = 2.28325e-04
+        A2 = -5.86762e-08
+        A3 = 2.16023e-10
+        A4 = -9.77171e-14
+        A5 = 1.15596e-17
+        return A0 + A1 * x + A2 *x**2 + A3 * x**3 + A4 * x**4 + A5 *x**5
+
+    @staticmethod
+    def Y_NIST_SRM2242a_532(x,wavelength=532):
+        if wavelength!=532:
+            raise ValueError("Unsupported wavelength")
+        H = 9.9747e-01
+        w = 3.1006e03
+        ro = 1.1573e00
+        x0 = 2.9721e03
+        m = -3.7168e-06
+        b =  1.2864e-02
+        _x = -np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)
+        return H * np.exp(_x) + m*x + b        
         
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
        # measured reference spectrum as distribution, so we can resample
