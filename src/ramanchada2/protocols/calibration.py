@@ -8,7 +8,8 @@ from matplotlib.axes import Axes
 from ramanchada2.misc.plottable import Plottable
 from scipy import interpolate
 import logging
-
+import json
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +209,73 @@ class LazerZeroingComponent(CalibrationComponent):
         # print("new si", new_spe.x)
         return new_spe
 
+class ResponseFunctionEvaluator:
+    """
+    Class for evaluating response functions 
+
+    Usage:
+
+        1. Use for specific SRM
+
+        >>> evaluator = ResponseFunctionEvaluation()
+        >>> x_value = np.linspace(100, 4000)
+        >>> wl = 532
+        >>> key = "Y_NIST_SRM2242a_532"        
+        >>> wl = 785
+        >>> key = "Y_NIST_SRM2241_785"
+        >>> rfe.Y_correction_standard(wl, key, x_value)
+    
+        2. Iterate over the configuration certificates:
+
+        >>> for wl in rfe.config_certs:
+        ...     for key in rfe.config_certs[wl]:
+        ...         if "raman_shift" in rfe.config_certs[wl][key]:
+        ...             range = rfe.config_certs[wl][key]["raman_shift"]
+        ...             x_value = np.linspace(range[0], range[1])
+        ...         else:
+        ...             x_value = np.linspace(100, 4000)
+        ...         result = rfe.Y_correction_standard(wl, key, x_value)
+        ...         plt.plot(x_value, result, label=key)
+        >>> plt.legend()
+        >>> plt.show()
+    """    
+    def __init__(self):
+        self.load_certificates(os.path.join(os.path.dirname(__file__),"config_certs.json"))
+    
+    def load_certificates(self, file_path):
+        with open(file_path, 'r') as f:
+            self.config_certs = json.load(f)
+    
+    def get_certificates(self):
+        return self.config_certs
+    
+    def create_expression_function(self, wavelength, key):
+        equation = self.config_certs[wavelength][key]["equation"]
+        params = self.config_certs[wavelength][key]["params"]
+        local_vars = {}
+        for param in params.split(','):
+            key, value = param.split('=')
+            key = key.strip()
+            value = value.strip()
+            local_vars[key] = eval(value)
+        
+        def evaluate_expression(x_value):
+            local_vars['x'] = x_value
+            return eval(equation, {"np": np}, local_vars)
+        
+        return evaluate_expression
+    
+    def evaluate_expression(self,  wavelength, key, x_value):
+        method = self.create_expression_function( wavelength, key)
+        return  method(x_value)
+
+    def Y_correction_standard(self, wavelength, key, x_value):
+        try:
+            return self.evaluate_expression( wavelength, key, x_value)
+        except:
+            return None
+
+
 class YCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, reference_spe_calibrated,response_function):
         super(YCalibrationComponent, self).__init__(laser_wl, spe = reference_spe_calibrated, spe_units = None, ref = response_function , ref_units = None)
@@ -218,112 +286,7 @@ class YCalibrationComponent(CalibrationComponent):
         self.name = "Y calibration"
         self.model = response_function
 
-    @staticmethod 
-    def Y_LED_532(x):
-        A = 8.30752731e-01
-        B = 2.54881472e-07
-        x0 = 1.42483359e+3
-        Y = A * np.exp(-B * (x - x0)**2)
-        return Y
-    
-    @staticmethod 
-    def Y_LED_785(x):
-        A0 = 5.90134423e-1
-        A = 5.52032185e-1
-        B = 5.72123096e-7
-        x0 = 2.65628776e+3
-        Y = A0 + A * np.exp(-B * (x - x0)**2)
-        return Y
-
-
-    @staticmethod
-    def Y_LED(x,wavelength=785):
-        if wavelength==785:
-            return YCalibrationComponent.Y_LED_785(x)
-        elif wavelength==532:
-            return YCalibrationComponent.Y_LED_532(x)
-        else:
-            raise Exception("not supported wavelength {}".format(wavelength))    
-        
-
-    @staticmethod
-    def Y_NIST(x,wavelength):
-        if wavelength==785:
-            return YCalibrationComponent.Y_NIST_SRM2241_587(x)
-        elif wavelength==532:
-            return YCalibrationComponent.Y_NIST_SRM2242a_532(x)
-        elif wavelength==1064:
-            return YCalibrationComponent.Y_NIST_SRM2244_1064(x)        
-        elif wavelength==633:
-            return YCalibrationComponent.Y_NIST_SRM2245_633(x)        
-        elif wavelength==830:
-            return YCalibrationComponent.Y_NIST_SRM2246a_830(x)                 
-        else:
-            raise Exception("not supported wavelength {}".format(wavelength))      
-
-    @staticmethod
-    def Y_NIST_SRM2241_587(x,wavelength=785):
-        if wavelength!=785:
-            raise ValueError("Unsupported wavelength")    
-        A0 = 9.71937e-02
-        A1 = 2.28325e-04
-        A2 = -5.86762e-08
-        A3 = 2.16023e-10
-        A4 = -9.77171e-14
-        A5 = 1.15596e-17
-        return A0 + A1 * x + A2 *x**2 + A3 * x**3 + A4 * x**4 + A5 *x**5
-    
-    @staticmethod
-    def Y_NIST_SRM2244_1064(x,wavelength=1064):
-        if wavelength!=1064:
-            raise ValueError("Unsupported wavelength")    
-        A0 = 0.405953
-        A1 = 5.20345E-04
-        A2 = 5.30390E-07
-        A3 = -6.84463E-10
-        A4 = 2.10286E-13
-        A5 = -2.05741E-17
-        return A0 + A1 * x + A2 *x**2 + A3 * x**3 + A4 * x**4 + A5 *x**5
-        
-    @staticmethod
-    def Y_NIST_SRM2245_633(x,wavelength=633):
-        if wavelength!=633:
-            raise ValueError("Unsupported wavelength")    
-        H = 9.5071e-01
-        w = 1.6577e03
-        ro = 9.5207e-01
-        x0 = 1.9600e03
-        m = 1.8981e-05
-        b =  1.1698e-02
-        _x = -np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)
-        return H * np.exp(_x) + m*x + b  
-    
-    @staticmethod
-    def Y_NIST_SRM2246a_830(x,wavelength=830):
-        if wavelength!=830:
-            raise ValueError("Unsupported wavelength")    
-        H = 1.0178
-        w = 3082.3
-        ro = 0.98252
-        x0 = 2353.1
-        m = -0.00000011825
-        b =  -0.017500
-        _x = -np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)
-        return H * np.exp(_x) + m*x + b  
-        
-    @staticmethod
-    def Y_NIST_SRM2242a_532(x,wavelength=532):
-        if wavelength!=532:
-            raise ValueError("Unsupported wavelength")
-        H = 9.9747e-01
-        w = 3.1006e03
-        ro = 1.1573e00
-        x0 = 2.9721e03
-        m = -3.7168e-06
-        b =  1.2864e-02
-        _x = -np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)
-        return H * np.exp(_x) + m*x + b        
-        
+       
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
        # measured reference spectrum as distribution, so we can resample
        self.model = self.spe.spe_distribution(trim_range = None)
