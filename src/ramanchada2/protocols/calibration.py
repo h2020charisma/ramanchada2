@@ -10,6 +10,8 @@ from scipy import interpolate
 import logging
 import json
 import os
+from typing import List, Tuple, Optional
+from pydantic import BaseModel, ValidationError, parse_obj_as
 
 logger = logging.getLogger(__name__)
 
@@ -209,51 +211,42 @@ class LazerZeroingComponent(CalibrationComponent):
         # print("new si", new_spe.x)
         return new_spe
 
-class ResponseFunctionEvaluator:
+class YCalibrationCertificate(BaseModel,Plottable):
     """
-    Class for evaluating response functions 
+    Class for intensity calibration certificates
 
     Usage:
 
         1. Use for specific SRM
+        >>> cert = YCalibrationCertificate(
+        ...             id="SRM2241",
+        ...             description="optical glass",
+        ...             url="https://tsapps.nist.gov/srmext/certificates/2241.pdf",
+        ...             wavelength=785,
+        ...             params="A0 = 9.71937e-02, A1 = 2.28325e-04, A2 = -5.86762e-08, A3 = 2.16023e-10, A4 = -9.77171e-14, A5 = 1.15596e-17",
+        ...             equation="A0 + A1 * x + A2 * x**2 + A3 * x**3 + A4 * x**4 + A5 * x**5",
+        ...             temperature_c=(20, 25),
+        ...             raman_shift=(200, 3500)
+        ...         )
+        ... 
+        >>> cert.plot()
 
-        >>> evaluator = ResponseFunctionEvaluation()
-        >>> x_value = np.linspace(100, 4000)
-        >>> wl = 532
-        >>> key = "Y_NIST_SRM2242a_532"        
-        >>> wl = 785
-        >>> key = "Y_NIST_SRM2241_785"
-        >>> rfe.Y_correction_standard(wl, key, x_value)
+    """
     
-        2. Iterate over the configuration certificates:
-
-        >>> for wl in rfe.config_certs:
-        ...     for key in rfe.config_certs[wl]:
-        ...         if "raman_shift" in rfe.config_certs[wl][key]:
-        ...             range = rfe.config_certs[wl][key]["raman_shift"]
-        ...             x_value = np.linspace(range[0], range[1])
-        ...         else:
-        ...             x_value = np.linspace(100, 4000)
-        ...         result = rfe.Y_correction_standard(wl, key, x_value)
-        ...         plt.plot(x_value, result, label=key)
-        >>> plt.legend()
-        >>> plt.show()
-    """    
-    def __init__(self):
-        self.load_certificates(os.path.join(os.path.dirname(__file__),"config_certs.json"))
+    id: str
+    description: Optional[str]
+    url: Optional[str]
+    wavelength: int
+    params: str
+    equation: str
+    temperature_c: Optional[Tuple[int, int]]
+    raman_shift: Optional[Tuple[int, int]]
     
-    def load_certificates(self, file_path):
-        with open(file_path, 'r') as f:
-            self.config_certs = json.load(f)
     
-    def get_certificates(self):
-        return self.config_certs
-    
-    def create_expression_function(self, wavelength, key):
-        equation = self.config_certs[wavelength][key]["equation"]
-        params = self.config_certs[wavelength][key]["params"]
+    @property
+    def response_function(self):
         local_vars = {}
-        for param in params.split(','):
+        for param in self.params.split(','):
             key, value = param.split('=')
             key = key.strip()
             value = value.strip()
@@ -261,41 +254,111 @@ class ResponseFunctionEvaluator:
         
         def evaluate_expression(x_value):
             local_vars['x'] = x_value
-            return eval(equation, {"np": np}, local_vars)
+            return eval(self.equation, {"np": np}, local_vars)
         
         return evaluate_expression
     
-    def evaluate_expression(self,  wavelength, key, x_value):
-        method = self.create_expression_function( wavelength, key)
-        return  method(x_value)
+    def Y(self,  x_value):
+        return self.response_function(x_value)
+  
+    def _plot(self, ax, **kwargs):
+        if self.raman_shift is None:
+            x = np.linspace(100, 4000)
+        else:
+            x = np.linspace(self.raman_shift[0], self.raman_shift[1])
+        kwargs.pop('label', None)
+        ax.plot(x,self.Y(x), label = "{} ({}nm)".format(self.id,self.wavelength),**kwargs)       
+        ax.set_xlabel('Raman shift cm-1')
+        ax.set_ylabel('Intensity') 
+    
+    @staticmethod
+    def load(wavelength=785, key="SRM2241"):
+        return CertificatesDict().get(wavelength,key)
+        
+class CertificatesDict:
+    """
+    Class for loading y calibration certificates 
 
-    def Y_correction_standard(self, wavelength, key, x_value):
-        try:
-            return self.evaluate_expression( wavelength, key, x_value)
-        except:
-            return None
+    Usage:
+       Load single certificate
+       >>> cert = CertificatesDict.load(wavelength="785", key="SRM2241")
+       >>> cert.plot()
+
+       Load all certificates for wavelength. Iterate :
+
+        >>> certificates = CertificatesDict()
+        ... plt.figure()
+        ... ax=None
+        ... certs = certificates.get_certificates(wavelength=532)
+        ... ax = certs[cert].plot(ax=ax)
+        >>> plt.show()
+    """    
+    def __init__(self):
+        self.load_certificates(os.path.join(os.path.dirname(__file__),"config_certs.json"))
+    
+    def load_certificates(self, file_path):
+        with open(file_path, 'r') as f:
+            certificates_data  = json.load(f)
+            certificates = {}
+            for wavelength, certificates_dict in certificates_data.items():
+                certificates[wavelength] = {}
+                for certificate_id, certificate_data in certificates_dict.items():
+                    certificate_data["wavelength"] = int(wavelength)
+                    certificate_data["id"] = certificate_id
+                    try:
+                        certificate = YCalibrationCertificate(**certificate_data)
+                        certificates[wavelength][certificate_id] = certificate
+                    except ValidationError as e:
+                        print(f"Validation error for certificate {certificate_id}: {e}")            
+            self.config_certs = certificates
+    
+    def get_certificates(self,wavelength=785):
+        return self.config_certs[str(wavelength)]
+    
+    def get(self,wavelength=532, key="SRM2242a"):
+        return self.config_certs[str(wavelength)][key]
+    
+    @staticmethod
+    def load(wavelength=785, key="SRM2241"):
+        return CertificatesDict().get(wavelength,key)
+    
 
 
 class YCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, reference_spe_calibrated,response_function):
-        super(YCalibrationComponent, self).__init__(laser_wl, spe = reference_spe_calibrated, spe_units = None, ref = response_function , ref_units = None)
+    """
+    Class for intensity calibration. Uses response functions loaded in ResponseFunctionEvaluator. Functions are defined in json file. 
+
+    Usage:
+
+        >>> laser_wl = 785
+        >>> ycert = YCalibrationCertificate.load(wavelength=785, key="SRM2241")
+        >>> ycal = YCalibrationComponent(laser_wl, spe=spe_srm,ref=ycert)
+        >>> fig, ax = plt.subplots(1, 1, figsize=(15,4)) 
+        >>> spe_srm.plot(ax=ax)    
+        >>> spe_to_correct.plot(ax=ax)
+        >>> spe_ycalibrated = ycal.process(spe_to_correct)
+        >>> spe_ycalibrated.plot(label="y-calibrated",color="green",ax=ax.twinx())
+    """    
+    
+    def __init__(self, laser_wl, reference_spe_calibrated,certificate : YCalibrationCertificate):
+        super(YCalibrationComponent, self).__init__(laser_wl, spe = reference_spe_calibrated, spe_units = None, ref =  certificate , ref_units = None)
         self.laser_wl = laser_wl
         self.spe = reference_spe_calibrated
-        self.ref = response_function
-        self.model = None
+        self.ref = certificate
         self.name = "Y calibration"
-        self.model = response_function
+        self.model = self.spe.spe_distribution(trim_range = certificate.raman_shift)
+        self.model_units="cm-1"
 
        
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
        # measured reference spectrum as distribution, so we can resample
-       self.model = self.spe.spe_distribution(trim_range = None)
+       self.model = self.spe.spe_distribution(trim_range = self.ref.raman_shift)
 
     def safe_divide(self,spe_to_correct,spe_reference_resampled):
         numerator = spe_to_correct.y
         numerator_noise = spe_to_correct.y_noise 
 
-        scaling_denominator = spe_reference_resampled.y / self.ref(spe_reference_resampled.x,self.laser_wl)
+        scaling_denominator = spe_reference_resampled.y / self.ref.Y(spe_reference_resampled.x)
 
         denominator_noise = spe_reference_resampled.y_noise 
         denominator = spe_reference_resampled.y
