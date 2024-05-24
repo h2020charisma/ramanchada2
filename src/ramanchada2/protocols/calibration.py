@@ -219,7 +219,7 @@ class YCalibrationCertificate(BaseModel,Plottable):
 
         1. Use for specific SRM
         >>> cert = YCalibrationCertificate(
-        ...             id="SRM2241",
+        ...             id="NIST785_SRM2241",
         ...             description="optical glass",
         ...             url="https://tsapps.nist.gov/srmext/certificates/2241.pdf",
         ...             wavelength=785,
@@ -261,6 +261,12 @@ class YCalibrationCertificate(BaseModel,Plottable):
     def Y(self,  x_value):
         return self.response_function(x_value)
   
+    def trim_axes(self, spe : Spectrum):
+        if self.raman_shift is None:
+            return spe
+        else:
+            return spe.trim_axes(method='x-axis',boundaries= self.raman_shift)
+
     def _plot(self, ax, **kwargs):
         if self.raman_shift is None:
             x = np.linspace(100, 4000)
@@ -272,7 +278,7 @@ class YCalibrationCertificate(BaseModel,Plottable):
         ax.set_ylabel('Intensity') 
     
     @staticmethod
-    def load(wavelength=785, key="SRM2241"):
+    def load(wavelength=785, key="NIST785_SRM2241"):
         return CertificatesDict().get(wavelength,key)
         
 class CertificatesDict:
@@ -281,7 +287,7 @@ class CertificatesDict:
 
     Usage:
        Load single certificate
-       >>> cert = CertificatesDict.load(wavelength="785", key="SRM2241")
+       >>> cert = CertificatesDict.load(wavelength="785", key="NIST785_SRM2241")
        >>> cert.plot()
 
        Load all certificates for wavelength. Iterate :
@@ -315,11 +321,11 @@ class CertificatesDict:
     def get_certificates(self,wavelength=785):
         return self.config_certs[str(wavelength)]
     
-    def get(self,wavelength=532, key="SRM2242a"):
+    def get(self,wavelength=532, key="NIST532_SRM2242a"):
         return self.config_certs[str(wavelength)][key]
     
     @staticmethod
-    def load(wavelength=785, key="SRM2241"):
+    def load(wavelength=785, key="NIST785_SRM2241"):
         return CertificatesDict().get(wavelength,key)
     
 
@@ -356,28 +362,50 @@ class YCalibrationComponent(CalibrationComponent):
 
     def safe_divide(self,spe_to_correct,spe_reference_resampled):
         numerator = spe_to_correct.y
-        numerator_noise = spe_to_correct.y_noise 
+        #numerator_noise = spe_to_correct.y_noise 
 
         scaling_denominator = spe_reference_resampled.y / self.ref.Y(spe_reference_resampled.x)
+        print(np.median(scaling_denominator),np.mean(scaling_denominator),np.std(scaling_denominator))
 
-        denominator_noise = spe_reference_resampled.y_noise 
+        #denominator_noise = spe_reference_resampled.y_noise 
         denominator = spe_reference_resampled.y
-        #_SNR = abs(denominator) / abs(denominator-denominator_noise)
-        # eventually ( _SNR < 1.* )
-
         # Create a mask for dividing only where value is above noise !
-        mask =  (abs(denominator) > denominator_noise) & (abs(numerator) > numerator_noise) & (abs(scaling_denominator) > 0)  & (abs(denominator-numerator) > min(denominator_noise,numerator_noise))
+        #mask = (abs(scaling_denominator) > 0) & (kind_of_snr > 0.9)
+        #mask =  (abs(denominator) > abs(denominator_noise)) & 
+        mask = (abs(scaling_denominator) > 0) & (numerator>0) & (denominator>0)
+       # & (abs(numerator) > numerator_noise) & (abs(scaling_denominator) > 0)  
+            #& (abs(denominator-numerator) > min(denominator_noise,numerator_noise))
         result = np.zeros_like(numerator)
         # Perform division where mask is true
         result[mask] = numerator[mask] / scaling_denominator[mask]
         return result
+
+    def safe_mask(self,spe_to_correct,spe_reference_resampled):
+        ref_noise = spe_reference_resampled.y_noise
+        return (spe_reference_resampled.y >= 0) & (abs(spe_reference_resampled.y)>ref_noise)
+
+    def safe_factor(self,spe_to_correct,spe_reference_resampled):
+        numerator = spe_to_correct.y
+        #numerator_noise = spe_to_correct.y_noise 
+
+        Y = self.ref.Y(spe_reference_resampled.x)
+        mask = self.safe_mask(spe_to_correct,spe_reference_resampled)
+        if mask is None:
+            scaling_factor = Y / spe_reference_resampled.y
+        else:
+            scaling_factor = np.zeros_like(spe_reference_resampled.y)
+            scaling_factor[mask] = Y[mask] / spe_reference_resampled.y[mask]
+
+        result = numerator * scaling_factor
+        return result        
     
     def process(self, old_spe: Spectrum, spe_units="nm", convert_back=False):
         #resample using probability density function
         _tmp = self.model.pdf(old_spe.x) 
         _tmp = _tmp *  max(self.spe.y) / max(_tmp)  # pdf sampling is normalized to area unity, scaling back
         spe_reference_resampled = Spectrum(old_spe.x,_tmp)
-        new_spe = Spectrum(old_spe.x,self.safe_divide(old_spe,spe_reference_resampled))
+        #new_spe = Spectrum(old_spe.x,self.safe_divide(old_spe,spe_reference_resampled))
+        new_spe = Spectrum(old_spe.x,self.safe_factor(old_spe,spe_reference_resampled))
         return new_spe
 
 
