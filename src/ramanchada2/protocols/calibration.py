@@ -303,11 +303,14 @@ class CertificatesDict:
         self.load_certificates(os.path.join(os.path.dirname(__file__),"config_certs.json"))
     
     def load_certificates(self, file_path):
+
         with open(file_path, 'r') as f:
             certificates_data  = json.load(f)
             certificates = {}
+            self.laser_wl = []
             for wavelength, certificates_dict in certificates_data.items():
                 certificates[wavelength] = {}
+                self.laser_wl.append(wavelength)
                 for certificate_id, certificate_data in certificates_dict.items():
                     certificate_data["wavelength"] = int(wavelength)
                     certificate_data["id"] = certificate_id
@@ -318,6 +321,9 @@ class CertificatesDict:
                         print(f"Validation error for certificate {certificate_id}: {e}")            
             self.config_certs = certificates
     
+    def get_laser_wl(self):
+        return self.laser_wl
+        
     def get_certificates(self,wavelength=785):
         return self.config_certs[str(wavelength)]
     
