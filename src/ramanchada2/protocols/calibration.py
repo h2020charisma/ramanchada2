@@ -344,7 +344,7 @@ class YCalibrationComponent(CalibrationComponent):
 
         >>> laser_wl = 785
         >>> ycert = YCalibrationCertificate.load(wavelength=785, key="SRM2241")
-        >>> ycal = YCalibrationComponent(laser_wl, spe=spe_srm,ref=ycert)
+        >>> ycal = YCalibrationComponent(laser_wl, reference_spe_xcalibrated=spe_srm,certificate=ycert)
         >>> fig, ax = plt.subplots(1, 1, figsize=(15,4)) 
         >>> spe_srm.plot(ax=ax)    
         >>> spe_to_correct.plot(ax=ax)
@@ -352,10 +352,10 @@ class YCalibrationComponent(CalibrationComponent):
         >>> spe_ycalibrated.plot(label="y-calibrated",color="green",ax=ax.twinx())
     """    
     
-    def __init__(self, laser_wl, reference_spe_calibrated,certificate : YCalibrationCertificate):
-        super(YCalibrationComponent, self).__init__(laser_wl, spe = reference_spe_calibrated, spe_units = None, ref =  certificate , ref_units = None)
+    def __init__(self, laser_wl, reference_spe_xcalibrated,certificate : YCalibrationCertificate):
+        super(YCalibrationComponent, self).__init__(laser_wl, spe = reference_spe_xcalibrated, spe_units = None, ref =  certificate , ref_units = None)
         self.laser_wl = laser_wl
-        self.spe = reference_spe_calibrated
+        self.spe = reference_spe_xcalibrated
         self.ref = certificate
         self.name = "Y calibration"
         self.model = self.spe.spe_distribution(trim_range = certificate.raman_shift)
