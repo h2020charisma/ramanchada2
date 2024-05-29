@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
+  - python==3.11
   - h5py
   - jupyter
   - lmfit
@@ -12,7 +13,6 @@ dependencies:
   - pandas
   - pip
   - pydantic==1.*
-  - python
   - scipy
   - uncertainties
   - pip:

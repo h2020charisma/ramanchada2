@@ -171,7 +171,7 @@ data = [
         'laser_wl': '785', 'provider': 'ICV', 'sample': 'sCAL'},
     {'OP': '100', 'device': 'BWtek', 'filename': './ICV_BW785/NIR_785nm_2000ms_100X_2.txt',
         'laser_wl': '785', 'provider': 'ICV', 'sample': 'NIR785_EL0-9002'},
-    {'OP': '100', 'device': 'BWtek', 'filename': './NISTSRM2241_BW785_100x_25sx5.txt',
+    {'OP': '100', 'device': 'BWtek', 'filename': './ICV_BW785/NISTSRM2241_BW785_100x_25sx5.txt',
         'laser_wl': '785', 'provider': 'ICV', 'sample': 'NIST785_SRM2241'},
     {'OP': '010', 'device': 'Horiba', 'filename': './TOP_Ho633/neon_new2_Z010.txt',
         'laser_wl': '633', 'provider': 'TOP', 'sample': 'Neon'},
