@@ -73,24 +73,18 @@ class CalibrationComponent(Plottable):
 
     def plot(self, ax=None, label=' ', **kwargs) -> Axes:
         if ax is None:
-            fig, ax = plt.subplots(3, 1)
+            fig, ax = plt.subplots(3, 1, figsize=(12, 4))
         self._plot(ax[0], label=label, **kwargs)
         ax.legend()
         return ax
 
     def _plot(self, ax, **kwargs):
-        self.spe.plot(ax=ax)
-
-    def _plot_peaks(self, ax, **kwargs):
         pass
-        # fig, ax = plt.subplots(3,1,figsize=(12,4))
-        # spe.plot(ax=ax[0].twinx(),label=spe_units)
-        # spe_to_process.plot(ax=ax[1],label=ref_units)
-
-
+    
 class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
         super(XCalibrationComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
+        self.spe_pos_dict = None
 
     def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
         logger.debug("convert spe_units {} --> model units {}".format(spe_units, self.model_units))
@@ -112,15 +106,38 @@ class XCalibrationComponent(CalibrationComponent):
         else:
             return new_spe
 
+
+
+    def _plot(self, ax, **kwargs):
+        #self.spe.plot(ax=ax[0].twinx(), label=self.spe_units)
+
+        ax.stem(self.spe_pos_dict.keys(), self.spe_pos_dict.values(), linefmt='b-', basefmt=' ',label="{} peaks".format(self.sample))
+        ax.twinx().stem(self.ref.keys(), self.ref.values(), linefmt='r-', basefmt=' ',label="Reference {}".format(self.sample))    
+        ax.set_xlabel("{}".format(self.ref_units))
+        ax.legend()
+        #fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+        #ax.scatter(x_spe, x_reference, marker='o')
+        #ax.set_xlabel("spectrum x ({})".format(self.ref_units))
+        #ax.set_ylabel("reference x ({})".format(self.ref_units))    
+    
+        #x_plot = np.linspace(min(x_spe), max(x_spe), 20)
+        #y_plot = interp(x_plot.reshape(-1, 1))
+        #ax.scatter(x_plot, y_plot, marker='.', label=kwargs["kernel"])    
+
+    def _plot_peaks(self, ax, **kwargs):
+        #self.model.peaks
+        pass
+        # fig, ax = plt.subplots(3,1,figsize=(12,4))
+        # spe.plot(ax=ax[0].twinx(),label=spe_units)
+        # spe_to_process.plot(ax=ax[1],label=ref_units)  
+
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
 
         # convert to ref_units
         logger.debug("[{}]: convert spe_units {} to ref_units {}".format(self.name, self.spe_units, self.ref_units))
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
-        fig, ax = plt.subplots(3, 1, figsize=(12, 4))
-        self.spe.plot(ax=ax[0].twinx(), label=self.spe_units)
-        spe_to_process.plot(ax=ax[1], label=self.ref_units)
+        #spe_to_process.plot(ax=ax[1], label=self.ref_units)
 
         # if should_fit:
         #     spe_pos_dict = spe_to_process.fit_peak_positions(center_err_threshold=1,
@@ -131,7 +148,7 @@ class XCalibrationComponent(CalibrationComponent):
         # prominence = prominence, wlen=wlen, width=width
         find_kw = dict(sharpening=None)
         if should_fit:
-            spe_pos_dict = spe_to_process.fit_peak_positions(
+            self.spe_pos_dict = spe_to_process.fit_peak_positions(
                     center_err_threshold=10, find_peaks_kw=find_kw, fit_peaks_kw=fit_peaks_kw)  # type: ignore
             # fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_peaks_kw)
             # pos, amp = fit_res.center_amplitude(threshold=1)
@@ -139,14 +156,8 @@ class XCalibrationComponent(CalibrationComponent):
         else:
             # prominence = prominence, wlen=wlen, width=width
             cand = spe_to_process.find_peak_multipeak(**find_kw)
-            spe_pos_dict = cand.get_pos_ampl_dict()
-
-        ax[2].stem(spe_pos_dict.keys(), spe_pos_dict.values(), linefmt='b-', basefmt=' ')
-        ax[2].twinx().stem(self.ref.keys(), self.ref.values(), linefmt='r-', basefmt=' ')
-
-        x_spe, x_reference, x_distance, df = rc2utils.match_peaks(spe_pos_dict, self.ref)
-        #print(x_spe)
-        #print(df)
+            self.spe_pos_dict = cand.get_pos_ampl_dict()
+        x_spe, x_reference, x_distance, df = rc2utils.match_peaks(self.spe_pos_dict, self.ref)
         sum_of_differences = np.sum(np.abs(x_spe - x_reference)) / len(x_spe)
         logger.debug("sum_of_differences original {} {}".format(sum_of_differences, self.ref_units))
         if len(x_reference) == 1:
@@ -154,20 +165,13 @@ class XCalibrationComponent(CalibrationComponent):
             logger.debug("ref", x_reference[0], "sample", x_spe[0], "offset", _offset, self.ref_units)
             self.set_model(_offset, self.ref_units, df, name)
         else:
-            fig, ax = plt.subplots(1, 1, figsize=(3, 3))
-            ax.scatter(x_spe, x_reference, marker='o')
-            ax.set_xlabel("spectrum x ({})".format(self.ref_units))
-            ax.set_ylabel("reference x ({})".format(self.ref_units))
             try:
                 kwargs = {"kernel": "thin_plate_spline"}
                 interp = interpolate.RBFInterpolator(x_spe.reshape(-1, 1), x_reference, **kwargs)
                 self.set_model(interp, self.ref_units, df, name)
-                x_plot = np.linspace(min(x_spe), max(x_spe), 20)
-                y_plot = interp(x_plot.reshape(-1, 1))
-                ax.scatter(x_plot, y_plot, marker='.', label=kwargs["kernel"])
-
             except Exception as err:
                 raise err
+          
 
 
 class LazerZeroingComponent(CalibrationComponent):
@@ -190,7 +194,7 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
-            #print(self.name, "peak", zero_peak_nm)
+            print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
             self.set_model(zero_peak_nm, "nm", df, "Lazer zeroing using {}".format(zero_peak_nm))
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
@@ -210,6 +214,13 @@ class LazerZeroingComponent(CalibrationComponent):
         # print("old si", old_spe.x)
         # print("new si", new_spe.x)
         return new_spe
+
+    def _plot(self, ax, **kwargs):
+        #spe_sil.plot(label="{} original".format(si_tag),ax=ax)
+        #spe_sil_calib.plot(ax = ax,label="{} laser zeroed".format(si_tag),fmt=":")
+        #ax.set_xlim(520.45-50,520.45+50)    
+        #ax.set_xlabel("cm-1")
+        pass
 
 class YCalibrationCertificate(BaseModel,Plottable):
     """
@@ -414,6 +425,9 @@ class YCalibrationComponent(CalibrationComponent):
         new_spe = Spectrum(old_spe.x,self.safe_factor(old_spe,spe_reference_resampled))
         return new_spe
 
+    def _plot(self, ax, **kwargs):
+        if self.ref != None:
+            self.ref.plot(ax,**kwargs)
 
 class CalibrationModel(ProcessingModel, Plottable):
     """
@@ -543,5 +557,15 @@ class CalibrationModel(ProcessingModel, Plottable):
                 model_units = model.model_units
         return new_spe
 
+
+    def plot(self, ax=None, label=' ', **kwargs) -> Axes:
+        if ax is None:
+            fig, ax = plt.subplots(1, 1, figsize=(12, 4))
+        self._plot(ax,**kwargs)
+        return ax
+
     def _plot(self, ax, **kwargs):
-        pass
+        for index, model in enumerate(self.components):
+            model._plot(ax,**kwargs)
+            break
+        
