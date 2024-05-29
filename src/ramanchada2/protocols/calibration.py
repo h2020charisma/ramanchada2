@@ -155,6 +155,7 @@ class XCalibrationComponent(CalibrationComponent):
             # spe_pos_dict = dict(zip(pos, amp))
         else:
             # prominence = prominence, wlen=wlen, width=width
+            print("find_peak_multipeak" )
             cand = spe_to_process.find_peak_multipeak(**find_kw)
             self.spe_pos_dict = cand.get_pos_ampl_dict()
         x_spe, x_reference, x_distance, df = rc2utils.match_peaks(self.spe_pos_dict, self.ref)
@@ -194,9 +195,10 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
-            print(self.name, "peak", zero_peak_nm)
+            #print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-            self.set_model(zero_peak_nm, "nm", df, "Lazer zeroing using {}".format(zero_peak_nm))
+            self.set_model(zero_peak_nm, "nm", df, "Lazer zeroing using {} nm".format(zero_peak_nm))
+            logger.info(self.name, "peak", zero_peak_nm)
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
     def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
@@ -538,9 +540,9 @@ class CalibrationModel(ProcessingModel, Plottable):
         return calibration_x
 
     def derive_model_zero(self, spe, ref, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
-                          should_fit=False, name="X Shift"):
+                          should_fit=False, name="X Shift",profile="Gaussian"):
         calibration_shift = LazerZeroingComponent(self.laser_wl, spe, spe_units, ref, ref_units)
-        calibration_shift.profile = "Gaussian"
+        calibration_shift.profile = profile
         calibration_shift.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
         self.components.append(calibration_shift)
         return calibration_shift
