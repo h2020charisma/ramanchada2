@@ -274,12 +274,6 @@ class YCalibrationCertificate(BaseModel,Plottable):
     def Y(self,  x_value):
         return self.response_function(x_value)
   
-    def trim_axes(self, spe : Spectrum):
-        if self.raman_shift is None:
-            return spe
-        else:
-            return spe.trim_axes(method='x-axis',boundaries= self.raman_shift)
-
     def _plot(self, ax, **kwargs):
         if self.raman_shift is None:
             x = np.linspace(100, 4000)
