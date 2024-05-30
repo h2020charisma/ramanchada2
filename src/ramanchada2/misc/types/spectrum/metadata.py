@@ -75,3 +75,9 @@ class SpeMetadataModel(PydBaseModel):
 
     def _flush(self):
         self.__root__ = {}
+
+    def get_all_keys(self) -> list[str]:
+        """
+        Returns a list of all keys in the metadata model.
+        """
+        return list(self.__root__.keys())
