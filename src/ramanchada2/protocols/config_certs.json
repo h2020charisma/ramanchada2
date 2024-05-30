@@ -1,0 +1,65 @@
+{
+    "785": {
+        "NIST785_SRM2241": {
+            "certificate" : {"id" : "NIST785_SRM2241" , "description" : "optical glass" ,  "url" : "https://tsapps.nist.gov/srmext/certificates/2241.pdf"},
+            "wavelength" : 785,
+            "params": "A0 = 9.71937e-02, A1 = 2.28325e-04, A2 = -5.86762e-08, A3 = 2.16023e-10, A4 = -9.77171e-14, A5 = 1.15596e-17",
+            "equation": "A0 + A1 * x + A2 * x**2 + A3 * x**3 + A4 * x**4 + A5 * x**5",
+            "temperature_c" : [20,25],
+            "raman_shift" : [200,3500]
+        },
+        "NIR785_EL0-9002" : {
+            "certificate" : {"id" : "NIR785_EL0-9002" , "description" : "NIR intensity calibration LED source" ,"url" : ""},
+            "wavelength" : 785,
+            "params": "A0 = 5.90134423e-1,A = 5.52032185e-1,B = 5.72123096e-7,x0 = 2.65628776e+3",
+            "equation" : "A0 + A * np.exp(-B * (x - x0)**2)",
+            "raman_shift" : [100,3000]
+        }          
+    },
+    "633": {
+        "NIST633_SRM2245" : {
+            "wavelength" : 633,
+            "certificate" : {"id" : "NIST633_SRM2245"  },
+            "params" : "H = 9.5071e-01,w = 1.6577e03,ro = 9.5207e-01,x0 = 1.9600e03,m = 1.8981e-05,b =  1.1698e-02",
+            "equation" : "H * np.exp(-np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)) + m*x + b"
+        }
+    },
+    "1064": {
+        "NIST1064_SRM2244" : {
+            "wavelength" : 1064,
+            "certificate" : {"id" : "NIST1064_SRM2244" , "description" : "optical glass"  },
+            "params" : "A0 = 0.405953,A1 = 5.20345E-04,A2 = 5.30390E-07,A3 = -6.84463E-10,A4 = 2.10286E-13,A5 = -2.05741E-17",
+            "equation" : "A0 + A1 * x + A2 *x**2 + A3 * x**3 + A4 * x**4 + A5 *x**5 ",
+            "temperature_c" : [20,25],
+            "raman_shift" : [100,3500]
+        }
+    },
+    "830": {
+        "NIST830_SRM2246a" : {
+            "wavelength" : 830,
+            "certificate" : { "id" : "NIST830_SRM2246a", "description" : "a chromium oxide doped (0.30 % mole fraction) borosilicate glass","url" : "https://tsapps.nist.gov/srmext/certificates/2246a.pdf"},
+            "params" : "H = 1.0178,w = 3082.3,ro = 0.98252,x0 = 2353.1,m = -0.00000011825,b =  -0.017500",
+            "equation" :"H * np.exp(-np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)) + m*x + b  ",
+            "raman_shift" : [110,3000]
+        }
+    },
+    "532": {
+        "NIST532_SRM2242a" : {
+            "wavelength" : 532,
+            "certificate" : {"id" :"NIST532_SRM2242a", "description" : "optical glass","url" : "https://tsapps.nist.gov/srmext/certificates/2242a.pdf"},
+             
+            "params": "H = 9.9747e-01,w = 3.1006e03,ro = 1.1573e00,x0 = 2.9721e03,m = -3.7168e-06,b =  1.2864e-02",
+            "equation" : "H * np.exp(-np.log(2)/(np.log(ro)**2) * (np.log( (x-x0)*(ro**2-1)/(w*ro) +1  ) **2)) + m*x + b",
+            "temperature_c" : [20,25],
+            "raman_shift" : [150,4000]
+        },
+        "LED532_EL0-9001" : {
+            "wavelength" : 532,
+            "certificate" : {"id" : "LED532_EL0-9001" , "description" : "Visible LED light source" ,"url" : ""},
+            "params": "A = 8.30752731e-01,B = 2.54881472e-07,x0 = 1.42483359e+3",
+            "equation" : "A * np.exp(-B * (x - x0)**2)",
+            "raman_shift" : [100,4000]
+        }
+    }    
+
+}

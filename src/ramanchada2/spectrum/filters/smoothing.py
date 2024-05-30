@@ -19,7 +19,7 @@ def smoothing_RC1(old_spe: Spectrum,
                   method: Literal['savgol', 'sg',
                                   'wiener',
                                   'median',
-                                  'gauss',
+                                  'gauss', 'gaussian',
                                   'lowess',
                                   'boxcar'],
                   **kwargs):
@@ -27,7 +27,7 @@ def smoothing_RC1(old_spe: Spectrum,
         new_spe.y = savgol_filter(old_spe.y, **kwargs)  # window_length, polyorder
     elif method == 'wiener':
         new_spe.y = wiener(old_spe.y, **kwargs)
-    elif method == 'gaussian':
+    elif method == 'gaussian' or method == 'gauss':
         new_spe.y = gaussian_filter1d(old_spe.y, **kwargs)  # sigma
     elif method == 'median':
         new_spe.y = medfilt(old_spe.y, **kwargs)
