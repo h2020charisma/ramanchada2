@@ -4,11 +4,11 @@
 
 | Name                                                                       |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| src/ramanchada2/\_\_init\_\_.py                                            |       30 |        7 |     77% |125-127, 131-134 |
+| src/ramanchada2/\_\_init\_\_.py                                            |       29 |        7 |     76% |125-127, 131-134 |
 | src/ramanchada2/\_\_main\_\_.py                                            |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        0 |        0 |    100% |           |
-| src/ramanchada2/auxiliary/spectra/datasets2/\_\_init\_\_.py                |       19 |        9 |     53% |186-190, 194-195, 199-200, 204 |
+| src/ramanchada2/auxiliary/spectra/datasets2/\_\_init\_\_.py                |       19 |        9 |     53% |205-209, 213-214, 218-219, 223 |
 | src/ramanchada2/io/HSDS.py                                                 |       89 |       72 |     19% |22-66, 77-87, 93-100, 105-108, 112-124 |
 | src/ramanchada2/io/\_\_init\_\_.py                                         |        0 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/\_\_init\_\_.py                            |        2 |        0 |    100% |           |
@@ -48,13 +48,13 @@
 | src/ramanchada2/misc/types/pydantic\_base\_model.py                        |        8 |        1 |     88% |        11 |
 | src/ramanchada2/misc/types/spectrum/\_\_init\_\_.py                        |        5 |        0 |    100% |           |
 | src/ramanchada2/misc/types/spectrum/applied\_processings.py                |       50 |       15 |     70% |17-18, 29, 43, 46, 56-62, 65, 68, 73 |
-| src/ramanchada2/misc/types/spectrum/metadata.py                            |       50 |        9 |     82% |35-40, 50, 54, 62 |
+| src/ramanchada2/misc/types/spectrum/metadata.py                            |       52 |       10 |     81% |35-40, 50, 54, 62, 83 |
 | src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        3 |        0 |    100% |           |
 | src/ramanchada2/misc/utils/argmin2d.py                                     |      105 |       89 |     15% |12-17, 21-22, 26-27, 40-60, 67-82, 87-146 |
 | src/ramanchada2/misc/utils/ramanshift\_to\_wavelength.py                   |       17 |       11 |     35% |5-7, 11-13, 17, 21-23, 27 |
 | src/ramanchada2/misc/utils/svd.py                                          |       13 |       10 |     23% |8-13, 17-20 |
 | src/ramanchada2/protocols/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
-| src/ramanchada2/protocols/calibration.py                                   |      192 |      192 |      0% |     1-335 |
+| src/ramanchada2/protocols/calibration.py                                   |      306 |      306 |      0% |     1-567 |
 | src/ramanchada2/spectral\_components/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
 | src/ramanchada2/spectral\_components/baseline/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/ramanchada2/spectral\_components/baseline/analytical.py                |        0 |        0 |    100% |           |
@@ -90,10 +90,10 @@
 | src/ramanchada2/spectrum/creators/from\_cache\_or\_calc.py                 |       41 |       32 |     22% |     17-55 |
 | src/ramanchada2/spectrum/creators/from\_chada.py                           |        9 |        2 |     78% |     13-14 |
 | src/ramanchada2/spectrum/creators/from\_delta\_lines.py                    |       23 |        1 |     96% |        49 |
-| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       40 |       29 |     28% |     39-71 |
-| src/ramanchada2/spectrum/creators/from\_simulation.py                      |       19 |        8 |     58% |     40-48 |
+| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       39 |       29 |     26% |     39-71 |
+| src/ramanchada2/spectrum/creators/from\_simulation.py                      |       18 |        8 |     56% |     40-48 |
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
-| src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       13 |        6 |     54% |     24-30 |
+| src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       12 |        6 |     50% |     24-30 |
 | src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        8 |     56% |     32-39 |
 | src/ramanchada2/spectrum/creators/hdr\_from\_multi\_exposure.py            |       17 |        9 |     47% |     24-32 |
 | src/ramanchada2/spectrum/filters/\_\_init\_\_.py                           |        3 |        0 |    100% |           |
@@ -128,7 +128,7 @@
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3127** | **1624** | **48%** |           |
+|                                                                  **TOTAL** | **3239** | **1739** | **46%** |           |
 
 
 ## Setup coverage badge
