@@ -13,6 +13,11 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ramanchada2
+    permissions:
+      id-token: write
 
     steps:
 
@@ -34,6 +39,3 @@ jobs:
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
