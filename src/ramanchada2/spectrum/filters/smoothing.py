@@ -19,7 +19,7 @@ def smoothing_RC1(old_spe: Spectrum,
                   method: Literal['savgol', 'sg',
                                   'wiener',
                                   'median',
-                                  'gauss','gaussian',
+                                  'gauss', 'gaussian',
                                   'lowess',
                                   'boxcar'],
                   **kwargs):

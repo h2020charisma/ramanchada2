@@ -84,7 +84,7 @@ data = [
     {'OP': '03', 'device': 'Horiba', 'filename': './FMNT-M_Ho785/LED785_Lens_1000x10_2.txt',
         'laser_wl': '785', 'provider': 'FNMT', 'sample': 'NIR785_EL0-9002'},
     {'OP': '03', 'device': 'Horiba', 'filename': './FMNT-M_Ho785/NIST785_Lens_80000x5_2.txt',
-        'laser_wl': '785', 'provider': 'FNMT', 'sample': 'NIST785_SRM2241'},        
+        'laser_wl': '785', 'provider': 'FNMT', 'sample': 'NIST785_SRM2241'},
     {'OP': '050', 'device': 'BWtek', 'filename': './ICV_BW532/Ne_532nm_x50_800ms.txt',
         'laser_wl': '532', 'provider': 'ICV', 'sample': 'Neon'},
     {'OP': '050', 'device': 'BWtek', 'filename': './ICV_BW532/Ne_532nm_x50_25ms.txt',
