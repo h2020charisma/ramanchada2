@@ -15,6 +15,31 @@ NEON_WL = {
     532: rc2const.neon_wl_532_nist_dict
 }
 
+class SetupModule:
+    def __init__(self):
+        self.spe_neon = rc2.spectrum.from_test_spe(sample=['Neon'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+        self.spe_pst2 = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['02'], laser_wl=['785'])
+        self.spe_pst3 = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+        self.spe_sil = rc2.spectrum.from_test_spe(sample=['S0B'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+        self.spe_nCal = rc2.spectrum.from_test_spe(sample=['nCAL'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+
+        self.spe_sil = self.spe_sil.trim_axes(method='x-axis',boundaries=(520.45-200,520.45+200))
+        self.spe_neon = self.spe_neon.trim_axes(method='x-axis',boundaries=(100,max(self.spe_neon.x)))    
+        kwargs = {"niter" : 40 }
+        self.spe_neon = self.spe_neon.subtract_baseline_rc1_snip(**kwargs)  
+        self.spe_sil = self.spe_sil.subtract_baseline_rc1_snip(**kwargs)    
+
+        ## normalize min/max
+        self.spe_neon = self.spe_neon.normalize()        
+        self.spe_sil = self.spe_sil.normalize()        
+
+        self.calmodel, model_neon = calibration_model_x(785,self.spe_neon,self.spe_sil)
+        
+
+@pytest.fixture(scope='module')
+def setup_module():
+    return SetupModule()
+
 def calibration_model_x(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL):
     calmodel = CalibrationModel(laser_wl)
     calmodel.prominence_coeff = 3
@@ -31,44 +56,28 @@ def resample(spe,xmin,xmax,npoints):
     return y_values *  scale
 
 
-def test_xcalibration():
-    spe_neon = rc2.spectrum.from_test_spe(sample=['Neon'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
-    spe_pst2 = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['02'], laser_wl=['785'])
-    spe_pst3 = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
-    spe_sil = rc2.spectrum.from_test_spe(sample=['S0B'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
-    spe_nCal = rc2.spectrum.from_test_spe(sample=['nCAL'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
-
-    spe_sil = spe_sil.trim_axes(method='x-axis',boundaries=(520.45-200,520.45+200))
-    spe_neon = spe_neon.trim_axes(method='x-axis',boundaries=(100,max(spe_neon.x)))    
-    kwargs = {"niter" : 40 }
-    spe_neon = spe_neon.subtract_baseline_rc1_snip(**kwargs)  
-    spe_sil = spe_sil.subtract_baseline_rc1_snip(**kwargs)    
-
-    ## normalize min/max
-    spe_neon = spe_neon.normalize()        
-    spe_sil = spe_sil.normalize()        
+def test_xcalibration(setup_module):
 
     spe_y_original = []
     _min = 200
     _max = 2000
 
-    calmodel, model_neon = calibration_model_x(785,spe_neon,spe_sil)
     spe_calibrated = []
 
     fig, ax = plt.subplots(figsize=(24, 8))
 
         
-    for spe in [spe_pst2,spe_pst3]:
+    for spe in [setup_module.spe_pst2,setup_module.spe_pst3]:
         spe_norm = spe.normalize()
         spe_norm.plot(ax=ax,label="original",color="blue")
         spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
         
-        spe = calmodel.apply_calibration_x(
+        spe = setup_module.calmodel.apply_calibration_x(
                 spe,
                 spe_units="cm-1"
                 )
         #returns spectra in nm!
-        spe = calmodel.components[0].convert_units(spe, "nm", "cm-1")
+        spe = setup_module.calmodel.components[0].convert_units(spe, "nm", "cm-1")
         spe_norm = spe.normalize()        
         spe_norm.plot(ax=ax,label="calibrated",color="red")
         spe_calibrated.append(resample(spe_norm,_min,_max,_max-_min))
