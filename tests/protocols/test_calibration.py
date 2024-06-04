@@ -7,6 +7,7 @@ from ramanchada2.protocols.calibration import CalibrationModel
 
 from sklearn.metrics.pairwise import cosine_similarity
 import ramanchada2.misc.constants as rc2const
+import matplotlib.pyplot as plt
 
 NEON_WL = {
     785: rc2const.neon_wl_785_nist_dict,
@@ -48,22 +49,36 @@ def test_xcalibration():
     spe_sil = spe_sil.normalize()        
 
     spe_y_original = []
+    _min = 200
     _max = 2000
-    for spe in [spe_pst2,spe_pst3]:
-        spe_y_original.append(resample(spe,100,_max+100,_max))
 
     calmodel, model_neon = calibration_model_x(785,spe_neon,spe_sil)
-    spe_y = []
+    spe_calibrated = []
+
+    fig, ax = plt.subplots(figsize=(24, 8))
+
+        
     for spe in [spe_pst2,spe_pst3]:
+        spe_norm = spe.normalize()
+        spe_norm.plot(ax=ax,label="original",color="blue")
+        spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
+        
         spe = calmodel.apply_calibration_x(
                 spe,
                 spe_units="cm-1"
                 )
-        spe_y.append(resample(spe,100,_max+100,_max))
+        #returns spectra in nm!
+        spe = calmodel.components[0].convert_units(spe, "nm", "cm-1")
+        spe_norm = spe.normalize()        
+        spe_norm.plot(ax=ax,label="calibrated",color="red")
+        spe_calibrated.append(resample(spe_norm,_min,_max,_max-_min))
     cos_sim_matrix_original =  cosine_similarity(spe_y_original)
-    print(cos_sim_matrix_original)
-    cos_sim_matrix =  cosine_similarity(spe_y)
-    print(cos_sim_matrix)
+    cos_sim_matrix =  cosine_similarity(spe_calibrated)
+
+    plt.savefig("{}.png".format("calibration"))
     print(np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
     assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
+    
+
+    
     

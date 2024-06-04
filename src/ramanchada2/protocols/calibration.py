@@ -12,8 +12,12 @@ import json
 import os
 from typing import Tuple, Optional
 from pydantic import BaseModel, ValidationError
+from functools import wraps
+from serialization import save_xcalibration_model, load_xcalibration_model
+from ramanchada2.misc.constants import NEON_WL
 
 logger = logging.getLogger(__name__)
+
 
 
 class ProcessingModel:
@@ -175,6 +179,16 @@ class XCalibrationComponent(CalibrationComponent):
                 raise err
 
 
+    def to_json(self, filepath: str):
+        save_xcalibration_model(self, filepath, self.other_data)
+
+    @staticmethod
+    def from_json(filepath: str):
+        rbf_intrpolator, other_data = load_xcalibration_model(filepath)
+        calibration_x = XCalibrationComponent(laser_wl, spe, spe_units, ref, ref_units)
+        calibration_x.model = rbf_intrpolator
+        return calibration_x
+    
 class LazerZeroingComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units="nm", ref={520.45: 1}, ref_units="cm-1", sample="Silicon"):
         super(LazerZeroingComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
@@ -468,12 +482,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         super(ProcessingModel, self).__init__()
         super(Plottable, self).__init__()
         self.set_laser_wavelength(laser_wl)
-        self.neon_wl = {
-            785: rc2const.neon_wl_785_nist_dict,
-            633: rc2const.neon_wl_633_nist_dict,
-            532: rc2const.neon_wl_532_nist_dict
-        }
-        self.prominence_coeff = 10
+        self.neon_wl = NEON_WL
+        self.prominence_coeff = 3
 
     def peaks(self, spe, profile='Gaussian', wlen=300, width=1):
         """
@@ -565,3 +575,13 @@ class CalibrationModel(ProcessingModel, Plottable):
         for index, model in enumerate(self.components):
             model._plot(ax, **kwargs)
             break
+
+    @staticmethod
+    def calibration_model_factory(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL):
+        calmodel = CalibrationModel(laser_wl)
+        calmodel.prominence_coeff = 3
+        model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
+        spe_sil_ne_calib = model_neon.process(spe_sil,spe_units="cm-1",convert_back=False)
+        find_kw = {"prominence" :spe_sil_ne_calib.y_noise * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
+        model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si calibration")
+        return calmodel
