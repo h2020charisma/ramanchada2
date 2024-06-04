@@ -3,11 +3,13 @@
 import numpy as np
 import pytest
 import ramanchada2 as rc2
-from ramanchada2.protocols.calibration import CalibrationModel
+from ramanchada2.protocols.calibration import CalibrationModel, XCalibrationComponent
 
 from sklearn.metrics.pairwise import cosine_similarity
 import ramanchada2.misc.constants as rc2const
 import matplotlib.pyplot as plt
+
+from ramanchada2.protocols.serialization import save_xcalibration_model
 
 NEON_WL = {
     785: rc2const.neon_wl_785_nist_dict,
@@ -57,16 +59,11 @@ def resample(spe,xmin,xmax,npoints):
 
 
 def test_xcalibration(setup_module):
-
     spe_y_original = []
     _min = 200
     _max = 2000
-
     spe_calibrated = []
-
     fig, ax = plt.subplots(figsize=(24, 8))
-
-        
     for spe in [setup_module.spe_pst2,setup_module.spe_pst3]:
         spe_norm = spe.normalize()
         spe_norm.plot(ax=ax,label="original",color="blue")
@@ -88,6 +85,10 @@ def test_xcalibration(setup_module):
     print(np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
     assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
     
-
+def test_serialization(setup_module):
+    xcal = setup_module.calmodel.components[0]
+    print(type(xcal))
+    xcal.to_json("xcal.json")
+    
     
     

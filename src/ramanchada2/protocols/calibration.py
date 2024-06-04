@@ -13,7 +13,7 @@ import os
 from typing import Tuple, Optional
 from pydantic import BaseModel, ValidationError
 from functools import wraps
-from serialization import save_xcalibration_model, load_xcalibration_model
+from serialization import save_xcalibration_model
 from ramanchada2.misc.constants import NEON_WL
 
 logger = logging.getLogger(__name__)
@@ -90,6 +90,16 @@ class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
         super(XCalibrationComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
         self.spe_pos_dict = None
+
+    def to_json(self, filepath: str):
+        save_xcalibration_model(self, filepath)
+
+    #@staticmethod
+    #def from_json(filepath: str):
+    #    rbf_intrpolator, other_data = load_xcalibration_model(filepath)
+    #    calibration_x = XCalibrationComponent(laser_wl, spe, spe_units, ref, ref_units)
+    #    calibration_x.model = rbf_intrpolator
+    #    return calibration_x
 
     def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
         logger.debug("convert spe_units {} --> model units {}".format(spe_units, self.model_units))
@@ -178,16 +188,6 @@ class XCalibrationComponent(CalibrationComponent):
             except Exception as err:
                 raise err
 
-
-    def to_json(self, filepath: str):
-        save_xcalibration_model(self, filepath, self.other_data)
-
-    @staticmethod
-    def from_json(filepath: str):
-        rbf_intrpolator, other_data = load_xcalibration_model(filepath)
-        calibration_x = XCalibrationComponent(laser_wl, spe, spe_units, ref, ref_units)
-        calibration_x.model = rbf_intrpolator
-        return calibration_x
     
 class LazerZeroingComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units="nm", ref={520.45: 1}, ref_units="cm-1", sample="Silicon"):
