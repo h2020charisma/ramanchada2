@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 import ramanchada2 as rc2
-from ramanchada2.protocols import CalibraitonModel 
+from ramanchada2.protocols.calibration import CalibrationModel
+
 from sklearn.metrics.pairwise import cosine_similarity
 import ramanchada2.misc.constants as rc2const
 
@@ -14,7 +15,7 @@ NEON_WL = {
 }
 
 def calibration_model_x(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL):
-    calmodel = rc2.protocols.CalibrationModel(laser_wl)
+    calmodel = CalibrationModel(laser_wl)
     calmodel.prominence_coeff = 3
     model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
     return calmodel, model_neon
@@ -47,8 +48,9 @@ def test_xcalibration():
     spe_sil = spe_sil.normalize()        
 
     spe_y_original = []
+    _max = 2000
     for spe in [spe_pst2,spe_pst3]:
-        spe_y_original.append(resample(spe,100,3100,3000))
+        spe_y_original.append(resample(spe,100,_max+100,_max))
 
     calmodel, model_neon = calibration_model_x(785,spe_neon,spe_sil)
     spe_y = []
@@ -57,9 +59,11 @@ def test_xcalibration():
                 spe,
                 spe_units="cm-1"
                 )
-        spe_y.append(resample(spe,100,3100,3000))
+        spe_y.append(resample(spe,100,_max+100,_max))
     cos_sim_matrix_original =  cosine_similarity(spe_y_original)
+    print(cos_sim_matrix_original)
     cos_sim_matrix =  cosine_similarity(spe_y)
+    print(cos_sim_matrix)
     print(np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
-    #assert calibrated similarity is higher
+    assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
     
