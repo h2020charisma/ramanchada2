@@ -13,8 +13,8 @@ import os
 from typing import Tuple, Optional
 from pydantic import BaseModel, ValidationError
 from functools import wraps
-from serialization import save_xcalibration_model
 from ramanchada2.misc.constants import NEON_WL
+from .calibration_deco import add_calibration_serialisation
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +90,6 @@ class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
         super(XCalibrationComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
         self.spe_pos_dict = None
-
-    def to_json(self, filepath: str):
-        save_xcalibration_model(self, filepath)
 
     #@staticmethod
     #def from_json(filepath: str):

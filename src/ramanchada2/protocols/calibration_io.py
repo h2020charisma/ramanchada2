@@ -3,6 +3,12 @@ import json
 import numpy as np
 from scipy.interpolate import RBFInterpolator
 from ramanchada2.protocols.calibration import XCalibrationComponent 
+from ramanchada2.protocols.calibration_deco import add_calibration_serialisation
+
+@add_calibration_serialisation(XCalibrationComponent)
+def to_json(self):
+    return xcalibration_model_to_json(self)
+
 
 def ndarray_to_list(arr):
     return arr.tolist()
@@ -10,9 +16,11 @@ def ndarray_to_list(arr):
 def list_to_ndarray(lst):
     return np.array(lst)
 
-def save_xcalibration_model( 
-            xcal : XCalibrationComponent,
-            filepath=None):
+
+
+def xcalibration_model_to_json( 
+            xcal : XCalibrationComponent
+            ):
     if other_data is None:
         other_data = {}
 
@@ -34,10 +42,8 @@ def save_xcalibration_model(
             'units' : xcal.ref_neon_units
         }
     }
+    return data_to_save
 
-    # Save to JSON file
-    with open(filepath, 'w') as file:
-        json.dump(data_to_save, file)
 
 def load_rbf_interpolator(filepath):
     # Load from JSON file
