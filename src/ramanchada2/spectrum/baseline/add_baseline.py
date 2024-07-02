@@ -19,7 +19,7 @@ def generate_baseline(
         rng_seed=None):
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()
-        rng.__setstate__(rng_seed)
+        rng.bit_generator.state = rng_seed
     else:
         rng = np.random.default_rng(rng_seed)
     k = rng.normal(0, size, size=(2, n_freq))
@@ -33,7 +33,7 @@ def generate_baseline(
     base -= base.min()
     base /= base.max()
     if isinstance(rng_seed, dict):
-        rng_seed.update(rng.__getstate__())
+        rng_seed.update(rng.bit_generator.state)
     return base
 
 

@@ -8,7 +8,7 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_method
 @add_spectrum_method
 @validate_arguments(config=dict(arbitrary_types_allowed=True))
 def central_moments(spe: Spectrum, /,
-                    boundaries=(-np.infty, np.infty), moments=[1, 2, 3, 4], normalize=False
+                    boundaries=(-np.inf, np.inf), moments=[1, 2, 3, 4], normalize=False
                     ):
     mom = dict()
     filter_idx = (spe.x >= boundaries[0]) & (spe.x < boundaries[1])

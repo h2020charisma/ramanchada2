@@ -15,7 +15,7 @@ def generate_add_gaussian_noise_drift(y, /,
                                       rng_seed=None):
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()
-        rng.__setstate__(rng_seed)
+        rng.bit_generator.state = rng_seed
     else:
         rng = np.random.default_rng(rng_seed)
     gaus = rng.normal(0., sigma+coef/np.sqrt(2), size=len(y))
@@ -28,7 +28,7 @@ def generate_add_gaussian_noise_drift(y, /,
     if any(dat < 0):
         dat += abs(dat.min())
     if isinstance(rng_seed, dict):
-        rng_seed.update(rng.__getstate__())
+        rng_seed.update(rng.bit_generator.state)
     return np.array(dat)
 
 
