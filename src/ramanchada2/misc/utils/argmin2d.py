@@ -41,7 +41,7 @@ def align(x, y,
         p = np.array(p0)
     else:
         p = p0
-    loss = np.infty
+    loss = np.inf
     cur_x = x
     for it in range(max_iter):
         cur_x = np.sum(func(x, *p), axis=0)
@@ -64,7 +64,7 @@ def align(x, y,
 def align_shift(x, y,
                 p0: float = 0,
                 max_iter: pydantic.PositiveInt = 1000):
-    loss = np.infty
+    loss = np.inf
     cur_x = x
     p = p0
     for it in range(max_iter):

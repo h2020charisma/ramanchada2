@@ -29,11 +29,11 @@ def add_poisson_noise(
     """
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()
-        rng.__setstate__(rng_seed)
+        rng.bit_generator.state = rng_seed
     else:
         rng = np.random.default_rng(rng_seed)
     dat = old_spe.y + [rng.normal(0., np.sqrt(i*scale)) for i in old_spe.y]
     dat[dat < 0] = 0
     if isinstance(rng_seed, dict):
-        rng_seed.update(rng.__getstate__())
+        rng_seed.update(rng.bit_generator.state)
     new_spe.y = np.array(dat)

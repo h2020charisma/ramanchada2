@@ -49,7 +49,7 @@ INSTALL_REQUIRES = [
         "renishawWiRE",  # rc1-parser
         "scikit-learn",
         "scipy>=1.8.0",
-        "spc-io~=0.0.2",  # rc1-parser
+        "spc-io~=0.1.0",  # rc1-parser
         "statsmodels",
         "uncertainties",
 ]
