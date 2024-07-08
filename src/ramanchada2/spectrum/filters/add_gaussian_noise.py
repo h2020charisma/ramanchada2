@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-
 import numpy as np
-from pydantic import validate_arguments, PositiveFloat
+from pydantic import PositiveFloat, validate_arguments
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
