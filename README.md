@@ -9,6 +9,19 @@ Harmonising Raman spectroscopy: meant to fill the gap between the theoretical Ra
 - ⚗️ [Examples](https://github.com/h2020charisma/ramanchada2/tree/main/examples)
 
 
+## Mini quick start with Conda
+
+**NOTICE**: See the next section for more details and examples with venv-managed virtual environments.
+
+[Install Miniforge](https://github.com/conda-forge/miniforge?tab=readme-ov-file#download) if you don't have Conda already installed, then run the following:
+```
+git clone https://github.com/h2020charisma/ramanchada2.git
+cd ramanchada2
+conda env create
+conda activate ramanchada2
+jupyter notebook
+```
+
 ## Quick start
 
 Clone the repo using https
@@ -64,19 +77,5 @@ jupyter-lab
 
 A web browser with jupyter should start automaticaly.
 
-
-## Quick start with Conda
-
-[Install Miniconda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) and, optionally, Mamba:
-```
-conda install mamba -n base -c conda-forge
-```
-
-Run the following. If you haven't installed Mamba, replace `mamba` with `conda`.
-```
-mamba env update -f environment.yml
-conda activate ramanchada2
-jupyter notebook
-```
 ---
 🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under [grant agreement No. 952921](https://cordis.europa.eu/project/id/952921).

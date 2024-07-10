@@ -3,18 +3,9 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python==3.11
-  - h5py
-  - jupyter
-  - lmfit
-  - mamba
-  - matplotlib
-  - numpy
-  - pandas
+  - python==3.11.*
   - pip
-  - pydantic==1.*
-  - scipy
-  - uncertainties
   - pip:
+    - jupyter
     - -e .
 
