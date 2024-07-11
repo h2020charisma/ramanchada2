@@ -79,7 +79,7 @@ class CalibrationComponent(Plottable):
         if ax is None:
             fig, ax = plt.subplots(3, 1, figsize=(12, 4))
         self._plot(ax[0], label=label, **kwargs)
-        ax.legend()
+        #ax.legend()
         return ax
 
     def _plot(self, ax, **kwargs):
