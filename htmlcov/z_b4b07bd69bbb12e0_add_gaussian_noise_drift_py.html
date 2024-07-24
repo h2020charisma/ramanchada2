@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Coverage for src/ramanchada2/spectrum/filters/add_gaussian_noise_drift.py: 38%</title>
+    <title>Coverage for src/ramanchada2/spectrum/filters/add_gaussian_noise_drift.py: 100%</title>
     <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
     <link rel="stylesheet" href="style_cb_8e611ae1.css" type="text/css">
     <script src="coverage_html_cb_6fb7b396.js" defer></script>
@@ -12,7 +12,7 @@
     <div class="content">
         <h1>
             <span class="text">Coverage for </span><b>src/ramanchada2/spectrum/filters/add_gaussian_noise_drift.py</b>:
-            <span class="pc_cov">38%</span>
+            <span class="pc_cov">100%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
@@ -55,8 +55,8 @@
         </aside>
         <h2>
             <span class="text">24 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">9<span class="text"> run</span></button>
-            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">15<span class="text"> missing</span></button>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">24<span class="text"> run</span></button>
+            <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">0<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_b4b07bd69bbb12e0_add_poisson_noise_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-07-15 13:41 +0000
+            created at 2024-07-24 12:25 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -95,23 +95,23 @@
     <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t">                                      <span class="com"># validation for rng_seed is removed because</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">                                      <span class="com"># it makes in-place modification impossible</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">                                      <span class="nam">rng_seed</span><span class="op">=</span><span class="key">None</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">    <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t">        <span class="nam">rng</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">random</span><span class="op">.</span><span class="nam">default_rng</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">        <span class="nam">rng</span><span class="op">.</span><span class="nam">__setstate__</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">    <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t">        <span class="nam">rng</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">random</span><span class="op">.</span><span class="nam">default_rng</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">        <span class="nam">rng</span><span class="op">.</span><span class="nam">bit_generator</span><span class="op">.</span><span class="nam">state</span> <span class="op">=</span> <span class="nam">rng_seed</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t">    <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t">        <span class="nam">rng</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">random</span><span class="op">.</span><span class="nam">default_rng</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="nam">gaus</span> <span class="op">=</span> <span class="nam">rng</span><span class="op">.</span><span class="nam">normal</span><span class="op">(</span><span class="num">0.</span><span class="op">,</span> <span class="nam">sigma</span><span class="op">+</span><span class="nam">coef</span><span class="op">/</span><span class="nam">np</span><span class="op">.</span><span class="nam">sqrt</span><span class="op">(</span><span class="num">2</span><span class="op">)</span><span class="op">,</span> <span class="nam">size</span><span class="op">=</span><span class="nam">len</span><span class="op">(</span><span class="nam">y</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t">    <span class="nam">cs</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">cumsum</span><span class="op">(</span><span class="nam">gaus</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t">        <span class="nam">rng</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">random</span><span class="op">.</span><span class="nam">default_rng</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="nam">gaus</span> <span class="op">=</span> <span class="nam">rng</span><span class="op">.</span><span class="nam">normal</span><span class="op">(</span><span class="num">0.</span><span class="op">,</span> <span class="nam">sigma</span><span class="op">+</span><span class="nam">coef</span><span class="op">/</span><span class="nam">np</span><span class="op">.</span><span class="nam">sqrt</span><span class="op">(</span><span class="num">2</span><span class="op">)</span><span class="op">,</span> <span class="nam">size</span><span class="op">=</span><span class="nam">len</span><span class="op">(</span><span class="nam">y</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t">    <span class="nam">cs</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">cumsum</span><span class="op">(</span><span class="nam">gaus</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t23" href="#t23">23</a></span><span class="t">    <span class="com"># coef*sum(cs[:i]) + (1-coef)*gaus is identical to</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t">    <span class="com"># coef*sum(cs[:i-1]) + gaus</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t">    <span class="nam">noise</span> <span class="op">=</span> <span class="nam">coef</span><span class="op">*</span><span class="nam">cs</span> <span class="op">+</span> <span class="nam">gaus</span><span class="op">*</span><span class="op">(</span><span class="num">1</span><span class="op">-</span><span class="nam">coef</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t">    <span class="nam">noise</span> <span class="op">-=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">std</span><span class="op">(</span><span class="nam">noise</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t">    <span class="nam">dat</span> <span class="op">=</span> <span class="nam">y</span> <span class="op">+</span> <span class="nam">noise</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t">    <span class="key">if</span> <span class="nam">any</span><span class="op">(</span><span class="nam">dat</span> <span class="op">&lt;</span> <span class="num">0</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">        <span class="nam">dat</span> <span class="op">+=</span> <span class="nam">abs</span><span class="op">(</span><span class="nam">dat</span><span class="op">.</span><span class="nam">min</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">    <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">        <span class="nam">rng_seed</span><span class="op">.</span><span class="nam">update</span><span class="op">(</span><span class="nam">rng</span><span class="op">.</span><span class="nam">__getstate__</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="key">return</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="nam">dat</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t">    <span class="nam">noise</span> <span class="op">=</span> <span class="nam">coef</span><span class="op">*</span><span class="nam">cs</span> <span class="op">+</span> <span class="nam">gaus</span><span class="op">*</span><span class="op">(</span><span class="num">1</span><span class="op">-</span><span class="nam">coef</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t">    <span class="nam">noise</span> <span class="op">-=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">std</span><span class="op">(</span><span class="nam">noise</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t">    <span class="nam">dat</span> <span class="op">=</span> <span class="nam">y</span> <span class="op">+</span> <span class="nam">noise</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t">    <span class="key">if</span> <span class="nam">any</span><span class="op">(</span><span class="nam">dat</span> <span class="op">&lt;</span> <span class="num">0</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">        <span class="nam">dat</span> <span class="op">+=</span> <span class="nam">abs</span><span class="op">(</span><span class="nam">dat</span><span class="op">.</span><span class="nam">min</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">    <span class="key">if</span> <span class="nam">isinstance</span><span class="op">(</span><span class="nam">rng_seed</span><span class="op">,</span> <span class="nam">dict</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">        <span class="nam">rng_seed</span><span class="op">.</span><span class="nam">update</span><span class="op">(</span><span class="nam">rng</span><span class="op">.</span><span class="nam">bit_generator</span><span class="op">.</span><span class="nam">state</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="key">return</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="nam">dat</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t"><span class="op">@</span><span class="nam">add_spectrum_filter</span>&nbsp;</span><span class="r"></span></p>
@@ -149,7 +149,7 @@
     <p class="pln"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t"><span class="str">            `int` or rng state, optional. Seed for the random generator. If a state is provided, it is updated</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t"><span class="str">            in-place.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">y</span> <span class="op">=</span> <span class="nam">generate_add_gaussian_noise_drift</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">.</span><span class="nam">y</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t70" href="#t70">70</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">y</span> <span class="op">=</span> <span class="nam">generate_add_gaussian_noise_drift</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">.</span><span class="nam">y</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t71" href="#t71">71</a></span><span class="t">                                                  <span class="nam">sigma</span><span class="op">=</span><span class="nam">sigma</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t72" href="#t72">72</a></span><span class="t">                                                  <span class="nam">coef</span><span class="op">=</span><span class="nam">coef</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t73" href="#t73">73</a></span><span class="t">                                                  <span class="nam">rng_seed</span><span class="op">=</span><span class="nam">rng_seed</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -162,7 +162,7 @@
             <a class="nav" href="z_b4b07bd69bbb12e0_add_poisson_noise_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-07-15 13:41 +0000
+            created at 2024-07-24 12:25 +0000
         </p>
     </div>
 </footer>

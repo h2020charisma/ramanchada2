@@ -50,7 +50,7 @@
 | src/ramanchada2/misc/types/spectrum/applied\_processings.py                |       50 |       15 |     70% |17-18, 29, 43, 46, 56-62, 65, 68, 73 |
 | src/ramanchada2/misc/types/spectrum/metadata.py                            |       52 |       10 |     81% |35-40, 50, 54, 62, 83 |
 | src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        3 |        0 |    100% |           |
-| src/ramanchada2/misc/utils/argmin2d.py                                     |      105 |       89 |     15% |12-17, 21-22, 26-27, 40-60, 67-82, 87-146 |
+| src/ramanchada2/misc/utils/argmin2d.py                                     |      105 |       64 |     39% |26-27, 43, 58-59, 67-82, 87-146 |
 | src/ramanchada2/misc/utils/ramanshift\_to\_wavelength.py                   |       17 |       11 |     35% |5-7, 11-13, 17, 21-23, 27 |
 | src/ramanchada2/misc/utils/svd.py                                          |       13 |       10 |     23% |8-13, 17-20 |
 | src/ramanchada2/protocols/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
@@ -74,7 +74,7 @@
 | src/ramanchada2/spectrum/arithmetics/sub.py                                |       20 |       11 |     45% |     19-30 |
 | src/ramanchada2/spectrum/arithmetics/truediv.py                            |       20 |       11 |     45% |     19-30 |
 | src/ramanchada2/spectrum/baseline/\_\_init\_\_.py                          |        3 |        0 |    100% |           |
-| src/ramanchada2/spectrum/baseline/add\_baseline.py                         |       34 |        4 |     88% |21-22, 36, 68 |
+| src/ramanchada2/spectrum/baseline/add\_baseline.py                         |       34 |        1 |     97% |        68 |
 | src/ramanchada2/spectrum/baseline/baseline\_rc1.py                         |       45 |       26 |     42% |18-28, 33-48, 58, 68 |
 | src/ramanchada2/spectrum/baseline/moving\_minimum.py                       |       17 |        5 |     71% |12-18, 31, 40 |
 | src/ramanchada2/spectrum/calc/\_\_init\_\_.py                              |        3 |        0 |    100% |           |
@@ -97,9 +97,9 @@
 | src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        8 |     56% |     32-39 |
 | src/ramanchada2/spectrum/creators/hdr\_from\_multi\_exposure.py            |       17 |        9 |     47% |     24-32 |
 | src/ramanchada2/spectrum/filters/\_\_init\_\_.py                           |        3 |        0 |    100% |           |
-| src/ramanchada2/spectrum/filters/add\_gaussian\_noise.py                   |       17 |        3 |     82% | 31-32, 39 |
-| src/ramanchada2/spectrum/filters/add\_gaussian\_noise\_drift.py            |       24 |       15 |     38% | 16-32, 70 |
-| src/ramanchada2/spectrum/filters/add\_poisson\_noise.py                    |       17 |        3 |     82% | 31-32, 38 |
+| src/ramanchada2/spectrum/filters/add\_gaussian\_noise.py                   |       17 |        0 |    100% |           |
+| src/ramanchada2/spectrum/filters/add\_gaussian\_noise\_drift.py            |       24 |        0 |    100% |           |
+| src/ramanchada2/spectrum/filters/add\_poisson\_noise.py                    |       16 |        0 |    100% |           |
 | src/ramanchada2/spectrum/filters/convolve.py                               |       21 |        2 |     90% |    42, 45 |
 | src/ramanchada2/spectrum/filters/drop\_spikes.py                           |       36 |       16 |     56% |22-29, 65-72 |
 | src/ramanchada2/spectrum/filters/moving\_average.py                        |       14 |        3 |     79% | 23-25, 33 |
@@ -124,11 +124,13 @@
 | tests/io/simulated/crystal/test\_discrete\_lines\_dat.py                   |       12 |        0 |    100% |           |
 | tests/io/simulated/crystal/test\_discrete\_lines\_out.py                   |        5 |        0 |    100% |           |
 | tests/io/simulated/vasp/test\_vasp\_simulation\_dat.py                     |        7 |        0 |    100% |           |
+| tests/misc/test\_argmin2d\_align.py                                        |       12 |        0 |    100% |           |
 | tests/peak/pearson4\_test.py                                               |       50 |        0 |    100% |           |
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3239** | **1739** | **46%** |           |
+| tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
+|                                                                  **TOTAL** | **3340** | **1690** | **49%** |           |
 
 
 ## Setup coverage badge
