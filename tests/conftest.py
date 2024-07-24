@@ -32,5 +32,13 @@ def vasp_simulation_dat_file():
 
 
 @pytest.fixture
+def rruf_experimental_filename():
+    return (
+        test_data_dir +
+        '/data/experimental/rruf/Anatase__R060277__Broad_Scan____0__unoriented__Raman_Data_RAW__21346.txt'
+    )
+
+
+@pytest.fixture
 def opus_experimental_file():
     return test_data_dir + '/data/experimental/test_opus.0'

@@ -17,5 +17,5 @@ def two_column_spe(lines: List[str]) -> Tuple[NDArray, NDArray]:
     Returns:
         Tuple[NDArray, NDArray]: positions and intensities.
     """
-    positions, intensities = np.genfromtxt(lines).T
+    positions, intensities = np.genfromtxt(lines, loose=False).T
     return positions, intensities
