@@ -42,7 +42,7 @@ INSTALL_REQUIRES = [
         "h5py==3.*",
         "lmfit==1.*",
         "matplotlib==3.*",
-        "numpy==1.*",
+        "numpy==2.*",
         "pandas==2.*",
         "pydantic==1.*",
         "emd==0.7.*",

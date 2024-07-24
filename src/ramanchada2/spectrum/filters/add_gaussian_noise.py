@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-
 import numpy as np
-from pydantic import validate_arguments, PositiveFloat
+from pydantic import PositiveFloat, validate_arguments
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
@@ -29,12 +28,12 @@ def add_gaussian_noise(
     """
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()
-        rng.__setstate__(rng_seed)
+        rng.bit_generator.state = rng_seed
     else:
         rng = np.random.default_rng(rng_seed)
     dat = old_spe.y + rng.normal(0., sigma, size=len(old_spe.y))
     if any(dat < 0):
         dat += abs(dat.min())
     if isinstance(rng_seed, dict):
-        rng_seed.update(rng.__getstate__())
+        rng_seed.update(rng.bit_generator.state)
     new_spe.y = np.array(dat)

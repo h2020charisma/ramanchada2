@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
-
-from typing import Union
-
 import numpy as np
 from pydantic import validate_arguments
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
@@ -15,7 +12,9 @@ def add_poisson_noise(
         old_spe: Spectrum,
         new_spe: Spectrum, /,
         scale: float = 1,
-        rng_seed: Union[int, None] = None):
+        # validation for rng_seed is removed because
+        # it makes in-place modification impossible
+        rng_seed=None):
     r"""
     Add poisson noise to the spectrum.
     For each particular sample the noise is proportional to $\sqrt{scale*a_i}$.
@@ -29,11 +28,11 @@ def add_poisson_noise(
     """
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()
-        rng.__setstate__(rng_seed)
+        rng.bit_generator.state = rng_seed
     else:
         rng = np.random.default_rng(rng_seed)
     dat = old_spe.y + [rng.normal(0., np.sqrt(i*scale)) for i in old_spe.y]
     dat[dat < 0] = 0
     if isinstance(rng_seed, dict):
-        rng_seed.update(rng.__getstate__())
+        rng_seed.update(rng.bit_generator.state)
     new_spe.y = np.array(dat)
