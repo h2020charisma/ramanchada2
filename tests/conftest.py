@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-
 import os
+from glob import glob
 
 import pytest
 
@@ -37,6 +36,11 @@ def rruf_experimental_filename():
         test_data_dir +
         '/data/experimental/rruf/Anatase__R060277__Broad_Scan____0__unoriented__Raman_Data_RAW__21346.txt'
     )
+
+
+@pytest.fixture(params=glob(test_data_dir + '/data/experimental/*/*.*'))
+def experimental_filename(request):
+    return request.param
 
 
 @pytest.fixture

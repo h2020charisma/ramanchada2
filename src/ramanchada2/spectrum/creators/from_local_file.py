@@ -1,15 +1,16 @@
-#!/usr/bin/env python3
 """Create spectrum from local files."""
 
+import os
 from typing import Literal, Union
 
+import spc_io
 from pydantic import validate_arguments
 
-import os
-from ..spectrum import Spectrum
-from ramanchada2.misc.types import SpeMetadataModel
+from ramanchada2.io.experimental import rc1_parser, read_csv, read_txt
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
-from ramanchada2.io.experimental import read_txt, read_csv, rc1_parser
+from ramanchada2.misc.types import SpeMetadataModel
+
+from ..spectrum import Spectrum
 
 
 @add_spectrum_constructor()
@@ -47,6 +48,14 @@ def from_local_file(
         elif ft in {'csv'}:
             with open(in_file_name) as fp:
                 x, y, meta = read_csv(fp)
+        elif ft in {'spc'}:
+            with open(in_file_name, 'rb') as fp:
+                spc = spc_io.SPC.from_bytes_io(fp)
+                if len(spc) != 1:
+                    raise ValueError(f'Single subfile SPCs are supported. {len(spc)} subfiles found')
+                x = spc[0].xarray
+                y = spc[0].yarray
+                meta = spc.log_book.text
         else:
             raise ValueError(f'filetype {ft} not supported')
         meta["Original file"] = os.path.basename(in_file_name)
