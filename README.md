@@ -15,12 +15,12 @@
 | src/ramanchada2/io/experimental/bw\_format.py                              |       16 |       13 |     19% |      9-24 |
 | src/ramanchada2/io/experimental/rc1\_parser/\_\_init\_\_.py                |        1 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/rc1\_parser/binary\_readers.py             |      143 |      136 |      5% |16-37, 41-116, 120-125, 130-134, 138-202 |
-| src/ramanchada2/io/experimental/rc1\_parser/io.py                          |       48 |       40 |     17% |12-44, 49-65 |
+| src/ramanchada2/io/experimental/rc1\_parser/io.py                          |       48 |       12 |     75% |18, 20, 22, 24, 26, 28, 32, 60-64 |
 | src/ramanchada2/io/experimental/rc1\_parser/third\_party\_readers.py       |       35 |       16 |     54% |9-22, 26-33 |
-| src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |      110 |     10% |11-43, 48-117, 121-141, 145-151, 155-166, 170-171 |
+| src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |       54 |     56% |11-43, 73-92, 99-100, 110-115, 125, 128-133, 165, 170-171 |
 | src/ramanchada2/io/experimental/read\_csv.py                               |       11 |        7 |     36% |     10-19 |
-| src/ramanchada2/io/experimental/read\_txt.py                               |       14 |        8 |     43% |     21-29 |
-| src/ramanchada2/io/experimental/two\_column\_spe.py                        |        6 |        2 |     67% |     20-21 |
+| src/ramanchada2/io/experimental/read\_txt.py                               |       14 |        5 |     64% |23-25, 28-29 |
+| src/ramanchada2/io/experimental/two\_column\_spe.py                        |        6 |        1 |     83% |        21 |
 | src/ramanchada2/io/output/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/io/output/write\_csv.py                                    |        3 |        1 |     67% |         5 |
 | src/ramanchada2/io/simulated/\_\_init\_\_.py                               |        1 |        0 |    100% |           |
@@ -90,7 +90,7 @@
 | src/ramanchada2/spectrum/creators/from\_cache\_or\_calc.py                 |       41 |       32 |     22% |     17-55 |
 | src/ramanchada2/spectrum/creators/from\_chada.py                           |        9 |        2 |     78% |     13-14 |
 | src/ramanchada2/spectrum/creators/from\_delta\_lines.py                    |       23 |        1 |     96% |        49 |
-| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       39 |       29 |     26% |     39-71 |
+| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       39 |       10 |     74% |43, 47-54, 62, 64 |
 | src/ramanchada2/spectrum/creators/from\_simulation.py                      |       18 |        8 |     56% |     40-48 |
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
 | src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       12 |        6 |     50% |     24-30 |
@@ -114,10 +114,10 @@
 | src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     22-30 |
 | src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       90 |       24 |     73% |48-52, 55-58, 66-76, 99-100, 113-114, 132-133 |
 | src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       17 |        9 |     47% |     20-31 |
-| src/ramanchada2/spectrum/spectrum.py                                       |      145 |       50 |     66% |33, 41-43, 59, 62, 65-68, 71, 74, 78, 83-85, 90-92, 96-98, 110-112, 124, 144, 147-153, 180, 185-188, 192, 196, 200-207, 211-213 |
+| src/ramanchada2/spectrum/spectrum.py                                       |      145 |       46 |     68% |33, 41-43, 59, 62, 65-68, 71, 74, 78, 83-85, 90-92, 96-98, 124, 144, 147-153, 185-188, 192, 196, 200-207, 211-213 |
 | src/ramanchada2/theoretical\_lines/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/ramanchada2/theoretical\_lines/model\_from\_lines.py                   |       57 |       57 |      0% |      3-87 |
-| tests/conftest.py                                                          |       22 |        0 |    100% |           |
+| tests/conftest.py                                                          |       25 |        0 |    100% |           |
 | tests/end\_to\_end/test\_generate\_and\_fit.py                             |       17 |        0 |    100% |           |
 | tests/hierarchy\_test.py                                                   |        7 |        0 |    100% |           |
 | tests/io/experimental/test\_input.py                                       |       10 |        1 |     90% |        10 |
@@ -126,11 +126,12 @@
 | tests/io/simulated/vasp/test\_vasp\_simulation\_dat.py                     |        7 |        0 |    100% |           |
 | tests/misc/test\_argmin2d\_align.py                                        |       12 |        0 |    100% |           |
 | tests/peak/pearson4\_test.py                                               |       50 |        0 |    100% |           |
+| tests/spectrum/creators/test\_from\_local\_file.py                         |        9 |        0 |    100% |           |
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3340** | **1690** | **49%** |           |
+|                                                                  **TOTAL** | **3352** | **1579** | **53%** |           |
 
 
 ## Setup coverage badge
