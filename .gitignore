@@ -9,6 +9,12 @@ pearson4_synthetic_noise_shift.png
 pearson4_synthetic_single.csv
 pearson4_synthetic_single.png
 
+*.pdf
+*.html
+*.sh
+*.bat
+*.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
