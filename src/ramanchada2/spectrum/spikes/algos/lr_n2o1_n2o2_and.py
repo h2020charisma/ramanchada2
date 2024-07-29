@@ -2,8 +2,9 @@ from typing import Union
 
 import numpy as np
 from pydantic import validate_arguments
-from .gg_lr_n2o2 import metric as n2o2_metric
-from .gg_lr_n2o1 import metric as n2o1_metric
+
+from .lr_n2o1 import metric as n2o1_metric
+from .lr_n2o2 import metric as n2o2_metric
 
 
 @validate_arguments()
