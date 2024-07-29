@@ -13,6 +13,12 @@ test_calmodel_*.png
 test_twinning_*.png
 twinned.csv
 
+*.pdf
+*.html
+*.sh
+*.bat
+*.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
