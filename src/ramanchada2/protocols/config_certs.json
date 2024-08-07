@@ -14,7 +14,15 @@
             "params": "A0 = 5.90134423e-1,A = 5.52032185e-1,B = 5.72123096e-7,x0 = 2.65628776e+3",
             "equation" : "A0 + A * np.exp(-B * (x - x0)**2)",
             "raman_shift" : [100,3000]
-        }          
+        },
+        "NIR785_EL0-9002A" : {
+            "certificate" : {"id" : "NIR785_EL0-9002A" , "description" : "NIR intensity calibration LED source" ,"url" : "", "model_number" : "EL0-9002-A", "serial_number" : "CJY712", "date": "10/07/2024"},
+            "wavelength" : 785,
+            "params": "A0 = 2.94901162e-01,A1 = 1.44165865e-03,A2 = -1.79638791e-06,A3 = 1.21060045e-09, A4=-3.76840088e-13, A5=4.18914219e-17",
+            "equation" : "A0 + A1*x + A2*x + A3*x + A4*x + A5*x",
+            "raman_shift" : [200,3200]
+            
+        }                    
     },
     "633": {
         "NIST633_SRM2245" : {
