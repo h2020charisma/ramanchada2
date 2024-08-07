@@ -1,12 +1,11 @@
-#!/usr/bin/env python3
+from typing import Dict, TextIO, Tuple
 
-from typing import TextIO, Tuple, Dict
-
+import numpy as np
 from numpy.typing import NDArray
 
 from .bw_format import bw_format
-from .two_column_spe import two_column_spe
-
+from .neegala_format import neegala_format
+from .rruf_format import rruf_format
 
 """ There are 4 types of TXT data files that can be distinguished by their first line:
     1. File Version;BWRam4.11_11
@@ -23,7 +22,30 @@ def read_txt(data_in: TextIO) -> Tuple[NDArray, NDArray, Dict]:
         data, meta = bw_format(lines)
         positions = data['RamanShift'].to_numpy()
         intensities = data['DarkSubtracted#1'].to_numpy()
+        meta['@axes'] = ['RamanShift']
+        meta['@signal'] = 'DarkSubtracted'
+    elif lines[0].startswith('##'):
+        # rruf format
+        positions, intensities, meta = rruf_format(lines)
+        meta['@axes'] = ['']
+        meta['@signal'] = ''
+    elif ',' in lines[0] and not lines[0].split(',')[0].isdigit():
+        data, meta = neegala_format(lines)
+        positions = data['Raman_Shift'].to_numpy()
+        intensities = data['Processed_Data'].to_numpy()
+        meta['@axes'] = ['Raman_Shift']
+        meta['@signal'] = 'Processed_Data'
     else:  # assume two column spectrum
-        positions, intensities = two_column_spe(lines)
         meta = dict()
+        if lines[0].startswith('#'):
+            # assume header row
+            data = np.genfromtxt(lines, names=True, loose=False)
+            meta['@axes'] = [data.dtype.names[0]]
+            meta['@signal'] = data.dtype.names[1]
+            data = np.array(data.tolist())
+        else:
+            data = np.genfromtxt(lines, loose=False)
+            meta['@axes'] = ['']
+            meta['@signal'] = ''
+        positions, intensities = data.T
     return positions, intensities, meta
