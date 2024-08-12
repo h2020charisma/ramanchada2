@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
 """Create spectrum from simulation output files."""
 
 from io import TextIOBase
 from typing import Literal, Union
 
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
+
+from ramanchada2.io.simulated import read_simulated_lines
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
-from ramanchada2.io.simulated import read_simulated_lines
 
 
 @add_spectrum_constructor()
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def from_simulation(in_file: Union[str, TextIOBase],
                     sim_type: Literal['vasp', 'crystal_out', 'crystal_dat', 'raw_dat'],
                     use: Literal['I_tot', 'I_perp', 'I_par',

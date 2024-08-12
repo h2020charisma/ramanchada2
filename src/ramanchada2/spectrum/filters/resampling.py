@@ -1,17 +1,17 @@
-#!/usr/bin/env python3
-
 from typing import Tuple
-from scipy import signal, fft
+
 import numpy as np
+from pydantic import PositiveInt, validate_call
+from scipy import fft, signal
 
-from pydantic import validate_arguments, PositiveInt
+from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
+                                            add_spectrum_method)
 
-from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
 from ..spectrum import Spectrum
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def resample_NUDFT(spe: Spectrum, /,
                    x_range: Tuple[float, float] = (0, 4000),
                    xnew_bins: PositiveInt = 100,
@@ -34,7 +34,7 @@ def resample_NUDFT(spe: Spectrum, /,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def resample_NUDFT_filter(old_spe: Spectrum,
                           new_spe: Spectrum, /,
                           x_range: Tuple[float, float] = (0, 4000),

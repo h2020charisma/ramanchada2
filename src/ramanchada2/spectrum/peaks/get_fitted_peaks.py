@@ -1,16 +1,16 @@
-#!/usr/bin/env python3
-
-from pydantic import validate_arguments
 import logging
 
+from pydantic import validate_call
+
 from ramanchada2.misc.spectrum_deco import add_spectrum_method
+
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def fit_peak_positions(spe: Spectrum, /, *,
                        mov_min=40,
                        center_err_threshold=.5,

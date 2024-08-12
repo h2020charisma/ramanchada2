@@ -1,12 +1,12 @@
 import numpy as np
-from pydantic import PositiveFloat, confloat, validate_arguments
+from pydantic import PositiveFloat, confloat, validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 
 from ..spectrum import Spectrum
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def generate_add_gaussian_noise_drift(y, /,
                                       sigma: PositiveFloat,
                                       coef: confloat(ge=0, le=1),  # type: ignore [valid-type]
@@ -33,7 +33,7 @@ def generate_add_gaussian_noise_drift(y, /,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def add_gaussian_noise_drift(
         old_spe: Spectrum,
         new_spe: Spectrum, /,

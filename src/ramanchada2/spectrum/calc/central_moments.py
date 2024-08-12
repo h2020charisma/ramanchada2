@@ -1,12 +1,13 @@
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
+
+from ramanchada2.misc.spectrum_deco import add_spectrum_method
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import add_spectrum_method
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def central_moments(spe: Spectrum, /,
                     boundaries=(-np.inf, np.inf), moments=[1, 2, 3, 4], normalize=False
                     ):

@@ -1,27 +1,27 @@
-#!/usr/bin/env python3
-
 from __future__ import annotations
 
 from typing import Dict, List
 
-import pydantic
+from pydantic import (BaseModel, Field, RootModel, field_validator,
+                      validate_call)
 
 
-class SpeProcessingModel(pydantic.BaseModel):
-    proc: str = pydantic.Field(...)
+class SpeProcessingModel(BaseModel):
+    proc: str = Field(...)
     args: List = list()
     kwargs: Dict = dict()
 
     @property
     def is_constructor(self):
-        from ramanchada2.misc.spectrum_deco.dynamically_added import dynamically_added_constructors
+        from ramanchada2.misc.spectrum_deco.dynamically_added import \
+            dynamically_added_constructors
         return self.proc in dynamically_added_constructors
 
-    @pydantic.validator('proc', pre=True)
-    @pydantic.validate_arguments
+    @field_validator('proc', mode='before')
+    @validate_call
     def check_proc(cls, val: str):
-        from ramanchada2.misc.spectrum_deco.dynamically_added import (dynamically_added_filters,
-                                                                      dynamically_added_constructors)
+        from ramanchada2.misc.spectrum_deco.dynamically_added import (
+            dynamically_added_constructors, dynamically_added_filters)
         if val in dynamically_added_filters:
             return val
         if val in dynamically_added_constructors:
@@ -29,24 +29,24 @@ class SpeProcessingModel(pydantic.BaseModel):
         raise ValueError(f'processing {val} not supported')
 
 
-class SpeProcessingListModel(pydantic.BaseModel):
-    __root__: List[SpeProcessingModel]
+class SpeProcessingListModel(RootModel):
+    root: List[SpeProcessingModel]
 
     def __len__(self):
-        return len(self.__root__)
+        return len(self.root)
 
     def append(self, proc, args=[], kwargs={}):
-        self.__root__.append(SpeProcessingModel(proc=proc, args=args, kwargs=kwargs))
+        self.root.append(SpeProcessingModel(proc=proc, args=args, kwargs=kwargs))
 
-    @pydantic.validate_arguments
+    @validate_call
     def extend_left(self, proc_list: List[SpeProcessingModel]):
-        self.__root__ = proc_list + self.__root__
+        self.root = proc_list + self.root
 
     def pop(self):
-        return self.__root__.pop()
+        return self.root.pop()
 
     def clear(self):
-        return self.__root__.clear()
+        return self.root.clear()
 
     def assign(self, *args, **kwargs):
         self.clear()
@@ -54,7 +54,7 @@ class SpeProcessingListModel(pydantic.BaseModel):
 
     def _string_list(self):
         ret = list()
-        for elem in self.__root__:
+        for elem in self.root:
             args = [f'{repr(i)}' for i in elem.args]
             kwargs = [f'{k}={repr(v)}' for k, v in elem.kwargs.items()]
             comb = ', '.join(args + kwargs)
@@ -70,4 +70,4 @@ class SpeProcessingListModel(pydantic.BaseModel):
             for i in self._string_list()])
 
     def to_list(self):
-        return [i.dict() for i in self.__root__]
+        return [i.dict() for i in self.root]

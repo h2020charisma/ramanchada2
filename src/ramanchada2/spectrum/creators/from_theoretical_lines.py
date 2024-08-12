@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 from typing import Dict, List, Literal, Union
 
 import numpy as np
 import numpy.typing as npt
 from lmfit import lineshapes
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
@@ -13,7 +11,7 @@ from ..spectrum import Spectrum
 
 
 @add_spectrum_constructor()
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def from_theoretical_lines(
         shapes: List[Literal[lineshapes.functions]],  # type: ignore
         params: List[Dict],

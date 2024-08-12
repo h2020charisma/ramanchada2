@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import datetime
+
 import numpy as np
 import pytest
+
 from ramanchada2.misc.types.spectrum.metadata import SpeMetadataModel
 
 

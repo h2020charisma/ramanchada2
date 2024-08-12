@@ -1,15 +1,12 @@
-#!/usr/bin/env python3
-
-from typing import List, Tuple, Literal, Dict
+from typing import Dict, List, Literal, Tuple
 
 import numpy as np
-from lmfit import Parameters, Model
-from lmfit.models import VoigtModel, GaussianModel
+from lmfit import Model, Parameters
+from lmfit.models import GaussianModel, VoigtModel
+from pydantic import BaseModel, Field, validate_call
 
-from pydantic import validate_arguments, BaseModel, Field
 
-
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def model_from_lines(names: List[str],
                      positions: List[float],
                      intensities: Dict[str, List[float]],
@@ -55,7 +52,7 @@ class PydPeakModel(BaseModel):
     name: str = Field('')
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def model_from_list(peaks_list: List[PydPeakModel]
                     ) -> Tuple[Model, Parameters]:
     params = Parameters()

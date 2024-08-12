@@ -1,14 +1,12 @@
-#!/usr/bin/env python3
-
 from __future__ import annotations
 
 from typing import List, Tuple
-from pydantic import PositiveFloat
 
 import numpy as np
+from pydantic import PositiveFloat
 
-from .pydantic_base_model import PydBaseModel
 from ..plottable import Plottable
+from .pydantic_base_model import PydBaseModel, PydRootModel
 
 
 class PeakModel(PydBaseModel):
@@ -110,27 +108,27 @@ class PeakCandidateMultiModel(PydBaseModel, Plottable):
         self.json()
 
 
-class ListPeakCandidateMultiModel(PydBaseModel, Plottable):
-    __root__: List[PeakCandidateMultiModel]
+class ListPeakCandidateMultiModel(PydRootModel, Plottable):
+    root: List[PeakCandidateMultiModel]
 
     def get_ampl_pos_fwhm(self):
-        return np.concatenate([cands.get_ampl_pos_fwhm() for cands in self.__root__])
+        return np.concatenate([cands.get_ampl_pos_fwhm() for cands in self.root])
 
     def get_pos_ampl_dict(self):
-        return {k: v for cands in self.__root__ for k, v in cands.get_pos_ampl_dict().items()}
+        return {k: v for cands in self.root for k, v in cands.get_pos_ampl_dict().items()}
 
     def _plot(self, ax, *args, label=" ", **kwargs):
-        for i, gr in enumerate(self.__root__):
+        for i, gr in enumerate(self.root):
             gr.plot(ax=ax, *args, label=f'{label}_{i}', **kwargs)
 
     def __getitem__(self, key) -> PeakCandidateMultiModel:
-        return self.__root__[key]
+        return self.root[key]
 
     def __iter__(self):
-        return iter(self.__root__)
+        return iter(self.root)
 
     def __len__(self):
-        return len(self.__root__)
+        return len(self.root)
 
     def serialize(self):
         self.json()

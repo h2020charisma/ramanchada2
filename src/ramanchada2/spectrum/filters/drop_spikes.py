@@ -1,14 +1,13 @@
-#!/usr/bin/env python3
-
 import numpy as np
-from pydantic import validate_arguments, PositiveFloat
+from pydantic import PositiveFloat, validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def drop_spikes(old_spe: Spectrum,
                 new_spe: Spectrum, /,
                 n_sigma: PositiveFloat = 10):
@@ -30,7 +29,7 @@ def drop_spikes(old_spe: Spectrum,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def recover_spikes(old_spe: Spectrum,
                    new_spe: Spectrum, /,
                    n_sigma: PositiveFloat = 10):
@@ -51,7 +50,7 @@ def recover_spikes(old_spe: Spectrum,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def get_spikes(old_spe: Spectrum,
                new_spe: Spectrum, /,
                n_sigma: PositiveFloat = 10):

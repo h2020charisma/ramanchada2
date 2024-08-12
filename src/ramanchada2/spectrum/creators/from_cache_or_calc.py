@@ -1,17 +1,17 @@
-#!/usr/bin/env python3
-
 import logging
-import pydantic
+
+from pydantic import validate_call
+
+import ramanchada2.misc.types.spectrum as spe_t
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
-import ramanchada2.misc.types.spectrum as spe_t
 
 logger = logging.getLogger(__name__)
 
 
 @add_spectrum_constructor(set_applied_processing=False)
-@pydantic.validate_arguments
+@validate_call
 def from_cache_or_calc(required_steps: spe_t.SpeProcessingListModel,
                        cachefile: str = ''):
     def recall():

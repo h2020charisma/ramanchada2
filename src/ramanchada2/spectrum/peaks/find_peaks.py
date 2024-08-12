@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 from ..spectrum import Spectrum
-from pydantic import validate_arguments, PositiveInt, NonNegativeFloat, NonNegativeInt
+from pydantic import validate_call, PositiveInt, NonNegativeFloat, NonNegativeInt
 from ramanchada2.misc.spectrum_deco import add_spectrum_method, add_spectrum_filter
 from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel
 from scipy import signal
@@ -34,7 +34,7 @@ def peak_boundaries(spe, wlen, width, prominence):
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def find_peak_multipeak(
         spe: Spectrum, /,
         prominence: Union[NonNegativeFloat, None] = None,
@@ -167,7 +167,7 @@ def find_peak_multipeak(
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def find_peak_multipeak_filter(
         old_spe: Spectrum,
         new_spe: Spectrum, /,

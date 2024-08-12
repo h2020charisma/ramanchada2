@@ -1,15 +1,13 @@
-#!/usr/bin/env python3
-
 from typing import Literal
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def normalize(old_spe: Spectrum,
               new_spe: Spectrum, /,
               strategy: Literal['unity', 'min_unity', 'unity_density', 'unity_area', 'minmax'] = 'minmax'):

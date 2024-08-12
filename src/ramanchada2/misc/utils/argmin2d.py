@@ -1,11 +1,12 @@
+from typing import List, Union
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import pydantic
+from pydantic import PositiveInt, validate_call
 from scipy import linalg
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
-from typing import List, Union
 
 
 def argmin2d(A):
@@ -27,11 +28,11 @@ def find_closest_pairs(x, y):
     return x[x_idx], y[y_idx]
 
 
-@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def align(x, y,
           p0: Union[List[float], npt.NDArray] = [0, 1, 0, 0],
           func=lambda x, a0, a1, a2, a3: (a0*np.ones_like(x), a1*x, a2*x**2/1, a3*(x/1000)**3),
-          max_iter: pydantic.PositiveInt = 1000):
+          max_iter: PositiveInt = 1000):
     """
     Iteratively finds best match between x and y and evaluates the x scaling parameters.
     min((lambda(x, *p)-y)**2 | *p)
@@ -60,10 +61,10 @@ def align(x, y,
     return p
 
 
-@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def align_shift(x, y,
                 p0: float = 0,
-                max_iter: pydantic.PositiveInt = 1000):
+                max_iter: PositiveInt = 1000):
     loss = np.inf
     cur_x = x
     p = p0

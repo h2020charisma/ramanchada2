@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
-
-from typing import Tuple, Dict
+import logging
+from typing import Dict, Tuple
 
 import h5py
-import logging
 import numpy as np
 import numpy.typing as npt
-import pydantic
+from pydantic import validate_call
 
 from ramanchada2.misc.exceptions import ChadaReadNotFoundError
 
@@ -15,7 +13,7 @@ logger = logging.getLogger()
 
 # https://manual.nexusformat.org/examples/napi/python.html
 # https://manual.nexusformat.org/examples/python/simple_example_basic/index.html
-@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def write_nexus(filename: str,
                 dataset: str,
                 x: npt.NDArray, y: npt.NDArray, meta: Dict, h5module=None):
@@ -70,7 +68,7 @@ class DatasetExistsError(Exception):
     pass
 
 
-@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def write_cha(filename: str,
               dataset: str,
               x: npt.NDArray, y: npt.NDArray, meta: Dict, h5module=None):

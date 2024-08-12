@@ -44,7 +44,7 @@ INSTALL_REQUIRES = [
         "matplotlib==3.*",
         "numpy==2.*",
         "pandas==2.*",
-        "pydantic==1.*",
+        "pydantic~=2.0",
         "emd==0.7.*",
         "renishawWiRE==0.1.*",  # rc1-parser
         "scikit-learn==1.*",

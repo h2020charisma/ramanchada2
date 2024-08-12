@@ -3,10 +3,10 @@
 from io import TextIOBase
 
 import pandas as pd
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def lines_from_crystal_dat(data_in: TextIOBase) -> pd.DataFrame:
     return pd.DataFrame(
         data=[

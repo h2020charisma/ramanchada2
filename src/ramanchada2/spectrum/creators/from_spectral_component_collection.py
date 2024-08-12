@@ -1,14 +1,14 @@
-#!/usr/bin/env python3
+from pydantic import validate_call
 
-from pydantic import validate_arguments
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
+from ramanchada2.spectral_components.spectral_component_collection import \
+    SpectralComponentCollection
 
 from ..spectrum import Spectrum
-from ramanchada2.spectral_components.spectral_component_collection import SpectralComponentCollection
-from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 
 @add_spectrum_constructor()
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def from_spectral_component_collection(
         spe_components: SpectralComponentCollection,
         x=2000):

@@ -7,8 +7,9 @@ from typing import Any, Dict, List, Union
 import numpy as np
 import numpy.typing as npt
 import pydantic
+from pydantic import StrictBool, StrictInt, StrictStr, model_validator
 
-from ..pydantic_base_model import PydBaseModel
+from ..pydantic_base_model import PydBaseModel, PydRootModel
 
 SpeMetadataFieldTyping = Union[
     npt.NDArray, PydBaseModel,
@@ -22,9 +23,9 @@ SpeMetadataTyping = Dict[str, SpeMetadataFieldTyping]
 
 
 class SpeMetadataFieldModel(PydBaseModel):
-    __root__: SpeMetadataFieldTyping
+    root: SpeMetadataFieldTyping
 
-    @pydantic.validator('__root__', pre=True)
+    @pydantic.field_validator('root', mode='before')
     def pre_validate(cls, val):
         if isinstance(val, np.ndarray):
             return val
@@ -44,40 +45,40 @@ class SpeMetadataFieldModel(PydBaseModel):
         return val
 
     def serialize(self):
-        if isinstance(self.__root__, list) or isinstance(self.__root__, dict):
-            return json.dumps(self.__root__)
-        if isinstance(self.__root__, PydBaseModel):
-            return f'ramanchada2_model@{type(self.__root__).__name__}#' + self.json()
-        if isinstance(self.__root__, datetime.datetime):
-            return self.__root__.isoformat()
-        if isinstance(self.__root__, PydBaseModel):
-            return self.__root__.serialize()
-        return self.__root__
+        if isinstance(self.root, list) or isinstance(self.root, dict):
+            return json.dumps(self.root)
+        if isinstance(self.root, PydBaseModel):
+            return f'ramanchada2_model@{type(self.root).__name__}#' + self.json()
+        if isinstance(self.root, datetime.datetime):
+            return self.root.isoformat()
+        if isinstance(self.root, PydBaseModel):
+            return self.root.serialize()
+        return self.root
 
 
-class SpeMetadataModel(PydBaseModel):
-    __root__: Dict[str, SpeMetadataFieldModel]
+class SpeMetadataModel(PydRootModel):
+    root: Dict[str, SpeMetadataFieldModel]
 
     def __str__(self):
         return str(self.serialize())
 
     def serialize(self):
-        return {k: v.serialize() for k, v in sorted(self.__root__.items())}
+        return {k: v.serialize() for k, v in sorted(self.root.items())}
 
     def __getitem__(self, key: str) -> SpeMetadataFieldTyping:
-        return self.__root__[key].__root__
+        return self.root[key].root
 
     def _update(self, val: Dict):
-        self.__root__.update(self.validate(val).__root__)
+        self.root.update(self.validate(val).root)
 
     def _del_key(self, key: str):
-        del self.__root__[key]
+        del self.root[key]
 
     def _flush(self):
-        self.__root__ = {}
+        self.root = {}
 
     def get_all_keys(self) -> list[str]:
         """
         Returns a list of all keys in the metadata model.
         """
-        return list(self.__root__.keys())
+        return list(self.root.keys())

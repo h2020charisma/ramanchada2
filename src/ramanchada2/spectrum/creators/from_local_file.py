@@ -4,7 +4,7 @@ import os
 from typing import Literal, Union
 
 import spc_io
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from ramanchada2.io.experimental import rc1_parser, read_csv, read_txt
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
@@ -14,7 +14,7 @@ from ..spectrum import Spectrum
 
 
 @add_spectrum_constructor()
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def from_local_file(
         in_file_name: str,
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',

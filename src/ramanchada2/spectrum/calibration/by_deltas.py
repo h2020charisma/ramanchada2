@@ -1,13 +1,16 @@
-#!/usr/bin/env python3
+from typing import Dict, List, Literal, Union
+
 import lmfit
 import numpy as np
 import numpy.typing as npt
+from pydantic import NonNegativeInt, validate_call
+from scipy import interpolate
+
+from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
+                                            add_spectrum_method)
+
 from ...misc import utils as rc2utils
 from ..spectrum import Spectrum
-from pydantic import NonNegativeInt, validate_arguments
-from ramanchada2.misc.spectrum_deco import add_spectrum_filter, add_spectrum_method
-from scipy import interpolate
-from typing import Dict, List, Literal, Union
 
 
 class DeltaSpeModel:
@@ -44,7 +47,7 @@ class DeltaSpeModel:
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def calibrate_by_deltas_model(spe: Spectrum, /,
                               deltas: Dict[float, float],
                               convolution_steps: Union[None, List[float]] = [15, 1],
@@ -118,7 +121,7 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def calibrate_by_deltas_filter(old_spe: Spectrum,
                                new_spe: Spectrum, /,
                                deltas: Dict[float, float],
@@ -148,7 +151,7 @@ def calibrate_by_deltas_filter(old_spe: Spectrum,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def xcal_fine(old_spe: Spectrum,
               new_spe: Spectrum, /, *,
               ref: Union[Dict[float, float], List[float]],
@@ -185,7 +188,7 @@ def xcal_fine(old_spe: Spectrum,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def xcal_fine_RBF(old_spe: Spectrum,
                   new_spe: Spectrum, /, *,
                   ref: Union[Dict[float, float], List[float], npt.NDArray],
