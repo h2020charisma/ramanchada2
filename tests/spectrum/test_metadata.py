@@ -21,10 +21,10 @@ def test_spectrum_metadata():
             'dd': '''{"kk": {"a": 1, 'b': 'dfdf'}, 'i':1, 's':'234', 'l':[1,2,3]}'''
             }
 
-    s = SpeMetadataModel.validate(test)
-    assert len(s.__root__) == 10
+    s = SpeMetadataModel.model_validate(test)
+    assert len(s.root) == 10
     s._update({'zz': '2022-01-02T10:11:12+00:00'})
-    assert len(s.__root__) == 11
+    assert len(s.root) == 11
     ser = s.serialize()
 
     assert s['zz']-s['datetime'] == datetime.timedelta(seconds=7200)
@@ -50,4 +50,4 @@ def test_spectrum_metadata():
 
     s._flush()
     assert s.serialize() == {}
-    assert len(s.__root__) == 0
+    assert len(s.root) == 0

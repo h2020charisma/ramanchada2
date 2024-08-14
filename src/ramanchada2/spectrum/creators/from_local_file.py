@@ -64,7 +64,7 @@ def from_local_file(
 
     def load_rc1():
         x, y, meta = rc1_parser.parse(in_file_name, filetype)
-        spe = Spectrum(x=x, y=y, metadata=SpeMetadataModel.parse_obj(meta))
+        spe = Spectrum(x=x, y=y, metadata=SpeMetadataModel.model_validate(meta))
         return spe
 
     if backend == 'native':

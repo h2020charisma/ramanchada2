@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -27,7 +27,7 @@ class Spectrum(Plottable):
     def __init__(self,
                  x: Union[npt.NDArray, int, None] = None,
                  y: Union[npt.NDArray, None] = None,
-                 cachefile: str = '',
+                 cachefile: Optional[str] = None,
                  metadata: Union[SpeMetadataModel, None] = None,
                  applied_processings: Union[SpeProcessingListModel, None] = None):
         super(Plottable, self).__init__()
@@ -46,8 +46,8 @@ class Spectrum(Plottable):
                 self.y = self.y[sort_idx]
 
         self._cachefile = cachefile
-        self._metadata = deepcopy(metadata or SpeMetadataModel(__root__={}))
-        self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(__root__=[]))
+        self._metadata = deepcopy(metadata or SpeMetadataModel(root={}))
+        self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(root=[]))
 
     def __copy__(self):
         return Spectrum(
@@ -60,6 +60,9 @@ class Spectrum(Plottable):
 
     def __repr__(self):
         return self._applied_processings.repr()
+
+    def applied_processings_dict(self):
+        return self._applied_processings.to_list()
 
     def __str__(self):
         return str(self._applied_processings.to_list())
@@ -187,7 +190,7 @@ class Spectrum(Plottable):
     @validate_call(config=dict(arbitrary_types_allowed=True))
     def meta(self, val: Union[Dict, SpeMetadataModel]):
         if isinstance(val, dict):
-            self._metadata = SpeMetadataModel.parse_obj(val)
+            self._metadata = SpeMetadataModel.model_validate(val)
         else:
             self._metadata = val
 

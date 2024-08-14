@@ -97,7 +97,7 @@ def fit_peak_multimodel(spe, /, *,
         kwargs_fit = dict(kwargs_fit)
         kwargs_fit['max_nfev'] = 1
     fit_res = FitPeaksResult()
-    for group in candidates.__root__:
+    for group in candidates.root:
         mod, par = build_multipeak_model_params(profile=profile, candidates=group)
         idx = (group.boundaries[0] < spe.x) & (spe.x < group.boundaries[1])
         x = spe.x[idx]
@@ -127,7 +127,7 @@ def fit_peaks_filter(
     """
     Write fit result as metadata.
     """
-    cand_groups = ListPeakCandidateMultiModel.validate(old_spe.result)
+    cand_groups = ListPeakCandidateMultiModel.model_validate(old_spe.result)
     new_spe.result = old_spe.fit_peak_multimodel(*args,  # type: ignore
                                                  candidates=cand_groups,
                                                  should_break=should_break,

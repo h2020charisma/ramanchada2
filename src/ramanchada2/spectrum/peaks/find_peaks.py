@@ -162,7 +162,7 @@ def find_peak_multipeak(
                                         boundaries=(x_arr[li], x_arr[ri]),
                                         peaks=peak_group))
 
-    candidates = ListPeakCandidateMultiModel.validate(peak_groups)
+    candidates = ListPeakCandidateMultiModel.model_validate(peak_groups)
     return candidates
 
 
@@ -173,4 +173,4 @@ def find_peak_multipeak_filter(
         new_spe: Spectrum, /,
         *args, **kwargs):
     res = old_spe.find_peak_multipeak(*args, **kwargs)  # type: ignore
-    new_spe.result = res.dict()['__root__']
+    new_spe.result = res.model_dump()

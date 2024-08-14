@@ -40,16 +40,17 @@ DATA_FILES = []
 INSTALL_REQUIRES = [
         "brukeropusreader==1.*",  # rc1-parser
         "h5py==3.*",
-        "lmfit==1.*",
+        'lmfit',
         "matplotlib==3.*",
-        "numpy==2.*",
+        # numpy<1.26 is not compatible with python3.12
+        "numpy~=1.26,<=2",
         "pandas==2.*",
         "pydantic~=2.0",
         "emd==0.7.*",
         "renishawWiRE==0.1.*",  # rc1-parser
         "scikit-learn==1.*",
         "scipy>=1.8.0,<2.0",
-        "spc-io==0.1.*",  # rc1-parser
+        "spc-io~=0.2.0",
         "statsmodels==0.14.*",
         "uncertainties==3.*",
 ]

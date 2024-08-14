@@ -1,31 +1,26 @@
-#!/usr/bin/env python3
-
 import datetime
 import json
 from typing import Any, Dict, List, Union
 
 import numpy as np
 import numpy.typing as npt
-import pydantic
-from pydantic import StrictBool, StrictInt, StrictStr, model_validator
+from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
 
 from ..pydantic_base_model import PydBaseModel, PydRootModel
 
 SpeMetadataFieldTyping = Union[
-    npt.NDArray, PydBaseModel,
-    pydantic.StrictBool,
-    pydantic.StrictInt, float,
+    npt.NDArray,
+    StrictBool,
+    StrictInt, float,
     datetime.datetime,
     List[Any], Dict[str, Any],
-    pydantic.StrictStr]
-
-SpeMetadataTyping = Dict[str, SpeMetadataFieldTyping]
+    StrictStr]
 
 
-class SpeMetadataFieldModel(PydBaseModel):
-    root: SpeMetadataFieldTyping
+class SpeMetadataFieldModel(PydRootModel):
+    root: SpeMetadataFieldTyping = Field(union_mode='left_to_right')
 
-    @pydantic.field_validator('root', mode='before')
+    @field_validator('root', mode='before')
     def pre_validate(cls, val):
         if isinstance(val, np.ndarray):
             return val
@@ -38,7 +33,7 @@ class SpeMetadataFieldModel(PydBaseModel):
                 model_name = val[pos_at+1:pos_hash]
                 from ramanchada2.misc import types
                 model = getattr(types, model_name)
-                return model.validate(val[pos_hash+1:])
+                return model.model_validate(val[pos_hash+1:])
             if (val.startswith('[') and val.endswith(']') or
                val.startswith('{') and val.endswith('}')):
                 return json.loads(val.replace("'", '"').replace(r'b"', '"'))
@@ -69,7 +64,7 @@ class SpeMetadataModel(PydRootModel):
         return self.root[key].root
 
     def _update(self, val: Dict):
-        self.root.update(self.validate(val).root)
+        self.root.update(self.model_validate(val).root)
 
     def _del_key(self, key: str):
         del self.root[key]

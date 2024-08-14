@@ -70,4 +70,4 @@ class SpeProcessingListModel(RootModel):
             for i in self._string_list()])
 
     def to_list(self):
-        return [i.dict() for i in self.root]
+        return [i.model_dump() for i in self.root]
