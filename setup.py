@@ -27,7 +27,7 @@ KEYWORDS = [
     'spectroscopy',
 ]
 
-PYTHON_REQUIRES = '>=3.9'
+PYTHON_REQUIRES = '>=3.9,<3.13'
 
 PACKAGES = find_packages(where='src')
 
@@ -40,10 +40,9 @@ DATA_FILES = []
 INSTALL_REQUIRES = [
         "brukeropusreader==1.*",  # rc1-parser
         "h5py==3.*",
-        'lmfit',
+        "lmfit==1.*",
         "matplotlib==3.*",
-        # numpy<1.26 is not compatible with python3.12
-        "numpy~=1.26,<=2",
+        "numpy>=1.0,<3.0",
         "pandas==2.*",
         "pydantic~=2.0",
         "emd==0.7.*",
