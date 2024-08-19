@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
-
-from typing import Literal, List, Tuple, Set, Dict
 from io import TextIOBase
+from typing import Dict, List, Literal, Set, Tuple
 
-import pydantic
+from pydantic import validate_call
 
-from .crystal.discrete_lines_out import lines_from_crystal_out
 from .crystal.discrete_lines_dat import lines_from_crystal_dat
-from .vasp.vasp_simulation_dat import lines_from_vasp_dat
+from .crystal.discrete_lines_out import lines_from_crystal_out
 from .lines_from_raw_dat import lines_from_raw_dat
+from .vasp.vasp_simulation_dat import lines_from_vasp_dat
 
 
-@pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def read_simulated_lines(data_in: TextIOBase,
                          sim_type: Literal['vasp', 'crystal_out', 'crystal_dat', 'raw_dat'],
                          use: Set[Literal[

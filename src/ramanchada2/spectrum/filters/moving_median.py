@@ -1,12 +1,12 @@
 import numpy as np
-from pydantic import PositiveInt, validate_arguments
+from pydantic import PositiveInt, validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 
 from ..spectrum import Spectrum
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def _moving_median(s,
                    window_size: PositiveInt = 10):
     y = ([np.median(s[:window_size]) for i in range(window_size)] +
@@ -17,7 +17,7 @@ def _moving_median(s,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def moving_median(old_spe: Spectrum,
                   new_spe: Spectrum, /,
                   window_size: PositiveInt = 10):
@@ -33,7 +33,7 @@ def moving_median(old_spe: Spectrum,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def subtract_moving_median(
         old_spe: Spectrum,
         new_spe: Spectrum,

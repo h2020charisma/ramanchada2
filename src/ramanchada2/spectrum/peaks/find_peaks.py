@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 from ..spectrum import Spectrum
-from pydantic import validate_arguments, PositiveInt, NonNegativeFloat, NonNegativeInt
+from pydantic import validate_call, PositiveInt, NonNegativeFloat, NonNegativeInt
 from ramanchada2.misc.spectrum_deco import add_spectrum_method, add_spectrum_filter
 from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel
 from scipy import signal
@@ -34,7 +34,7 @@ def peak_boundaries(spe, wlen, width, prominence):
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def find_peak_multipeak(
         spe: Spectrum, /,
         prominence: Union[NonNegativeFloat, None] = None,
@@ -162,15 +162,15 @@ def find_peak_multipeak(
                                         boundaries=(x_arr[li], x_arr[ri]),
                                         peaks=peak_group))
 
-    candidates = ListPeakCandidateMultiModel.validate(peak_groups)
+    candidates = ListPeakCandidateMultiModel.model_validate(peak_groups)
     return candidates
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def find_peak_multipeak_filter(
         old_spe: Spectrum,
         new_spe: Spectrum, /,
         *args, **kwargs):
     res = old_spe.find_peak_multipeak(*args, **kwargs)  # type: ignore
-    new_spe.result = res.dict()['__root__']
+    new_spe.result = res.model_dump()

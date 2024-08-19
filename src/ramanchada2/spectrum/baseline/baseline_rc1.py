@@ -1,18 +1,19 @@
 from typing import Literal, Union
+
 import numpy as np
 import pandas as pd
-from scipy.signal import wiener
+from pydantic import PositiveInt, validate_call
 from scipy import sparse
+from scipy.signal import wiener
 from scipy.sparse.linalg import spsolve
 
-from pydantic import validate_arguments, PositiveInt
+from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ramanchada2.misc.types import PositiveOddInt
 
-from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
-@validate_arguments
+@validate_call
 def baseline_als(y, lam: float = 1e5, p: float = 0.001, niter: PositiveInt = 100,
                  smooth: Union[PositiveOddInt, Literal[0]] = PositiveOddInt(7)):
     if smooth > 0:
@@ -49,7 +50,7 @@ def baseline_snip(y0, niter: PositiveInt = 30):
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def subtract_baseline_rc1_als(
         old_spe: Spectrum,
         new_spe: Spectrum,
@@ -59,7 +60,7 @@ def subtract_baseline_rc1_als(
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def subtract_baseline_rc1_snip(
         old_spe: Spectrum,
         new_spe: Spectrum,

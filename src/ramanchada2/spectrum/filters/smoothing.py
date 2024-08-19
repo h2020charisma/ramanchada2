@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
-
 from typing import Literal
+
 import numpy as np
-from pydantic import validate_arguments
 import statsmodels.api as sm
-from scipy.signal import wiener, savgol_filter, medfilt
-from scipy.signal.windows import boxcar
+from pydantic import validate_call
 from scipy.ndimage import gaussian_filter1d
+from scipy.signal import medfilt, savgol_filter, wiener
+from scipy.signal.windows import boxcar
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def smoothing_RC1(old_spe: Spectrum,
                   new_spe: Spectrum, /, *args,
                   method: Literal['savgol', 'sg',

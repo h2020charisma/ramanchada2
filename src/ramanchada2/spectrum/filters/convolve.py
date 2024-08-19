@@ -1,20 +1,19 @@
-#!/usr/bin/env python3
+from typing import Callable, Literal, Union
 
-from typing import Literal, Union, Callable
-
+import lmfit
 import numpy as np
 import numpy.typing as npt
 from numpy.typing import NDArray
+from pydantic import validate_call
 from scipy import signal
-import lmfit
-from pydantic import validate_arguments
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def convolve(
         old_spe: Spectrum,
         new_spe: Spectrum, /,

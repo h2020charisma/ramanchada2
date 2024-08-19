@@ -1,18 +1,21 @@
-#!/usr/bin/env python3
 from __future__ import annotations
+
 import logging
+from copy import deepcopy
+from typing import Dict, List, Optional, Set, Tuple, Union
+
 import numpy as np
 import numpy.typing as npt
-import pydantic
-from copy import deepcopy
+from pydantic import PositiveInt, validate_call
+from scipy.signal import convolve, savgol_coeffs, savgol_filter
+from scipy.stats import median_abs_deviation, rv_histogram
+
 from ramanchada2.io.HSDS import write_cha, write_nexus
 from ramanchada2.io.output.write_csv import write_csv as io_write_csv
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.misc.types import PositiveOddInt, SpeMetadataModel
-from ramanchada2.misc.types.spectrum import SpeProcessingListModel, SpeProcessingModel
-from scipy.signal import convolve, savgol_coeffs, savgol_filter
-from scipy.stats import median_abs_deviation, rv_histogram
-from typing import Dict, List, Set, Tuple, Union
+from ramanchada2.misc.types.spectrum import (SpeProcessingListModel,
+                                             SpeProcessingModel)
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +23,11 @@ logger = logging.getLogger(__name__)
 class Spectrum(Plottable):
     _available_processings: Set[str] = set()
 
-    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_call(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  x: Union[npt.NDArray, int, None] = None,
                  y: Union[npt.NDArray, None] = None,
-                 cachefile: str = '',
+                 cachefile: Optional[str] = None,
                  metadata: Union[SpeMetadataModel, None] = None,
                  applied_processings: Union[SpeProcessingListModel, None] = None):
         super(Plottable, self).__init__()
@@ -43,8 +46,8 @@ class Spectrum(Plottable):
                 self.y = self.y[sort_idx]
 
         self._cachefile = cachefile
-        self._metadata = deepcopy(metadata or SpeMetadataModel(__root__={}))
-        self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(__root__=[]))
+        self._metadata = deepcopy(metadata or SpeMetadataModel(root={}))
+        self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(root=[]))
 
     def __copy__(self):
         return Spectrum(
@@ -57,6 +60,9 @@ class Spectrum(Plottable):
 
     def __repr__(self):
         return self._applied_processings.repr()
+
+    def applied_processings_dict(self):
+        return self._applied_processings.to_list()
 
     def __str__(self):
         return str(self._applied_processings.to_list())
@@ -85,13 +91,13 @@ class Spectrum(Plottable):
         return getattr(self, algorithm)(**kwargs)
 
     @classmethod
-    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_call(config=dict(arbitrary_types_allowed=True))
     def apply_creator(cls, step: SpeProcessingModel, cachefile_=None):
         proc = getattr(cls, step.proc)
         spe = proc(*step.args, **step.kwargs, cachefile_=cachefile_)
         return spe
 
-    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_call(config=dict(arbitrary_types_allowed=True))
     def apply_processing(self, step: SpeProcessingModel):
         proc = getattr(self, step.proc)
         spe = proc(*step.args, **step.kwargs)
@@ -143,7 +149,8 @@ class Spectrum(Plottable):
     def y_noise_MAD(self):
         return median_abs_deviation(np.diff(self.y))
 
-    def y_noise_savgol_DL(self, order: PositiveOddInt = PositiveOddInt(1)):
+    @validate_call(config=dict(validate_default=True))
+    def y_noise_savgol_DL(self, order: PositiveOddInt = 1):
         npts = order + 2
         ydata = self.y - np.min(self.y)
         summ = np.sum((ydata - savgol_filter(ydata, npts, order))**2)
@@ -152,8 +159,8 @@ class Spectrum(Plottable):
         scale = np.sqrt(np.sum(coeff**2))
         return np.sqrt(summ/len(ydata))/scale
 
-    @pydantic.validate_arguments
-    def y_noise_savgol(self, order: PositiveOddInt = PositiveOddInt(1)):
+    @validate_call(config=dict(validate_default=True))
+    def y_noise_savgol(self, order: PositiveOddInt = 1):
         npts = order + 2
 
         # subtract smoothed signal from original
@@ -180,10 +187,10 @@ class Spectrum(Plottable):
         return self._metadata
 
     @meta.setter
-    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_call(config=dict(arbitrary_types_allowed=True))
     def meta(self, val: Union[Dict, SpeMetadataModel]):
         if isinstance(val, dict):
-            self._metadata = SpeMetadataModel.parse_obj(val)
+            self._metadata = SpeMetadataModel.model_validate(val)
         else:
             self._metadata = val
 
@@ -195,7 +202,7 @@ class Spectrum(Plottable):
     def result(self, res: Union[Dict, List]):
         return self.meta._update(dict(ramanchada2_filter_result=res))
 
-    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
+    @validate_call(config=dict(arbitrary_types_allowed=True))
     def spe_distribution(self, trim_range: Union[Tuple[float, float], None] = None):
         x_all = self.x_bin_boundaries
         if trim_range is not None:
@@ -206,8 +213,8 @@ class Spectrum(Plottable):
             spe_dist = rv_histogram((self.y, x_all))
         return spe_dist
 
-    @pydantic.validate_arguments(config=dict(arbitrary_types_allowed=True))
-    def gen_samples(self, size: pydantic.PositiveInt, trim_range=None):
+    @validate_call(config=dict(arbitrary_types_allowed=True))
+    def gen_samples(self, size: PositiveInt, trim_range=None):
         spe_dist = self.spe_distribution(trim_range=trim_range)
         samps = spe_dist.rvs(size=size)
         return samps

@@ -1,13 +1,11 @@
-#!/usr/bin/env python3
-
 import numpy as np
-from pydantic import validate_arguments, PositiveInt
+from pydantic import validate_call, PositiveInt
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def _moving_minimum(arr, window_size: PositiveInt):
     mov_min_left = [min(arr[max(0, i):min(i+window_size, len(arr))])
                     for i in range(len(arr))
@@ -19,7 +17,7 @@ def _moving_minimum(arr, window_size: PositiveInt):
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def moving_minimum(
         old_spe: Spectrum,
         new_spe: Spectrum,
@@ -32,7 +30,7 @@ def moving_minimum(
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def subtract_moving_minimum(
         old_spe: Spectrum,
         new_spe: Spectrum,

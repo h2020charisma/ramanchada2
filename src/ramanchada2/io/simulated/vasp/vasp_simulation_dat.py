@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
-
 from io import TextIOBase
 
 import pandas
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def lines_from_vasp_dat(data_in: TextIOBase) -> pandas.DataFrame:
     """
     calculates perpendicular and parallel intensities using

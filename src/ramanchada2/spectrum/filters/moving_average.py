@@ -1,15 +1,14 @@
-#!/usr/bin/env python3
-
 import numpy as np
-from pydantic import validate_arguments, PositiveInt
+from pydantic import PositiveInt, validate_call
 from scipy import signal
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def moving_average(old_spe: Spectrum,
                    new_spe: Spectrum, /,
                    window_size: PositiveInt = 10):
@@ -26,7 +25,7 @@ def moving_average(old_spe: Spectrum,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def moving_average_convolve(old_spe: Spectrum,
                             new_spe: Spectrum, /,
                             window_size: PositiveInt = 10):

@@ -1,16 +1,14 @@
-#!/usr/bin/env python3
-
-from typing import List
-from io import TextIOBase
 import re
+from io import TextIOBase
+from typing import List
 
 import pandas as pd
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from ramanchada2.misc.exceptions import InputParserError
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def lines_from_crystal_out(data_in: TextIOBase) -> pd.DataFrame:
     def advance_to(content: str) -> None:
         while content not in data_in.readline():

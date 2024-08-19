@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
@@ -9,7 +9,7 @@ from ..spectrum import Spectrum
 
 
 @add_spectrum_constructor(set_applied_processing=True)
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def hdr_from_multi_exposure(spes_in: List[Spectrum]):
     """Create an HDR spectrum from several spectra with different exposures.
 

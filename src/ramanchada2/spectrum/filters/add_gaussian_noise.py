@@ -1,5 +1,5 @@
 import numpy as np
-from pydantic import PositiveFloat, validate_arguments
+from pydantic import PositiveFloat, validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 
@@ -7,7 +7,7 @@ from ..spectrum import Spectrum
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def add_gaussian_noise(
         old_spe: Spectrum,
         new_spe: Spectrum, /,

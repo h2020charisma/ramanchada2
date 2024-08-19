@@ -11,8 +11,8 @@ def test_pearson4():
     peak_candidates = spe0.find_peak_multipeak(sharpening=None, strategy='topo', hht_chain=[150], wlen=200)
     fitres = spe0.fit_peak_multimodel(profile='Pearson4', candidates=peak_candidates, no_fit=False)
     fig, ax = plt.subplots(figsize=(35, 10))
-    fitres.plot(ax=ax, label='peak fitted')
     spe0.plot(ax=ax, label='experimental')
+    fitres.plot(ax=ax, label='peak fitted')
     plt.savefig('pearson4.png')
 
 

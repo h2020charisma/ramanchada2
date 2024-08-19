@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 import logging
 from typing import List, Literal, Union
 
 import numpy as np
 from lmfit.models import LinearModel, lmfit_models
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
@@ -20,7 +18,7 @@ available_models = ['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 
 available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def build_multipeak_model_params(profile: Union[available_models_type, List[available_models_type]],
                                  candidates: PeakCandidateMultiModel,
                                  baseline_model: Literal['linear', None] = 'linear',
@@ -84,7 +82,7 @@ def build_multipeak_model_params(profile: Union[available_models_type, List[avai
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def fit_peak_multimodel(spe, /, *,
                         profile: Union[available_models_type, List[available_models_type]],
                         candidates: ListPeakCandidateMultiModel,
@@ -99,7 +97,7 @@ def fit_peak_multimodel(spe, /, *,
         kwargs_fit = dict(kwargs_fit)
         kwargs_fit['max_nfev'] = 1
     fit_res = FitPeaksResult()
-    for group in candidates.__root__:
+    for group in candidates.root:
         mod, par = build_multipeak_model_params(profile=profile, candidates=group)
         idx = (group.boundaries[0] < spe.x) & (spe.x < group.boundaries[1])
         x = spe.x[idx]
@@ -118,7 +116,7 @@ def fit_peak_multimodel(spe, /, *,
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def fit_peaks_filter(
         old_spe: Spectrum,
         new_spe: Spectrum, /, *args,
@@ -129,7 +127,7 @@ def fit_peaks_filter(
     """
     Write fit result as metadata.
     """
-    cand_groups = ListPeakCandidateMultiModel.validate(old_spe.result)
+    cand_groups = ListPeakCandidateMultiModel.model_validate(old_spe.result)
     new_spe.result = old_spe.fit_peak_multimodel(*args,  # type: ignore
                                                  candidates=cand_groups,
                                                  should_break=should_break,

@@ -1,19 +1,20 @@
-#!/usr/bin/env python3
-
 import logging
-import pydantic
+from typing import Optional
+
+from pydantic import validate_call
+
+import ramanchada2.misc.types.spectrum as spe_t
+from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 from ..spectrum import Spectrum
-from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
-import ramanchada2.misc.types.spectrum as spe_t
 
 logger = logging.getLogger(__name__)
 
 
 @add_spectrum_constructor(set_applied_processing=False)
-@pydantic.validate_arguments
+@validate_call
 def from_cache_or_calc(required_steps: spe_t.SpeProcessingListModel,
-                       cachefile: str = ''):
+                       cachefile: Optional[str] = None):
     def recall():
         if len(required_steps):
             last_proc = required_steps.pop()
@@ -46,7 +47,7 @@ def from_cache_or_calc(required_steps: spe_t.SpeProcessingListModel,
             else:
                 cache_path = 'raw'
             spe = Spectrum.from_chada(cachefile, cache_path)
-            spe._applied_processings.extend_left(required_steps.__root__)
+            spe._applied_processings.extend_left(required_steps.root)
             return spe
         except Exception as e:
             logger.info(repr(e))

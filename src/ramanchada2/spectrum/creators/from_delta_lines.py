@@ -3,14 +3,14 @@
 from typing import Dict, Callable, Union
 
 import numpy as np
-from pydantic import validate_arguments, PositiveInt
+from pydantic import validate_call, PositiveInt
 
 from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 
 
 @add_spectrum_constructor()
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def from_delta_lines(
         deltas: Dict[float, float],
         xcal: Union[Callable[[float], float], None] = None,

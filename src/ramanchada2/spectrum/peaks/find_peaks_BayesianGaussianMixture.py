@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
-
 from typing import Union
 
-from pydantic import validate_arguments, PositiveInt
+from pydantic import PositiveInt, validate_call
 from sklearn.mixture import BayesianGaussianMixture
 
-from ..spectrum import Spectrum
 from ramanchada2.misc.spectrum_deco import add_spectrum_method
+
+from ..spectrum import Spectrum
 
 
 @add_spectrum_method
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def bayesian_gaussian_mixture(spe: Spectrum, /,
                               n_samples: PositiveInt = 5000,
                               n_components: PositiveInt = 50,

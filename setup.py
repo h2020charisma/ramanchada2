@@ -27,7 +27,7 @@ KEYWORDS = [
     'spectroscopy',
 ]
 
-PYTHON_REQUIRES = '>=3.9'
+PYTHON_REQUIRES = '>=3.9,<3.13'
 
 PACKAGES = find_packages(where='src')
 
@@ -42,20 +42,20 @@ INSTALL_REQUIRES = [
         "h5py==3.*",
         "lmfit==1.*",
         "matplotlib==3.*",
-        "numpy==2.*",
+        "numpy>=1.0,<3.0",
         "pandas==2.*",
-        "pydantic==1.*",
+        "pydantic~=2.0",
         "emd==0.7.*",
         "renishawWiRE==0.1.*",  # rc1-parser
         "scikit-learn==1.*",
         "scipy>=1.8.0,<2.0",
-        "spc-io==0.1.*",  # rc1-parser
+        "spc-io~=0.2.0",
         "statsmodels==0.14.*",
         "uncertainties==3.*",
 ]
 
 CLASSIFIERS = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
     'Intended Audience :: Science/Research',

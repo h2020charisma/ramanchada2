@@ -1,5 +1,6 @@
-from ramanchada2 import spectrum
 import numpy as np
+
+from ramanchada2 import spectrum
 
 
 def test_generate_and_fit():

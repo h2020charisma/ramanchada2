@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
-
 from typing import Union, Callable
 
-from pydantic import validate_arguments, Field
+from pydantic import validate_call, Field
 import numpy as np
 from scipy import signal, fft
 
@@ -10,7 +8,7 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def generate_baseline(
         n_freq: int = Field(..., gt=2),
         size: int = Field(..., gt=2),
@@ -38,7 +36,7 @@ def generate_baseline(
 
 
 @add_spectrum_filter
-@validate_arguments(config=dict(arbitrary_types_allowed=True))
+@validate_call(config=dict(arbitrary_types_allowed=True))
 def add_baseline(old_spe: Spectrum, new_spe: Spectrum, /, n_freq: int, amplitude: float, pedestal: float = 0,
                  func: Union[Callable, None] = None, rng_seed=None):
     """
