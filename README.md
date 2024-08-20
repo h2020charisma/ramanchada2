@@ -48,10 +48,11 @@ source .venv/bin/activate  # on linux
 .venv\Scripts\activate  # on windows
 ```
 
-Ramanchada package and all dependencies can be installed by runing:
+Install the package in editable mode and its development dependencies by running:
 
 ```bash
-pip install -r requirements-dev.txt  # install development environment
+pip install -e .
+pip install autopep8 flake8 jupyter mypy pdoc pytest tox
 hash -r  # make sure the newly created environment is in use
 ```
 
