@@ -160,11 +160,16 @@ class XCalibrationComponent(CalibrationComponent):
         # prominence = prominence, wlen=wlen, width=width
         find_kw = dict(sharpening=None)
         if should_fit:
-            self.spe_pos_dict = spe_to_process.fit_peak_positions(
-                    center_err_threshold=10, find_peaks_kw=find_kw, fit_peaks_kw=fit_peaks_kw)  # type: ignore
-            # fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_peaks_kw)
-            # pos, amp = fit_res.center_amplitude(threshold=1)
-            # spe_pos_dict = dict(zip(pos, amp))
+            # instead of fit_peak_positions - we don't want movmin here
+            # baseline removal might be done during preprocessing
+            center_err_threshold=.5
+            find_kw.update(dict(sharpening=None))
+            cand = spe_to_process.find_peak_multipeak(**find_kw)
+            fit_kw = dict(profile='Gaussian')
+            fit_kw.update(fit_peaks_kw)
+            fit_res = spe.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
+            pos, amp = fit_res.center_amplitude(threshold=center_err_threshold)
+            self.spe_pos_dict = dict(zip(pos, amp))
         else:
             # prominence = prominence, wlen=wlen, width=width
             print("find_peak_multipeak")
