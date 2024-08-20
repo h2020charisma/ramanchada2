@@ -149,44 +149,41 @@ class XCalibrationComponent(CalibrationComponent):
         logger.debug("[{}]: convert spe_units {} to ref_units {}".format(self.name, self.spe_units, self.ref_units))
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
-        # spe_to_process.plot(ax=ax[1], label=self.ref_units)
 
-        # if should_fit:
-        #     spe_pos_dict = spe_to_process.fit_peak_positions(center_err_threshold=1,
-        #                    find_peaks_kw=find_kw, fit_peaks_kw=fit_peaks_kw)  # type: ignore
-        # else:
-        #     find_kw = dict(sharpening=None)
-        #     spe_pos_dict = spe_to_process.find_peak_multipeak(**find_kw).get_pos_ampl_dict()  # type: ignore
-        # prominence = prominence, wlen=wlen, width=width
         find_kw = dict(sharpening=None)
+        peaks_df = None
         if should_fit:
             # instead of fit_peak_positions - we don't want movmin here
             # baseline removal might be done during preprocessing
             center_err_threshold=.5
             find_kw.update(dict(sharpening=None))
             cand = spe_to_process.find_peak_multipeak(**find_kw)
+            #print(cand.get_ampl_pos_fwhm())
             fit_kw = dict(profile='Gaussian')
             fit_kw.update(fit_peaks_kw)
-            fit_res = spe.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
+            fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
+            peaks_df = fit_res.to_dataframe_peaks()
             pos, amp = fit_res.center_amplitude(threshold=center_err_threshold)
             self.spe_pos_dict = dict(zip(pos, amp))
         else:
             # prominence = prominence, wlen=wlen, width=width
-            print("find_peak_multipeak")
+            logger.debug("find_peak_multipeak")
             cand = spe_to_process.find_peak_multipeak(**find_kw)
             self.spe_pos_dict = cand.get_pos_ampl_dict()
+            #print(cand.get_ampl_pos_fwhm())
         x_spe, x_reference, x_distance, df = rc2utils.match_peaks(self.spe_pos_dict, self.ref)
+        self.matched_peaks = df
         sum_of_differences = np.sum(np.abs(x_spe - x_reference)) / len(x_spe)
         logger.debug("sum_of_differences original {} {}".format(sum_of_differences, self.ref_units))
         if len(x_reference) == 1:
             _offset = (x_reference[0] - x_spe[0])
             logger.debug("ref", x_reference[0], "sample", x_spe[0], "offset", _offset, self.ref_units)
-            self.set_model(_offset, self.ref_units, df, name)
+            self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
             try:
                 kwargs = {"kernel": "thin_plate_spline"}
                 interp = interpolate.RBFInterpolator(x_spe.reshape(-1, 1), x_reference, **kwargs)
-                self.set_model(interp, self.ref_units, df, name)
+                self.set_model(interp, self.ref_units, peaks_df, name)
             except Exception as err:
                 raise err
 
@@ -411,7 +408,7 @@ class YCalibrationComponent(CalibrationComponent):
         return result
 
     def safe_mask(self, spe_to_correct, spe_reference_resampled):
-        ref_noise = spe_reference_resampled.y_noise
+        ref_noise = spe_reference_resampled.y_noise_MAD 
         return (spe_reference_resampled.y >= 0) & (abs(spe_reference_resampled.y) > ref_noise)
 
     def safe_factor(self, spe_to_correct, spe_reference_resampled):
@@ -491,7 +488,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         """
         Finds and fits peaks in the spectrum spe.
         """
-        cand = spe.find_peak_multipeak(prominence=spe.y_noise*self.prominence_coeff, wlen=wlen, width=width)
+        cand = spe.find_peak_multipeak(prominence=spe.y_noise_MAD*self.prominence_coeff, wlen=wlen, width=width)
         init_guess = spe.fit_peak_multimodel(profile=profile, candidates=cand, no_fit=True)
         fit_res = spe.fit_peak_multimodel(profile=profile, candidates=cand)
         return cand, init_guess, fit_res
@@ -534,7 +531,7 @@ class CalibrationModel(ProcessingModel, Plottable):
                 spe_neon, self.neon_wl[self.laser_wl], spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw={},
                 fit_peaks_kw={}, should_fit=False, name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil, spe_units=spe_sil_units, convert_back=False)
-        find_kw = {"prominence": spe_sil_ne_calib.y_noise * 10, "wlen": 200, "width":  1}
+        find_kw = {"prominence": spe_sil_ne_calib.y_noise_MAD * 10, "wlen": 200, "width":  1}
         model_si = self.derive_model_zero(
                 spe_sil_ne_calib, ref={520.45: 1}, spe_units="nm", ref_units=ref_sil_units, find_kw=find_kw,
                 fit_peaks_kw={}, should_fit=True, name="Si laser zeroing")
@@ -579,11 +576,11 @@ class CalibrationModel(ProcessingModel, Plottable):
             break
 
     @staticmethod
-    def calibration_model_factory(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL):
+    def calibration_model_factory(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL,find_kw={},fit_peaks_kw={}):
         calmodel = CalibrationModel(laser_wl)
         calmodel.prominence_coeff = 3
-        model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
+        model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = False,name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units="cm-1",convert_back=False)
-        find_kw = {"prominence" :spe_sil_ne_calib.y_noise * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
-        model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw={},should_fit=True,name="Si calibration")
+        find_kw = {"prominence" :spe_sil_ne_calib.y_noise_MAD * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
+        model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
         return calmodel
