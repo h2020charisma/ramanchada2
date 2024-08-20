@@ -1,6 +1,6 @@
 
 from functools import wraps
-from .calibration import XCalibrationComponent
+#from .calibration import XCalibrationComponent
 
 def add_calibration_serialisation(cls):
     def decorator(fun):
