@@ -539,3 +539,10 @@ neon_wl_D3_3 = [
 ]
 
 neon_wl_D3_3_dict = dict(zip(neon_wl_D3_3, [1]*len(neon_wl_D3_3)))
+
+NEON_WL = {
+    785: neon_wl_785_nist_dict,
+    633: neon_wl_633_nist_dict,
+    532: neon_wl_532_nist_dict
+}
+
