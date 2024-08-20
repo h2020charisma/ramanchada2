@@ -6,7 +6,7 @@ from ..misc import utils as rc2utils
 from ..spectrum import Spectrum
 from matplotlib.axes import Axes
 from ramanchada2.misc.plottable import Plottable
-from scipy import interpolate
+from scipy.interpolate import RBFInterpolator
 import logging
 import json
 import os
@@ -78,8 +78,11 @@ class CalibrationComponent(Plottable):
     def plot(self, ax=None, label=' ', **kwargs) -> Axes:
         if ax is None:
             fig, ax = plt.subplots(3, 1, figsize=(12, 4))
+        elif not isinstance(ax, (list, np.ndarray)):
+            raise ValueError("ax should be a list or array of Axes when creating multiple subplots.")
+
         self._plot(ax[0], label=label, **kwargs)
-        #ax.legend()
+        ax[0].legend()
         return ax
 
     def _plot(self, ax, **kwargs):
@@ -105,7 +108,7 @@ class XCalibrationComponent(CalibrationComponent):
         if self.model is None:
             return new_spe
         elif self.enabled:
-            if isinstance(self.model, interpolate.RBFInterpolator):
+            if isinstance(self.model, RBFInterpolator):
                 new_spe.x = self.model(new_spe.x.reshape(-1, 1))
             elif isinstance(self.model, float):
                 new_spe.x = new_spe.x + self.model
@@ -119,22 +122,13 @@ class XCalibrationComponent(CalibrationComponent):
             return new_spe
 
     def _plot(self, ax, **kwargs):
-        # self.spe.plot(ax=ax[0].twinx(), label=self.spe_units)
-
         ax.stem(self.spe_pos_dict.keys(), self.spe_pos_dict.values(), linefmt='b-', basefmt=' ',
                 label="{} peaks".format(self.sample))
         ax.twinx().stem(self.ref.keys(), self.ref.values(), linefmt='r-', basefmt=' ',
                         label="Reference {}".format(self.sample))
         ax.set_xlabel("{}".format(self.ref_units))
         ax.legend()
-        # fig, ax = plt.subplots(1, 1, figsize=(3, 3))
-        # ax.scatter(x_spe, x_reference, marker='o')
-        # ax.set_xlabel("spectrum x ({})".format(self.ref_units))
-        # ax.set_ylabel("reference x ({})".format(self.ref_units))
 
-        # x_plot = np.linspace(min(x_spe), max(x_spe), 20)
-        # y_plot = interp(x_plot.reshape(-1, 1))
-        # ax.scatter(x_plot, y_plot, marker='.', label=kwargs["kernel"])
 
     def _plot_peaks(self, ax, **kwargs):
         # self.model.peaks
@@ -182,7 +176,7 @@ class XCalibrationComponent(CalibrationComponent):
         else:
             try:
                 kwargs = {"kernel": "thin_plate_spline"}
-                interp = interpolate.RBFInterpolator(x_spe.reshape(-1, 1), x_reference, **kwargs)
+                interp = CustomRBFInterpolator(x_spe.reshape(-1, 1), x_reference, **kwargs)
                 self.set_model(interp, self.ref_units, peaks_df, name)
             except Exception as err:
                 raise err
@@ -484,15 +478,6 @@ class CalibrationModel(ProcessingModel, Plottable):
         self.neon_wl = NEON_WL
         self.prominence_coeff = 3
 
-    def peaks(self, spe, profile='Gaussian', wlen=300, width=1):
-        """
-        Finds and fits peaks in the spectrum spe.
-        """
-        cand = spe.find_peak_multipeak(prominence=spe.y_noise_MAD*self.prominence_coeff, wlen=wlen, width=width)
-        init_guess = spe.fit_peak_multimodel(profile=profile, candidates=cand, no_fit=True)
-        fit_res = spe.fit_peak_multimodel(profile=profile, candidates=cand)
-        return cand, init_guess, fit_res
-
     def set_laser_wavelength(self, laser_wl):
         """
         Sets the wavelength of the laser used for calibration.
@@ -584,3 +569,33 @@ class CalibrationModel(ProcessingModel, Plottable):
         find_kw = {"prominence" :spe_sil_ne_calib.y_noise_MAD * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
         model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
         return calmodel
+    
+class CustomRBFInterpolator(RBFInterpolator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def from_dict(rbf_dict={}):
+        interpolator_loaded = CustomRBFInterpolator(rbf_dict['y'],rbf_dict['d'],epsilon=rbf_dict['epsilon'], 
+                                                    smoothing=rbf_dict['smoothing'], kernel=rbf_dict['kernel'], neighbors = rbf_dict["neighbors"])
+        interpolator_loaded._coeffs = rbf_dict['coeffs']
+        interpolator_loaded._scale = rbf_dict['scale']
+        interpolator_loaded._shift = rbf_dict['shift']
+        return interpolator_loaded
+
+    def to_dict(self):
+        return {
+            "y": self.y,
+            "d": self.d,
+            "d_dtype": self.d_dtype,
+            "d_shape": self.d_shape,
+            "epsilon": self.epsilon,
+            "kernel": self.kernel,
+            "neighbors": self.neighbors,
+            "powers": self.powers,
+            "smoothing": self.smoothing,
+            "coeffs": self._coeffs,
+            "scale": self._scale,
+            "shift": self._shift
+        }
+        
