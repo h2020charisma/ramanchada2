@@ -14,7 +14,7 @@ from typing import Tuple, Optional
 from pydantic import BaseModel, ValidationError
 from functools import wraps
 from ramanchada2.misc.constants import NEON_WL
-from .calibration_deco import add_calibration_serialisation
+
 
 logger = logging.getLogger(__name__)
 
