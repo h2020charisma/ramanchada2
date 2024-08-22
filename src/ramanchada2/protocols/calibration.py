@@ -137,14 +137,13 @@ class XCalibrationComponent(CalibrationComponent):
         # spe.plot(ax=ax[0].twinx(),label=spe_units)
         # spe_to_process.plot(ax=ax[1],label=ref_units)
 
-    def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
+    def derive_model(self, find_kw={"sharpening" : None}, fit_peaks_kw={}, should_fit=False, name=None):
 
         # convert to ref_units
         logger.debug("[{}]: convert spe_units {} to ref_units {}".format(self.name, self.spe_units, self.ref_units))
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
 
-        find_kw = dict(sharpening=None)
         peaks_df = None
         if should_fit:
             # instead of fit_peak_positions - we don't want movmin here
@@ -508,18 +507,20 @@ class CalibrationModel(ProcessingModel, Plottable):
             return pickle.load(file)
 
     def derive_model_x(self, spe_neon, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", spe_sil=None,
-                       spe_sil_units="cm-1", ref_sil=None, ref_sil_units="cm-1", find_kw={}, fit_kw={}):
+                       spe_sil_units="cm-1", ref_sil=None, ref_sil_units="cm-1", find_kw={"wlen": 200, "width":  1}, fit_kw={}):
         """
         Derives x-calibration models using Neon and Silicon spectra.
         """
+        find_kw["prominence"]= spe_neon.y_noise_MAD * self.prominence_coeff
         model_neon = self.derive_model_curve(
-                spe_neon, self.neon_wl[self.laser_wl], spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw={},
-                fit_peaks_kw={}, should_fit=False, name="Neon calibration")
+                spe_neon, self.neon_wl[self.laser_wl], spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw=find_kw,
+                fit_peaks_kw=fit_kw, should_fit=False, name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil, spe_units=spe_sil_units, convert_back=False)
-        find_kw = {"prominence": spe_sil_ne_calib.y_noise_MAD * 10, "wlen": 200, "width":  1}
+
+        find_kw["prominence"]= spe_sil_ne_calib.y_noise_MAD * self.prominence_coeff
         model_si = self.derive_model_zero(
                 spe_sil_ne_calib, ref={520.45: 1}, spe_units="nm", ref_units=ref_sil_units, find_kw=find_kw,
-                fit_peaks_kw={}, should_fit=True, name="Si laser zeroing")
+                fit_peaks_kw=fit_kw, should_fit=True, name="Si laser zeroing")
         return (model_neon, model_si)
 
     def derive_model_curve(self, spe, ref, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
