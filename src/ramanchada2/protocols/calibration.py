@@ -511,13 +511,13 @@ class CalibrationModel(ProcessingModel, Plottable):
         """
         Derives x-calibration models using Neon and Silicon spectra.
         """
-        find_kw["prominence"]= spe_neon.y_noise_MAD * self.prominence_coeff
+        find_kw["prominence"]= spe_neon.y_noise_MAD() * self.prominence_coeff
         model_neon = self.derive_model_curve(
                 spe_neon, self.neon_wl[self.laser_wl], spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw=find_kw,
                 fit_peaks_kw=fit_kw, should_fit=False, name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil, spe_units=spe_sil_units, convert_back=False)
 
-        find_kw["prominence"]= spe_sil_ne_calib.y_noise_MAD * self.prominence_coeff
+        find_kw["prominence"]= spe_sil_ne_calib.y_noise_MAD() * self.prominence_coeff
         model_si = self.derive_model_zero(
                 spe_sil_ne_calib, ref={520.45: 1}, spe_units="nm", ref_units=ref_sil_units, find_kw=find_kw,
                 fit_peaks_kw=fit_kw, should_fit=True, name="Si laser zeroing")
@@ -567,7 +567,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         calmodel.prominence_coeff = 3
         model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = False,name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units="cm-1",convert_back=False)
-        find_kw = {"prominence" :spe_sil_ne_calib.y_noise_MAD * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
+        find_kw = {"prominence" :spe_sil_ne_calib.y_noise_MAD() * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
         model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
         return calmodel
     
