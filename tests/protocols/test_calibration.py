@@ -72,7 +72,13 @@ def test_xcalibration(setup_module):
     for spe in [setup_module.spe_pst2,setup_module.spe_pst3]:
         spe_norm = spe.normalize()
         spe_norm.plot(ax=ax,label="original",color="blue")
-        spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
+
+        #resample with NUDFT
+        spe_resampled = spe_norm.resample_NUDFT_filter(x_range=(_min,_max), xnew_bins=_max-_min)
+        spe_y_original.append(spe_resampled.y)
+        
+        #resample with histogram
+        #spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
         
         spe = setup_module.calmodel.apply_calibration_x(
                 spe,
