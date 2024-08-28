@@ -15,9 +15,13 @@ from ..spectrum import Spectrum
 def resample_NUDFT(spe: Spectrum, /,
                    x_range: Tuple[float, float] = (0, 4000),
                    xnew_bins: PositiveInt = 100,
-                   window: Optional[Union[Callable,  # type: ignore[valid-type]
-                                          Tuple[Any, ...],
-                                          Literal[*dir(signal.windows.windows)]
+                   window: Optional[Union[Callable,
+                                          Tuple[Any, ...],  # e.g. ('gaussian', sigma)
+                                          Literal['barthann', 'bartlett', 'blackman', 'blackmanharris',
+                                                  'bohman', 'boxcar', 'chebwin', 'cosine', 'dpss',
+                                                  'exponential', 'flattop', 'gaussian', 'general_cosine',
+                                                  'general_gaussian', 'general_hamming', 'hamming', 'hann',
+                                                  'kaiser', 'nuttall', 'parzen', 'taylor', 'triang', 'tukey']
                                           ]] = None,
                    cumulative: bool = False):
 
@@ -40,7 +44,7 @@ def resample_NUDFT(spe: Spectrum, /,
         window = 'blackmanharris'
 
     if hasattr(window, '__call__'):
-        h = (window(len(Y_new)*2))[len(Y_new):]
+        h = (window(len(Y_new)*2))[len(Y_new):]  # type: ignore
     else:
         h = signal.windows.get_window(window, len(Y_new)*2)[len(Y_new):]
     Y_new *= h
