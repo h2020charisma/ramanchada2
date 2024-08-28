@@ -19,7 +19,7 @@ class SetupModule:
         self.spe_sil = rc2.spectrum.from_test_spe(sample=['S0B'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
         self.spe_nCal = rc2.spectrum.from_test_spe(sample=['nCAL'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
 
-        self.spe_sil = self.spe_sil.trim_axes(method='x-axis',boundaries=(520.45-200,520.45+200))
+        self.spe_sil = self.spe_sil.trim_axes(method='x-axis',boundaries=(520.45-100,520.45+100))
         self.spe_neon = self.spe_neon.trim_axes(method='x-axis',boundaries=(100,max(self.spe_neon.x)))    
         kwargs = {"niter" : 40 }
         self.spe_neon = self.spe_neon.subtract_baseline_rc1_snip(**kwargs)  
@@ -33,7 +33,9 @@ class SetupModule:
             neon_wl = rc2const.NEON_WL[785]
             self.calmodel = CalibrationModel.calibration_model_factory(785,
                                             self.spe_neon,self.spe_sil,neon_wl = neon_wl,
-                                            find_kw={"wlen" : 100, "width" :  1}, fit_peaks_kw={},should_fit=False)
+                                            find_kw={"wlen" : 200, "width" :  1}, fit_peaks_kw={},should_fit=False)
+            assert len(self.calmodel.components)==2
+            print(self.calmodel.components[1].profile, self.calmodel.components[1].peaks)
         except Exception as err:
             self.calmodel = None
             traceback.print_exc()
@@ -43,12 +45,20 @@ class SetupModule:
 def setup_module():
     return SetupModule()
 
-def test_serialization(setup_module):
+def test_laser_zeroing(setup_module):
     assert setup_module.calmodel is not None
-        
-    xcal = setup_module.calmodel.components[0]
-    #print(f"Methods in xcal: {dir(xcal)}")
-    #print(type(xcal))
+    fig, ax =plt.subplots(1,1,figsize=(12,2))
+    spe_sil_calib = setup_module.calmodel.apply_calibration_x(
+                setup_module.spe_sil,
+                spe_units="cm-1"
+                )
+    setup_module.spe_sil.plot(label="Si original",ax=ax)
+    spe_sil_calib.plot(ax = ax,label="Si laser zeroed",fmt=":")
+    #ax.set_xlim(520.45-50,520.45+50)    
+    
+    ax.set_xlabel(setup_module.calmodel.components[1].model_units)
+    print(setup_module.calmodel.components[1])
+    plt.savefig("{}.png".format("laser_zeroing"))
     
   
 
@@ -62,39 +72,48 @@ def resample(spe,xmin,xmax,npoints):
     return y_values *  scale
 
 
-def test_xcalibration(setup_module):
-    assert setup_module.calmodel is not None
+def resample_NUDFT(spe,xmin,xmax,npoints):
+    spe_resampled = spe.resample_NUDFT_filter(x_range=(xmin,xmax), xnew_bins=npoints)
+    return spe_resampled.y
+
+def compare_calibrated_spe(setup_module,spectra,name="calibration"):
+    fig, ax = plt.subplots(2,1,figsize=(24, 8))
+    setup_module.calmodel.plot(ax = ax[1])
+    crl = [("blue","red"),("green","black")]
     spe_y_original = []
     _min = 200
     _max = 2000
     spe_calibrated = []
-    fig, ax = plt.subplots(figsize=(24, 8))
-    for spe in [setup_module.spe_pst2,setup_module.spe_pst3]:
+    for index,spe in enumerate(spectra):
         spe_norm = spe.normalize()
-        spe_norm.plot(ax=ax,label="original",color="blue")
+        spe_norm.plot(ax=ax[0],label=f"original {index}",color=crl[index][0])
 
         #resample with NUDFT
-        spe_resampled = spe_norm.resample_NUDFT_filter(x_range=(_min,_max), xnew_bins=_max-_min)
-        spe_y_original.append(spe_resampled.y)
+        #spe_y_original.append(resample_NUDFT(spe_norm,_min,_max,_max-_min))
         
         #resample with histogram
-        #spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
+        spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
         
-        spe = setup_module.calmodel.apply_calibration_x(
+        spe_c = setup_module.calmodel.apply_calibration_x(
                 spe,
                 spe_units="cm-1"
                 )
-        #returns spectra in nm!
-        spe = setup_module.calmodel.components[0].convert_units(spe, "nm", "cm-1")
-        spe_norm = spe.normalize()        
-        spe_norm.plot(ax=ax,label="calibrated",color="red")
-        spe_calibrated.append(resample(spe_norm,_min,_max,_max-_min))
+        spe_c_norm = spe_c.normalize()        
+        spe_c_norm.plot(ax=ax[0],label=f"calibrated {index}",color=crl[index][1])
+        spe_calibrated.append(resample(spe_c_norm,_min,_max,_max-_min))
     cos_sim_matrix_original =  cosine_similarity(spe_y_original)
     cos_sim_matrix =  cosine_similarity(spe_calibrated)
 
-    plt.savefig("{}.png".format("calibration"))
-    print(np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
+    plt.savefig("{}.png".format(name))
+    print(name,np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
     assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
     
+def test_xcalibration_pst(setup_module):
+    assert setup_module.calmodel is not None
+    compare_calibrated_spe(setup_module,[setup_module.spe_pst2,setup_module.spe_pst3],"PST") 
 
+
+def test_xcalibration_si(setup_module):
+    assert setup_module.calmodel is not None
+    compare_calibrated_spe(setup_module,[setup_module.spe_sil,setup_module.spe_sil],"Sil") 
     
