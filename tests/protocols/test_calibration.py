@@ -4,19 +4,11 @@ import numpy as np
 import pytest
 import ramanchada2 as rc2
 from ramanchada2.protocols.calibration import CalibrationModel, XCalibrationComponent
-from ramanchada2.protocols.calibration_io import xcalibration_model_to_json
 
 from sklearn.metrics.pairwise import cosine_similarity
 import ramanchada2.misc.constants as rc2const
 import matplotlib.pyplot as plt
-
-NEON_WL = {
-    785: rc2const.neon_wl_785_nist_dict,
-    633: rc2const.neon_wl_633_nist_dict,
-    532: rc2const.neon_wl_532_nist_dict
-}
-
-from ramanchada2.protocols.calibration_io import to_json
+import traceback
 
 
 class SetupModule:
@@ -37,7 +29,12 @@ class SetupModule:
         self.spe_neon = self.spe_neon.normalize()        
         self.spe_sil = self.spe_sil.normalize()        
 
-        self.calmodel, model_neon = calibration_model_x(785,self.spe_neon,self.spe_sil)
+        try:
+            self.calmodel = CalibrationModel.calibration_model_factory(785,
+                                            self.spe_neon,self.spe_sil,neon_wl = rc2const.NEON_WL,
+                                            find_kw={"wlen" : 100, "width" :  1}, fit_peaks_kw={},should_fit=True)
+        except Exception as err:
+            traceback.print_exc()
         
 
 @pytest.fixture(scope='module')
@@ -48,16 +45,8 @@ def test_serialization(setup_module):
     xcal = setup_module.calmodel.components[0]
     print(f"Methods in xcal: {dir(xcal)}")
     print(type(xcal))
-    print(xcal.to_json())
-    print(xcalibration_model_to_json(xcal))
     
-    
-
-def calibration_model_x(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL):
-    calmodel = CalibrationModel(laser_wl)
-    calmodel.prominence_coeff = 3
-    model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw={},fit_peaks_kw={},should_fit = False,name="Neon calibration")
-    return calmodel, model_neon
+  
 
 def resample(spe,xmin,xmax,npoints):
     x_values = np.linspace(xmin, xmax, npoints)
