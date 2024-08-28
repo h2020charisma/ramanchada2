@@ -35,7 +35,7 @@ class SetupModule:
                                             self.spe_neon,self.spe_sil,neon_wl = neon_wl,
                                             find_kw={"wlen" : 200, "width" :  1}, fit_peaks_kw={},should_fit=False)
             assert len(self.calmodel.components)==2
-            print(self.calmodel.components[1].profile, self.calmodel.components[1].peaks)
+            #print(self.calmodel.components[1].profile, self.calmodel.components[1].peaks)
         except Exception as err:
             self.calmodel = None
             traceback.print_exc()
@@ -55,9 +55,9 @@ def test_laser_zeroing(setup_module):
     setup_module.spe_sil.plot(label="Si original",ax=ax)
     spe_sil_calib.plot(ax = ax,label="Si laser zeroed",fmt=":")
     #ax.set_xlim(520.45-50,520.45+50)    
-    
+
     ax.set_xlabel(setup_module.calmodel.components[1].model_units)
-    print(setup_module.calmodel.components[1])
+    #print(setup_module.calmodel.components[1])
     plt.savefig("{}.png".format("laser_zeroing"))
     
   

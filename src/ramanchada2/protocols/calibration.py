@@ -15,6 +15,7 @@ from functools import wraps
 from ramanchada2.misc.constants import NEON_WL
 from scipy.interpolate import RBFInterpolator
 import warnings
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,11 @@ class CalibrationComponent(Plottable):
         self.__dict__.update(state)
         self.fit_res = None  # Or some default value    
 
+    def fitres2df(self):
+        return pd.DataFrame(list(zip(self.fit_res.centers ,self.fit_res.fwhm, 
+                              np.array([v for peak in self.fit_res for k, v in peak.values.items() if k.endswith('height')]),
+                              np.array([v for peak in self.fit_res for k, v in peak.values.items() if k.endswith('amplitude')])
+                              )),columns=["center","fwhm","height","amplitude"]).sort_values(by="height",ascending=False)
 
 class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
@@ -168,7 +174,8 @@ class XCalibrationComponent(CalibrationComponent):
             fit_kw = dict(profile='Gaussian')
             fit_kw.update(fit_peaks_kw)
             self.fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
-            peaks_df = self.fit_res.to_dataframe_peaks()
+            peaks_df = self.fitres2df()
+            #self.fit_res.to_dataframe_peaks()
             pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
             self.spe_pos_dict = dict(zip(pos, amp))
         else:
@@ -206,7 +213,8 @@ class LazerZeroingComponent(CalibrationComponent):
         logger.debug(self.name, cand)
         # init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
         self.fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
-        df = self.fit_res.to_dataframe_peaks()
+        #df = self.fit_res.to_dataframe_peaks()
+        df = self.fitres2df()
         # highest peak first
         df = df.sort_values(by='height', ascending=False)
         #df = df.sort_values(by='amplitude', ascending=False)
@@ -217,7 +225,7 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
-            # print(self.name, "peak", zero_peak_nm)
+            print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
             self.set_model(zero_peak_nm, "nm", df, "Laser zeroing using {} nm".format(zero_peak_nm))
             logger.info(self.name, "peak", zero_peak_nm)
