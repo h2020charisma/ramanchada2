@@ -13,8 +13,8 @@ from typing import Tuple, Optional
 from pydantic import BaseModel, ValidationError
 from functools import wraps
 from ramanchada2.misc.constants import NEON_WL
-from warnings import deprecated
 from scipy.interpolate import RBFInterpolator
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -519,7 +519,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         model_neon = self._derive_model_curve(
                 spe_neon, 
                 self.neon_wl[self.laser_wl] if ref_neon is None else ref_neon, 
-                spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw=find_kw,
+                spe_units=spe_neon_units, ref_units=ref_neon_units, 
+                find_kw=find_kw,
                 fit_peaks_kw=fit_kw, should_fit=should_fit, name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil, spe_units=spe_sil_units, convert_back=False)
 
@@ -529,8 +530,12 @@ class CalibrationModel(ProcessingModel, Plottable):
                 fit_peaks_kw=fit_kw, should_fit=True, name="Si laser zeroing")
         return (model_neon, model_si)
 
-    def _derive_model_curve(self, spe : Spectrum, ref : None, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
+    def _derive_model_curve(self, spe : Spectrum, ref : None, spe_units="cm-1", ref_units="nm", find_kw=None, fit_peaks_kw=None,
                            should_fit=False, name="X calibration"):
+        if find_kw is None:
+            find_kw = {}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}          
         reference_peaks = self.neon_wl[self.laser_wl] if ref is None else ref,         
         calibration_x = XCalibrationComponent(self.laser_wl, spe, spe_units,  reference_peaks, ref_units)
         calibration_x.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
@@ -538,14 +543,21 @@ class CalibrationModel(ProcessingModel, Plottable):
         return calibration_x        
         
     
-    @deprecated("Do not use directly. Use derive_model_x instead.")
-    def derive_model_curve(self, spe : Spectrum, ref : None, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
+    def derive_model_curve(self, spe : Spectrum, ref = None, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
                            should_fit=False, name="X calibration"):
-        return  self._derive_model_curve(self, spe, ref,  spe_units, ref_units, find_kw=find_kw, fit_peaks_kw=fit_peaks_kw,
+        warnings.warn(message="Do not use directly. Use derive_model_x instead.",category=DeprecationWarning)
+        return  self._derive_model_curve(spe=spe, ref=ref,  spe_units= spe_units, ref_units= ref_units, 
+                            find_kw=find_kw, fit_peaks_kw=fit_peaks_kw,
                            should_fit=should_fit, name=name)
 
-    def _derive_model_zero(self, spe : Spectrum, ref={520.45: 1}, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
+    def _derive_model_zero(self, spe : Spectrum, ref=None, spe_units="nm", ref_units="cm-1", find_kw=None, fit_peaks_kw=None,
                           should_fit=False, name="X Shift", profile="Gaussian"):
+        if ref is None:
+            ref = {520.45: 1}
+        if find_kw is None:
+            find_kw = {}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}        
         calibration_shift = LazerZeroingComponent(self.laser_wl, spe, spe_units, ref, ref_units)
         calibration_shift.profile = profile
         calibration_shift.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
@@ -557,11 +569,12 @@ class CalibrationModel(ProcessingModel, Plottable):
         if _laser_zeroing_component is None: # LaserZeroing component should present only once
             self.components.append(calibration_shift)
         return calibration_shift
-        
-    @deprecated("Do not use directly. Use derive_model_x instead.")
+
     def derive_model_zero(self, spe : Spectrum, ref={520.45: 1}, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
                           should_fit=False, name="X Shift", profile="Gaussian"):
-        return self._derive_model_zero(self, spe , ref, spe_units, ref_units, find_kw=find_kw, fit_peaks_kw=fit_peaks_kw,
+        warnings.warn(message="Do not use directly. Use derive_model_x instead.",category=DeprecationWarning)
+        return self._derive_model_zero(spe=spe , ref=ref, spe_units=spe_units, ref_units=ref_units, 
+                            find_kw=find_kw, fit_peaks_kw=fit_peaks_kw,
                           should_fit=should_fit, name=name, profile=profile)    
 
     def apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1"):
@@ -592,10 +605,13 @@ class CalibrationModel(ProcessingModel, Plottable):
         calmodel = CalibrationModel(laser_wl)
         calmodel.prominence_coeff = prominence_coeff
         find_kw["prominence"] = spe_neon.y_noise_MAD() * calmodel.prominence_coeff 
-        model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = should_fit,name="Neon calibration")
+        model_neon = calmodel.derive_model_curve(spe=spe_neon,ref=neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",
+                                    find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = should_fit,name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units="cm-1",convert_back=False)
         find_kw["prominence"] = spe_sil_ne_calib.y_noise_MAD() * calmodel.prominence_coeff 
-        model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
+        model_si = calmodel.derive_model_zero(spe=spe_sil_ne_calib,
+                        ref={520.45:1},spe_units="nm",ref_units="cm-1",
+                        find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
         return calmodel
     
 class CustomRBFInterpolator(RBFInterpolator):
