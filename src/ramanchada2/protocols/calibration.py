@@ -225,9 +225,9 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
-            print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
             self.set_model(zero_peak_nm, "nm", df, "Laser zeroing using {} nm".format(zero_peak_nm))
+            print(self.name, "peak", zero_peak_nm)
             logger.info(self.name, "peak", zero_peak_nm)
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
@@ -425,7 +425,7 @@ class YCalibrationComponent(CalibrationComponent):
         return result
 
     def safe_mask(self, spe_to_correct, spe_reference_resampled):
-        ref_noise = spe_reference_resampled.y_noise_MAD 
+        ref_noise = spe_reference_resampled.y_noise_MAD()
         return (spe_reference_resampled.y >= 0) & (abs(spe_reference_resampled.y) > ref_noise)
 
     def safe_factor(self, spe_to_correct, spe_reference_resampled):
@@ -640,7 +640,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units="cm-1",convert_back=False)
         find_kw["prominence"] = spe_sil_ne_calib.y_noise_MAD() * calmodel.prominence_coeff 
         model_si = calmodel.derive_model_zero(spe=spe_sil_ne_calib,
-                        ref={520.45:1},spe_units="nm",ref_units="cm-1",
+                        ref={520.45:1},spe_units=model_neon.model_units,ref_units="cm-1",
                         find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
         return calmodel
     
