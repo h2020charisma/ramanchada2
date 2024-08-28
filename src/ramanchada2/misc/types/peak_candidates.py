@@ -34,7 +34,7 @@ class PeakModel(PydBaseModel):
         return self.fwhm*(1+self.skew)/2
 
     def serialize(self):
-        self.json()
+        return self.model_dump_json()
 
 
 class PeakCandidateMultiModel(PydBaseModel, Plottable):
@@ -105,7 +105,7 @@ class PeakCandidateMultiModel(PydBaseModel, Plottable):
         ax.plot(*self.plot_params_baseline())
 
     def serialize(self):
-        self.json()
+        return self.model_dump_json()
 
 
 class ListPeakCandidateMultiModel(PydRootModel, Plottable):
@@ -131,4 +131,4 @@ class ListPeakCandidateMultiModel(PydRootModel, Plottable):
         return len(self.root)
 
     def serialize(self):
-        self.json()
+        return self.model_dump_json()
