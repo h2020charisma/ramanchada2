@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Callable, Literal, Optional, Tuple, Union
 
 import numpy as np
 from pydantic import PositiveInt, validate_call
@@ -15,18 +15,41 @@ from ..spectrum import Spectrum
 def resample_NUDFT(spe: Spectrum, /,
                    x_range: Tuple[float, float] = (0, 4000),
                    xnew_bins: PositiveInt = 100,
-                   window=signal.windows.hann,
+                   window: Optional[Union[Callable,
+                                          Tuple[Any, ...],  # e.g. ('gaussian', sigma)
+                                          Literal['barthann', 'bartlett', 'blackman', 'blackmanharris',
+                                                  'bohman', 'boxcar', 'chebwin', 'cosine', 'dpss',
+                                                  'exponential', 'flattop', 'gaussian', 'general_cosine',
+                                                  'general_gaussian', 'general_hamming', 'hamming', 'hann',
+                                                  'kaiser', 'nuttall', 'parzen', 'taylor', 'triang', 'tukey']
+                                          ]] = None,
                    cumulative: bool = False):
+
+    x_new = np.linspace(x_range[0], x_range[1], xnew_bins, endpoint=False)
     x = spe.x
     y = spe.y
     x = np.array(x)
+    x_range = (np.min(x_range), np.max(x_range))
+    y = y[(x >= x_range[0]) & (x < x_range[1])]
     x = x[(x >= x_range[0]) & (x < x_range[1])]
-    x = (x-x_range[0])/(x_range[1]-x_range[0])*xnew_bins
-    w = np.linspace(0, np.pi, (xnew_bins)//2+1)
-    Y_new = np.sum([yi*np.exp(-1j*w*xi) for xi, yi in zip(x, y)], axis=0)
-    Y_new *= (window(len(Y_new)*2))[len(Y_new):]
+
+    w = (x-x_range[0])/(x_range[1]-x_range[0])*np.pi*2
+    x -= x_range[0]
+
+    k = np.arange(xnew_bins)
+
+    Y_new = np.sum([yi*np.exp(-1j*wi*k) for yi, wi in zip(y, w)], axis=0)
+
+    if window is None:
+        window = 'blackmanharris'
+
+    if hasattr(window, '__call__'):
+        h = (window(len(Y_new)*2))[len(Y_new):]  # type: ignore
+    else:
+        h = signal.windows.get_window(window, len(Y_new)*2)[len(Y_new):]
+    Y_new *= h
+
     y_new = fft.irfft(Y_new, n=xnew_bins)
-    x_new = np.linspace(x_range[0], x_range[1], xnew_bins)
     if cumulative:
         y_new = np.cumsum(y_new)
         y_new /= y_new[-1]
@@ -39,7 +62,7 @@ def resample_NUDFT_filter(old_spe: Spectrum,
                           new_spe: Spectrum, /,
                           x_range: Tuple[float, float] = (0, 4000),
                           xnew_bins: PositiveInt = 100,
-                          window=signal.windows.blackmanharris,
+                          window=None,
                           cumulative: bool = False):
     new_spe.x, new_spe.y = resample_NUDFT(old_spe,
                                           x_range=x_range,
