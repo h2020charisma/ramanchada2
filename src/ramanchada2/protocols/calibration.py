@@ -6,7 +6,6 @@ from ..misc import utils as rc2utils
 from ..spectrum import Spectrum
 from matplotlib.axes import Axes
 from ramanchada2.misc.plottable import Plottable
-from scipy.interpolate import RBFInterpolator
 import logging
 import json
 import os
@@ -14,7 +13,8 @@ from typing import Tuple, Optional
 from pydantic import BaseModel, ValidationError
 from functools import wraps
 from ramanchada2.misc.constants import NEON_WL
-
+from warnings import deprecated
+from scipy.interpolate import RBFInterpolator
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,8 @@ class XCalibrationComponent(CalibrationComponent):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
 
-        peaks_df = None
+        #peaks_df = None
+        fit_res = None
         if should_fit:
             # instead of fit_peak_positions - we don't want movmin here
             # baseline removal might be done during preprocessing
@@ -203,7 +204,7 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["center"]
             # print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-            self.set_model(zero_peak_nm, "nm", df, "Lazer zeroing using {} nm".format(zero_peak_nm))
+            self.set_model(zero_peak_nm, "nm", df, "Laser zeroing using {} nm".format(zero_peak_nm))
             logger.info(self.name, "peak", zero_peak_nm)
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
@@ -506,37 +507,62 @@ class CalibrationModel(ProcessingModel, Plottable):
         with open(filename, "rb") as file:
             return pickle.load(file)
 
-    def derive_model_x(self, spe_neon, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", spe_sil=None,
-                       spe_sil_units="cm-1", ref_sil=None, ref_sil_units="cm-1", find_kw={"wlen": 200, "width":  1}, fit_kw={}):
+
+    def derive_model_x(self, spe_neon : Spectrum, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", spe_sil: Spectrum=None,
+                       spe_sil_units="cm-1", ref_sil={520.45: 1}, ref_sil_units="cm-1", find_kw={"wlen": 200, "width":  1}, fit_kw={},
+                       should_fit=False):
         """
         Derives x-calibration models using Neon and Silicon spectra.
         """
+        self.components.clear()
         find_kw["prominence"]= spe_neon.y_noise_MAD() * self.prominence_coeff
-        model_neon = self.derive_model_curve(
-                spe_neon, self.neon_wl[self.laser_wl], spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw=find_kw,
-                fit_peaks_kw=fit_kw, should_fit=False, name="Neon calibration")
+        model_neon = self._derive_model_curve(
+                spe_neon, 
+                self.neon_wl[self.laser_wl] if ref_neon is None else ref_neon, 
+                spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw=find_kw,
+                fit_peaks_kw=fit_kw, should_fit=should_fit, name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil, spe_units=spe_sil_units, convert_back=False)
 
         find_kw["prominence"]= spe_sil_ne_calib.y_noise_MAD() * self.prominence_coeff
-        model_si = self.derive_model_zero(
-                spe_sil_ne_calib, ref={520.45: 1}, spe_units="nm", ref_units=ref_sil_units, find_kw=find_kw,
+        model_si = self._derive_model_zero(
+                spe_sil_ne_calib, ref=ref_sil, spe_units=model_neon.model_units, ref_units=ref_sil_units, find_kw=find_kw,
                 fit_peaks_kw=fit_kw, should_fit=True, name="Si laser zeroing")
         return (model_neon, model_si)
 
-    def derive_model_curve(self, spe, ref, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
+    def _derive_model_curve(self, spe : Spectrum, ref : None, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
                            should_fit=False, name="X calibration"):
-        calibration_x = XCalibrationComponent(self.laser_wl, spe, spe_units, ref, ref_units)
+        reference_peaks = self.neon_wl[self.laser_wl] if ref is None else ref,         
+        calibration_x = XCalibrationComponent(self.laser_wl, spe, spe_units,  reference_peaks, ref_units)
         calibration_x.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
         self.components.append(calibration_x)
-        return calibration_x
+        return calibration_x        
+        
+    
+    @deprecated("Do not use directly. Use derive_model_x instead.")
+    def derive_model_curve(self, spe : Spectrum, ref : None, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
+                           should_fit=False, name="X calibration"):
+        return  self._derive_model_curve(self, spe, ref,  spe_units, ref_units, find_kw=find_kw, fit_peaks_kw=fit_peaks_kw,
+                           should_fit=should_fit, name=name)
 
-    def derive_model_zero(self, spe, ref, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
+    def _derive_model_zero(self, spe : Spectrum, ref={520.45: 1}, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
                           should_fit=False, name="X Shift", profile="Gaussian"):
         calibration_shift = LazerZeroingComponent(self.laser_wl, spe, spe_units, ref, ref_units)
         calibration_shift.profile = profile
         calibration_shift.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
-        self.components.append(calibration_shift)
+        _laser_zeroing_component = None
+        for i, item in enumerate(self.components):
+            if isinstance(item, LazerZeroingComponent):
+                self.components[i] = calibration_shift        
+                _laser_zeroing_component = self.components[i]
+        if _laser_zeroing_component is None: # LaserZeroing component should present only once
+            self.components.append(calibration_shift)
         return calibration_shift
+        
+    @deprecated("Do not use directly. Use derive_model_x instead.")
+    def derive_model_zero(self, spe : Spectrum, ref={520.45: 1}, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
+                          should_fit=False, name="X Shift", profile="Gaussian"):
+        return self._derive_model_zero(self, spe , ref, spe_units, ref_units, find_kw=find_kw, fit_peaks_kw=fit_peaks_kw,
+                          should_fit=should_fit, name=name, profile=profile)    
 
     def apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1"):
         # neon calibration converts to nm
@@ -562,12 +588,13 @@ class CalibrationModel(ProcessingModel, Plottable):
             break
 
     @staticmethod
-    def calibration_model_factory(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL,find_kw={},fit_peaks_kw={}):
+    def calibration_model_factory(laser_wl,spe_neon,spe_sil,neon_wl = NEON_WL,find_kw={"wlen" : 100, "width" :  1},fit_peaks_kw={},should_fit=False,prominence_coeff=3):
         calmodel = CalibrationModel(laser_wl)
-        calmodel.prominence_coeff = 3
-        model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = False,name="Neon calibration")
+        calmodel.prominence_coeff = prominence_coeff
+        find_kw["prominence"] = spe_neon.y_noise_MAD() * calmodel.prominence_coeff 
+        model_neon = calmodel.derive_model_curve(spe_neon,neon_wl[laser_wl],spe_units="cm-1",ref_units="nm",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit = should_fit,name="Neon calibration")
         spe_sil_ne_calib = model_neon.process(spe_sil,spe_units="cm-1",convert_back=False)
-        find_kw = {"prominence" :spe_sil_ne_calib.y_noise_MAD() * calmodel.prominence_coeff , "wlen" : 200, "width" :  1 }
+        find_kw["prominence"] = spe_sil_ne_calib.y_noise_MAD() * calmodel.prominence_coeff 
         model_si = calmodel.derive_model_zero(spe_sil_ne_calib,ref={520.45:1},spe_units="nm",ref_units="cm-1",find_kw=find_kw,fit_peaks_kw=fit_peaks_kw,should_fit=True,name="Si calibration")
         return calmodel
     

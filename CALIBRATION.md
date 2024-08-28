@@ -2,24 +2,16 @@
 
 ```python
 # Create an instance of CalibrationModel
-calmodel = CalibrationModel(laser_wl=785)
-calmodel.derive_model_x(
-    spe_neon,
-    spe_neon_units='cm-1',
-    ref_neon=None,
-    ref_neon_units='nm',
-    spe_sil=None,
-    spe_sil_units='cm-1',
-    ref_sil=None,
-    ref_sil_units='cm-1'
-    )
-# Store
+# x-calibration
+calmodel = CalibrationModel.calibration_model_factory(laser_wl=785,spe_neon,spe_sil,neon_wl = rc2const.NEON_WL,
+                                            find_kw={"wlen" : 100, "width" :  1}, fit_peaks_kw={},should_fit=True)
+# Save
 calmodel.save(modelfile)
 # Load
 calmodel = CalibrationModel.from_file(modelfile)
 # Apply to new spectrum
 calmodel.apply_calibration_x(
     spe_to_calibrate,
-    spe_units='m-1'
+    spe_units='cm-1'
     )
 ```
