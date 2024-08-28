@@ -101,11 +101,12 @@ class CalibrationComponent(Plottable):
         self.__dict__.update(state)
         self.fit_res = None  # Or some default value    
 
-    def fitres2df(self):
-        return pd.DataFrame(list(zip(self.fit_res.centers ,self.fit_res.fwhm, 
+    def fitres2df(self,spe):
+        df = pd.DataFrame(list(zip(self.fit_res.centers ,self.fit_res.fwhm, 
                               np.array([v for peak in self.fit_res for k, v in peak.values.items() if k.endswith('height')]),
                               np.array([v for peak in self.fit_res for k, v in peak.values.items() if k.endswith('amplitude')])
                               )),columns=["center","fwhm","height","amplitude"])
+        return df[(df['center'] >= min(spe.x)) & (df['center'] <= max(spe.x))]
 
 class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
@@ -174,7 +175,7 @@ class XCalibrationComponent(CalibrationComponent):
             fit_kw = dict(profile='Gaussian')
             fit_kw.update(fit_peaks_kw)
             self.fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
-            peaks_df = self.fitres2df()
+            peaks_df = self.fitres2df(spe_to_process)
             #self.fit_res.to_dataframe_peaks()
             pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
             self.spe_pos_dict = dict(zip(pos, amp))
@@ -214,7 +215,7 @@ class LazerZeroingComponent(CalibrationComponent):
         # init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
         self.fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
         #df = self.fit_res.to_dataframe_peaks()
-        df = self.fitres2df()
+        df = self.fitres2df(self.spe)
         # highest peak first
         df = df.sort_values(by='height', ascending=False)
         #df = df.sort_values(by='amplitude', ascending=False)
