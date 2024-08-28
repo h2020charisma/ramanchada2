@@ -3,6 +3,8 @@ from .. import spectrum as rc2spectrum
 from .utils.ramanshift_to_wavelength import (abs_nm_to_shift_cm_1_dict,
                                              shift_cm_1_to_abs_nm_dict)
 
+from typing import Final
+
 PST_RS_dict = {620.9: 16, 795.8: 10, 1001.4: 100, 1031.8: 27, 1155.3: 13, 1450.5: 8,
                1583.1: 12, 1602.3: 28, 2852.4: 9, 2904.5: 13, 3054.3: 32}
 
