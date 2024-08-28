@@ -41,6 +41,7 @@ class CalibrationComponent(Plottable):
         self.peaks = None
         self.sample = sample
         self.enabled = True
+        self.fit_res = None
 
     def set_model(self, model, model_units, peaks, name=None):
         self.model = model
@@ -87,6 +88,17 @@ class CalibrationComponent(Plottable):
 
     def _plot(self, ax, **kwargs):
         pass
+
+    def __getstate__(self):
+        # Return the state to be serialized, excluding transient_data
+        state = self.__dict__.copy()
+        del state['fit_res']
+        return state
+
+    def __setstate__(self, state):
+        # Restore the state and initialize transient_data
+        self.__dict__.update(state)
+        self.fit_res = None  # Or some default value    
 
 
 class XCalibrationComponent(CalibrationComponent):
@@ -145,7 +157,7 @@ class XCalibrationComponent(CalibrationComponent):
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
 
         peaks_df = None
-        fit_res = None
+        self.fit_res = None
         if should_fit:
             # instead of fit_peak_positions - we don't want movmin here
             # baseline removal might be done during preprocessing
@@ -155,9 +167,9 @@ class XCalibrationComponent(CalibrationComponent):
             #print(cand.get_ampl_pos_fwhm())
             fit_kw = dict(profile='Gaussian')
             fit_kw.update(fit_peaks_kw)
-            fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
-            peaks_df = fit_res.to_dataframe_peaks()
-            pos, amp = fit_res.center_amplitude(threshold=center_err_threshold)
+            self.fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
+            peaks_df = self.fit_res.to_dataframe_peaks()
+            pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
             self.spe_pos_dict = dict(zip(pos, amp))
         else:
             # prominence = prominence, wlen=wlen, width=width
@@ -186,15 +198,18 @@ class LazerZeroingComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units="nm", ref={520.45: 1}, ref_units="cm-1", sample="Silicon"):
         super(LazerZeroingComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
         self.profile = "Pearson4"
+        #self.profile = "Gaussian"
 
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
         find_kw = dict(sharpening=None)
         cand = self.spe.find_peak_multipeak(**find_kw)
         logger.debug(self.name, cand)
         # init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
-        fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
-        df = fit_res.to_dataframe_peaks()
+        self.fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
+        df = self.fit_res.to_dataframe_peaks()
+        # highest peak first
         df = df.sort_values(by='height', ascending=False)
+        #df = df.sort_values(by='amplitude', ascending=False)
         if df.empty:
             raise Exception("No peaks found")
         else:
@@ -552,7 +567,7 @@ class CalibrationModel(ProcessingModel, Plottable):
                            should_fit=should_fit, name=name)
 
     def _derive_model_zero(self, spe : Spectrum, ref=None, spe_units="nm", ref_units="cm-1", find_kw=None, fit_peaks_kw=None,
-                          should_fit=False, name="X Shift", profile="Gaussian"):
+                          should_fit=False, name="Laser zeroing", profile="Gaussian"):
         if ref is None:
             ref = {520.45: 1}
         if find_kw is None:
