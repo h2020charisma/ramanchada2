@@ -105,7 +105,7 @@ class CalibrationComponent(Plottable):
         return pd.DataFrame(list(zip(self.fit_res.centers ,self.fit_res.fwhm, 
                               np.array([v for peak in self.fit_res for k, v in peak.values.items() if k.endswith('height')]),
                               np.array([v for peak in self.fit_res for k, v in peak.values.items() if k.endswith('amplitude')])
-                              )),columns=["center","fwhm","height","amplitude"]).sort_values(by="height",ascending=False)
+                              )),columns=["center","fwhm","height","amplitude"])
 
 class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
