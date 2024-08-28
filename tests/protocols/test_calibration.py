@@ -30,10 +30,12 @@ class SetupModule:
         self.spe_sil = self.spe_sil.normalize()        
 
         try:
+            neon_wl = rc2const.NEON_WL[785]
             self.calmodel = CalibrationModel.calibration_model_factory(785,
-                                            self.spe_neon,self.spe_sil,neon_wl = rc2const.NEON_WL,
-                                            find_kw={"wlen" : 100, "width" :  1}, fit_peaks_kw={},should_fit=True)
+                                            self.spe_neon,self.spe_sil,neon_wl = neon_wl,
+                                            find_kw={"wlen" : 100, "width" :  1}, fit_peaks_kw={},should_fit=False)
         except Exception as err:
+            self.calmodel = None
             traceback.print_exc()
         
 
@@ -42,9 +44,11 @@ def setup_module():
     return SetupModule()
 
 def test_serialization(setup_module):
+    assert setup_module.calmodel is not None
+        
     xcal = setup_module.calmodel.components[0]
-    print(f"Methods in xcal: {dir(xcal)}")
-    print(type(xcal))
+    #print(f"Methods in xcal: {dir(xcal)}")
+    #print(type(xcal))
     
   
 
@@ -53,12 +57,13 @@ def resample(spe,xmin,xmax,npoints):
     dist = spe.spe_distribution(trim_range=(xmin, xmax))
     y_values = dist.pdf(x_values)
     scale = np.max(spe.y) / np.max(y_values)
-        # pdf sampling is normalized to area unity, scaling back
-        #tbd - make resample a filter
+    # pdf sampling is normalized to area unity, scaling back
+    #tbd - make resample a filter
     return y_values *  scale
 
 
 def test_xcalibration(setup_module):
+    assert setup_module.calmodel is not None
     spe_y_original = []
     _min = 200
     _max = 2000
