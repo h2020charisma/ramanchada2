@@ -117,7 +117,7 @@ class FitPeaksResult(UserList, Plottable):
         ).sort_values('name')
 
     def to_dataframe_peaks(self):
-        regex = re.compile(r'p([0-1]+)_(.*)')
+        regex = re.compile(r'p([0-9]+)_(.*)')
         ret = defaultdict(dict)
         for group_i, group in enumerate(self):
             for par in group.params:
