@@ -39,6 +39,9 @@ class Spectrum(Plottable):
         if y is not None:
             self.y = y
 
+        self._x_err = None
+        self._y_err = None
+
         sort_idx = np.argsort(self.x)
         if (np.diff(sort_idx) != 1).any():
             self.x = self.x[sort_idx]
@@ -176,11 +179,33 @@ class Spectrum(Plottable):
 
     @property
     def x_err(self):
-        return np.zeros_like(self._xdata)
+        if self._x_err is None:
+            return np.zeros_like(self._xdata)
+        else:
+            return self._x_err
+
+    @x_err.setter
+    def x_err(self, val: Union[npt.NDArray, None]):
+        if val is not None:
+            if val.shape != self._xdata.shape:
+                raise ValueError(
+                    'x_err should have same shape as xdata, expected {self._xdata.shape}, got {val.shape}')
+        self._x_err = val
 
     @property
     def y_err(self):
-        return np.zeros_like(self._ydata)
+        if self._y_err is None:
+            return np.zeros_like(self._ydata)
+        else:
+            return self._y_err
+
+    @y_err.setter
+    def y_err(self, val: Union[npt.NDArray, None]):
+        if val is not None:
+            if val.shape != self._ydata.shape:
+                raise ValueError(
+                    'y_err should have same shape as ydata, expected {self._ydata.shape}, got {val.shape}')
+        self._y_err = val
 
     @property
     def meta(self) -> SpeMetadataModel:
