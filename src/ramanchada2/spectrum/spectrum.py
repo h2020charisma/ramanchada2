@@ -39,8 +39,8 @@ class Spectrum(Plottable):
         if y is not None:
             self.y = y
 
-        self._x_err = None
-        self._y_err = None
+        self._x_err: Union[npt.NDArray, None] = None
+        self._y_err: Union[npt.NDArray, None] = None
 
         sort_idx = np.argsort(self.x)
         if (np.diff(sort_idx) != 1).any():
