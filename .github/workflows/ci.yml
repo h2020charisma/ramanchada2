@@ -28,10 +28,10 @@ jobs:
     steps:
 
       - name: Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: ${{ matrix.python_version }}
 
@@ -46,7 +46,7 @@ jobs:
         run: tox
 
       - name: Store the coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.0
         with:
           include-hidden-files: true
           name: coverage-${{ matrix.python_version }}
@@ -63,18 +63,18 @@ jobs:
     steps:
 
       - name: Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.7
 
       - name: Retrieve the coverage reports
         id: download
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.1.8
         with:
           pattern: coverage-*
           merge-multiple: true
 
       - name: Process the coverage reports
         id: coverage_processing
-        uses: py-cov-action/python-coverage-comment-action@v3
+        uses: py-cov-action/python-coverage-comment-action@v3.27
         with:
           COVERAGE_DATA_BRANCH: 'COVERAGE-REPORT'
           GITHUB_TOKEN: ${{ github.token }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Store the pull request coverage comment for later posting
         if: steps.coverage_processing.outputs.COMMENT_FILE_WRITTEN == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: python-coverage-comment-action
           path: python-coverage-comment-action.txt
