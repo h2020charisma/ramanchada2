@@ -82,7 +82,7 @@ def resample_spline(spe: Spectrum, /,
                     interp_kw_args: Optional[Dict] = None,
                     cumulative: bool = False):
 
-    kw_args = {'extrapolate': False}
+    kw_args: Dict[str, Any] = {'extrapolate': False}
     if spline == 'pchip':
         spline_fn = PchipInterpolator
     elif spline == 'akima':
