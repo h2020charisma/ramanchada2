@@ -74,7 +74,7 @@ jobs:
 
       - name: Process the coverage reports
         id: coverage_processing
-        uses: py-cov-action/python-coverage-comment-action@v3.27
+        uses: py-cov-action/python-coverage-comment-action@v3.28
         with:
           COVERAGE_DATA_BRANCH: 'COVERAGE-REPORT'
           GITHUB_TOKEN: ${{ github.token }}
