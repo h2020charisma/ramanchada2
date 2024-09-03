@@ -10,7 +10,8 @@ from ..spectrum import Spectrum
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def normalize(old_spe: Spectrum,
               new_spe: Spectrum, /,
-              strategy: Literal['unity', 'min_unity', 'unity_density', 'unity_area', 'minmax'] = 'minmax'):
+              strategy: Literal['unity', 'min_unity', 'unity_density', 'unity_area', 'minmax',
+                                'L1', 'L2'] = 'minmax'):
     """
     Normalize the spectrum.
 
@@ -18,7 +19,7 @@ def normalize(old_spe: Spectrum,
         strategy:
             If `unity`: normalize to `sum(y)`. If `min_unity`: subtract the minimum and normalize to 'unity'. If
             `unity_density`: normalize to `Σ(y_i*Δx_i)`. If `unity_area`: same as `unity_density`. If `minmax`: scale
-            amplitudes in range `[0, 1]`.
+            amplitudes in range `[0, 1]`. If 'L1' or 'L2': L1 or L2 norm without subtracting the pedestal.
     """
     if strategy == 'unity':
         res = old_spe.y
@@ -35,4 +36,10 @@ def normalize(old_spe: Spectrum,
     elif strategy == 'minmax':
         res = old_spe.y - np.min(old_spe.y)
         res /= np.max(res)
+        new_spe.y = res
+    elif strategy == 'L1':
+        res /= np.linalg.norm(res, 1)
+        new_spe.y = res
+    elif strategy == 'L2':
+        res /= np.linalg.norm(res)
         new_spe.y = res

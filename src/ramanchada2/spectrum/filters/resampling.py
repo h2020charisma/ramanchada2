@@ -1,8 +1,10 @@
-from typing import Any, Callable, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 from pydantic import PositiveInt, validate_call
 from scipy import fft, signal
+from scipy.interpolate import (Akima1DInterpolator, CubicSpline,
+                               PchipInterpolator)
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
@@ -69,3 +71,56 @@ def resample_NUDFT_filter(old_spe: Spectrum,
                                           xnew_bins=xnew_bins,
                                           window=window,
                                           cumulative=cumulative)
+
+
+@add_spectrum_method
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def resample_spline(spe: Spectrum, /,
+                    x_range: Tuple[float, float] = (0, 4000),
+                    xnew_bins: PositiveInt = 100,
+                    spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'makima',
+                    interp_kw_args: Optional[Dict] = None,
+                    cumulative: bool = False):
+
+    kw_args = {'extrapolate': False}
+    if spline == 'pchip':
+        spline_fn = PchipInterpolator
+    elif spline == 'akima':
+        spline_fn = Akima1DInterpolator
+        kw_args['method'] = 'akima'
+    elif spline == 'makima':
+        spline_fn = Akima1DInterpolator
+        kw_args['method'] = 'makima'
+    elif spline == 'cubic_spline':
+        spline_fn = CubicSpline
+        kw_args['bc_type'] = 'natural'
+
+    if interp_kw_args is not None:
+        kw_args.update(interp_kw_args)
+
+    x_new = np.linspace(x_range[0], x_range[1], xnew_bins, endpoint=False)
+    y_new = spline_fn(spe.x, spe.y, **kw_args)(x_new)
+
+    y_new[np.isnan(y_new)] = 0
+    if cumulative:
+        y_new = np.cumsum(y_new)
+        y_new /= y_new[-1]
+
+    return x_new, y_new
+
+
+@add_spectrum_filter
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def resample_spline_filter(old_spe: Spectrum,
+                           new_spe: Spectrum, /,
+                           x_range: Tuple[float, float] = (0, 4000),
+                           xnew_bins: PositiveInt = 100,
+                           spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'makima',
+                           interp_kw_args: Optional[Dict] = None,
+                           cumulative: bool = False):
+    new_spe.x, new_spe.y = resample_spline(old_spe,
+                                           x_range=x_range,
+                                           xnew_bins=xnew_bins,
+                                           spline=spline,
+                                           interp_kw_args=interp_kw_args,
+                                           cumulative=cumulative)
