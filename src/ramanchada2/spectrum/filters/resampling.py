@@ -78,16 +78,15 @@ def resample_NUDFT_filter(old_spe: Spectrum,
 def resample_spline(spe: Spectrum, /,
                     x_range: Tuple[float, float] = (0, 4000),
                     xnew_bins: PositiveInt = 100,
-                    spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'makima',
+                    spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'pchip',
                     interp_kw_args: Optional[Dict] = None,
                     cumulative: bool = False):
 
-    kw_args: Dict[str, Any] = {'extrapolate': False}
+    kw_args: Dict[str, Any] = {}
     if spline == 'pchip':
         spline_fn = PchipInterpolator
     elif spline == 'akima':
         spline_fn = Akima1DInterpolator
-        kw_args['method'] = 'akima'
     elif spline == 'makima':
         spline_fn = Akima1DInterpolator
         kw_args['method'] = 'makima'
@@ -115,7 +114,7 @@ def resample_spline_filter(old_spe: Spectrum,
                            new_spe: Spectrum, /,
                            x_range: Tuple[float, float] = (0, 4000),
                            xnew_bins: PositiveInt = 100,
-                           spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'makima',
+                           spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'pchip',
                            interp_kw_args: Optional[Dict] = None,
                            cumulative: bool = False):
     new_spe.x, new_spe.y = resample_spline(old_spe,
