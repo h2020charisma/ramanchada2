@@ -2,6 +2,7 @@
 
 [![build](https://github.com/h2020charisma/ramanchada2/workflows/build/badge.svg)](https://github.com/h2020charisma/ramanchada2/actions/workflows/build.yml)
 [![docs](https://github.com/h2020charisma/ramanchada2/workflows/docs/badge.svg)](https://h2020charisma.github.io/ramanchada2/index.html)
+[![DOI](https://zenodo.org/badge/476228306.svg)](https://zenodo.org/doi/10.5281/zenodo.10255172)
 
 Harmonising Raman spectroscopy: meant to fill the gap between the theoretical Raman analysis and the experimental Raman spectroscopy by providing means to compare data of different origin.
 
