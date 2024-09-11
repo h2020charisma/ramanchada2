@@ -19,6 +19,22 @@ def derivative_sharpening(old_spe: Spectrum,
                           der2_factor: float = 1,
                           der4_factor: float = .1
                           ):
+    """
+    Derivative-based sharpening.
+
+    Sharpen the spectrum subtracting second derivative and add fourth derivative.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        filter_fraction `float` in (0; 1]: Default is 0.6
+            Depth of filtration
+        signal_width: The width of features to be enhanced in sample count
+        der2_factor: Second derivative scaling factor
+        der4_factor: Fourth derivative scaling factor
+
+    Returns: modified Spectrum
+    """
     leny = len(old_spe.y)
     Y = fft.rfft(old_spe.y, n=leny)
     h = signal.windows.hann(int(len(Y)*filter_fraction))
@@ -41,6 +57,19 @@ def hht_sharpening(old_spe: Spectrum,
                    new_spe: Spectrum, /,
                    movmin=100
                    ):
+    """
+    Hilbert-Huang based sharpening.
+
+    In order to reduce the overshooting, moving minimum is subtracted from the result
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        movmin: optional. Default is 100
+            Window size for moving minimum
+
+    Returns: modified Spectrum
+    """
     imfs = emd.sift.sift(old_spe.y).T
     freq_list = list()
     for ansig in signal.hilbert(imfs):
@@ -65,6 +94,21 @@ def hht_sharpening_chain(old_spe: Spectrum,
                          new_spe: Spectrum, /,
                          movmin: List[PositiveInt] = [150, 50]
                          ):
+    """
+    Hilbert-Huang based chain sharpening.
+
+    Sequence of Hilbert-Huang sharpening procedures are performed.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        movmin: List[int], optional. Default is [150, 50]
+            The numer of values in the list defines how many iterations
+            of HHT_sharpening will be performed and the values define
+            the moving minimum window sizes for the corresponding operations.
+
+    Returns: modified Spectrum
+    """
     spe = old_spe
     for mm in movmin:
         spe = spe.hht_sharpening(movmin=mm)  # type: ignore

@@ -1,4 +1,5 @@
 import logging
+from typing import Dict
 
 from pydantic import validate_call
 
@@ -16,7 +17,31 @@ def fit_peak_positions(spe: Spectrum, /, *,
                        center_err_threshold=.5,
                        find_peaks_kw={},
                        fit_peaks_kw={},
-                       ):
+                       ) -> Dict[float, float]:
+    """
+    Calculate peak positions and amplitudes.
+
+    Sequence of multiple processings:
+    - `subtract_moving_minimum`
+    - `find_peak_multipeak`
+    - filter peaks with x-location better than threshold
+
+    Args:
+        spe: internal use only
+        mov_min: optional. Defaults to 40
+            subtract moving_minimum with the specified window.
+        center_err_threshold: optional. Defaults to 0.5.
+            threshold for centroid standard deviation. Only peaks
+            with better uncertainty will be returned.
+
+        find_peaks_kw: optional
+            keyword arguments to be used with find_peak_multipeak
+        fit_peaks_kw: optional
+            keyword arguments to be used with fit_peaks_multipeak
+
+    Returns:
+        Dict[float, float]: {positions: amplitudes}
+    """
     ss = spe.subtract_moving_minimum(mov_min)  # type: ignore
     find_kw = dict(sharpening=None)
     find_kw.update(find_peaks_kw)
