@@ -23,6 +23,20 @@ def smoothing_RC1(old_spe: Spectrum,
                                   'lowess',
                                   'boxcar'],
                   **kwargs):
+    """
+    Smooth the spectrum.
+
+    The spectrum will be smoothed using the specified filter.
+    This method is inherited from ramanchada1 for compatibility reasons.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        method: method to be used
+        **kwargs: keyword arguments to be passed to the selected method
+
+    Returns: modified Spectrum
+    """
     if method == 'savgol' or method == 'sg':
         new_spe.y = savgol_filter(old_spe.y, **kwargs)  # window_length, polyorder
     elif method == 'wiener':

@@ -1,12 +1,16 @@
-#!/usr/bin/env python3
+from typing import List, Literal, Tuple, Union
+
 import numpy as np
-from ..spectrum import Spectrum
-from pydantic import validate_call, PositiveInt, NonNegativeFloat, NonNegativeInt
-from ramanchada2.misc.spectrum_deco import add_spectrum_method, add_spectrum_filter
-from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel
+from pydantic import (NonNegativeFloat, NonNegativeInt, PositiveInt,
+                      validate_call)
 from scipy import signal
 from scipy.signal import find_peaks_cwt
-from typing import Union, Tuple, List, Literal
+
+from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
+                                            add_spectrum_method)
+from ramanchada2.misc.types.peak_candidates import ListPeakCandidateMultiModel
+
+from ..spectrum import Spectrum
 
 
 def peak_boundaries(spe, wlen, width, prominence):
@@ -45,6 +49,29 @@ def find_peak_multipeak(
         sharpening: Union[Literal['hht'], None] = None,
         strategy: Literal['topo', 'bayesian_gaussian_mixture', 'bgm', 'cwt'] = 'topo'
         ) -> ListPeakCandidateMultiModel:
+    """
+    Find groups of peaks in spectrum.
+
+    Args:
+        spe: internal use only
+        prominence: Optional. Defaults to None
+            If None the prominence value will be `spe.y_nose`. Reasonable value for
+            promience is `const * spe.y_noise_MAD`.
+        wlen: optional. Defaults to None.
+            wlen value used in `scipy.signal.find_peaks`. If wlen is None, 200 will be used.
+        width: optional. Defaults to None.
+            width value used in `scipy.signal.find_peaks`. If width is None, 2 will be used.
+        hht_chain: optional. Defaults to None.
+            List of hht_chain window sizes. If None, no hht sharpening is performed.
+        bgm_kwargs: kwargs for bayesian_gaussian_mixture
+        sharpening 'hht' or None. Defaults to None.
+            If 'hht' hht sharpening will be performed before finding peaks.
+        strategy: optional. Defauts to 'topo'.
+            Peakfinding method
+
+    Returns:
+        ListPeakCandidateMultiModel: Located peak groups
+    """
 
     if prominence is None:
         prominence = spe.y_noise
@@ -172,5 +199,13 @@ def find_peak_multipeak_filter(
         old_spe: Spectrum,
         new_spe: Spectrum, /,
         *args, **kwargs):
+    """
+    Same as `find_peak_multipeak` but the result is stored as metadata in the returned spectrum.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        *args, **kwargs: same as `find_peak_multipeak`
+    """
     res = old_spe.find_peak_multipeak(*args, **kwargs)  # type: ignore
     new_spe.result = res.model_dump()

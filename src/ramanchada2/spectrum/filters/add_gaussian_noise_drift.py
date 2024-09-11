@@ -44,6 +44,7 @@ def add_gaussian_noise_drift(
         rng_seed=None):
     r"""
     Add cumulative gaussian noise to the spectrum.
+
     Exponential-moving-average-like gaussian noise is added
     to each sample. The goal is to mimic the low-frequency noise
     (or random substructures in spectra).
@@ -58,14 +59,18 @@ def add_gaussian_noise_drift(
         \sigma(\Delta(a)) \approx 1.
 
     Args:
+        old_spe: internal use only
+        new_spe: internal use only
         sigma:
             Sigma of the gaussian noise.
         coef:
-            `float` in `[0, 1]`, drifting coefficient. If `coef == 0`, the result is identical to
-            `add_gaussian_noise()`.
+            `float` in `[0, 1]`, drifting coefficient. If `coef == 0`,
+            the result is identical to `add_gaussian_noise()`.
         rng_seed:
-            `int` or rng state, optional. Seed for the random generator. If a state is provided, it is updated
-            in-place.
+            `int` or rng state, optional. Seed for the random generator.
+            If a state is provided, it is updated in-place.
+
+    Returns: modified Spectrum
     """
     new_spe.y = generate_add_gaussian_noise_drift(old_spe.y,
                                                   sigma=sigma,
