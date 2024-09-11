@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import ramanchada2 as rc2
 from ramanchada2.protocols.calibration import CalibrationModel, XCalibrationComponent
+from ramanchada2.protocols.calibration import YCalibrationComponent, YCalibrationCertificate, CertificatesDict
 
 from sklearn.metrics.pairwise import cosine_similarity
 import ramanchada2.misc.constants as rc2const
@@ -13,12 +14,16 @@ import traceback
 
 class SetupModule:
     def __init__(self):
+        self.laser_wl = 785
         self.spe_neon = rc2.spectrum.from_test_spe(sample=['Neon'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
         self.spe_pst2 = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['02'], laser_wl=['785'])
         self.spe_pst3 = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
         self.spe_sil = rc2.spectrum.from_test_spe(sample=['S0B'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
         self.spe_sil2 = rc2.spectrum.from_test_spe(sample=['S0B'], provider=['FNMT'], OP=['02'], laser_wl=['785'])
         self.spe_nCal = rc2.spectrum.from_test_spe(sample=['nCAL'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+
+        self.spe_SRM2241 = rc2.spectrum.from_test_spe(sample=['NIST785_SRM2241'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+        #NIR785_EL0-9002
 
         self.spe_sil = self.spe_sil.trim_axes(method='x-axis',boundaries=(max(100,520.45-200),520.45+200))
         self.spe_sil2 = self.spe_sil2.trim_axes(method='x-axis',boundaries=(max(100,520.45-200),520.45+200))
@@ -130,3 +135,38 @@ def test_xcalibration_si(setup_module):
 def test_xcalibration_cal(setup_module):
     assert setup_module.calmodel is not None
     compare_calibrated_spe(setup_module,[setup_module.spe_nCal,setup_module.spe_nCal],name="nCal")    
+
+
+def test_ycalibration(setup_module):
+    fig, ax = plt.subplots(2,1,figsize=(24, 8))
+
+    certificates = CertificatesDict()
+    print(certificates)
+    certs = certificates.get_certificates(wavelength=int(setup_module.laser_wl))
+
+    certificate = certs["NIST785_SRM2241"]
+    certificate.plot(ax = ax[1],color="pink")
+    ycal = YCalibrationComponent(setup_module.laser_wl, setup_module.spe_SRM2241 ,cert = certificate)
+    spe_to_correct  = setup_module.spe_pst2
+    spe_to_correct.plot(ax=ax[0] , label = "PST")
+    spe_ycalibrated = ycal.process(spe_to_correct)
+    spe_ycalibrated.plot(ax=ax[0] , label = "y calibrated")
+    
+    plt.savefig("test_calmodel_{}.png".format("NIST785_SRM2241"))
+
+def test_ycertificate():
+    cert = YCalibrationCertificate(
+        id="NIST785_SRM2241",
+        description="optical glass",
+        url="https://tsapps.nist.gov/srmext/certificates/2241.pdf",
+        wavelength=785,
+        params="A0 = 9.71937e-02, A1 = 2.28325e-04, A2 = -5.86762e-08, A3 = 2.16023e-10, A4 = -9.77171e-14, A5 = 1.15596e-17",
+        equation="A0 + A1 * x + A2 * x**2 + A3 * x**3 + A4 * x**4 + A5 * x**5",
+        temperature_c=(20, 25),
+        raman_shift=(200, 3500)
+        )
+    cert.plot()
+    plt.savefig("test_calmodel_{}.png".format("ycert"))
+
+def test_ycerts_dict():
+    certificates = CertificatesDict()    
