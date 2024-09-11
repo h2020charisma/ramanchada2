@@ -354,7 +354,7 @@ class CertificatesDict:
                     certificate_data["wavelength"] = int(wavelength)
                     certificate_data["id"] = certificate_id
                     try:
-                        certificate = YCalibrationCertificate(**certificate_data)
+                        certificate = YCalibrationCertificate.model_construct(**certificate_data)
                         certificates[wavelength][certificate_id] = certificate
                     except ValidationError as e:
                         print(f"Validation error for certificate {certificate_id}: {e}")
