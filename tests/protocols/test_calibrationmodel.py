@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import ramanchada2 as rc2
-from ramanchada2.protocols.calibration import CalibrationModel
+import ramanchada2.misc.constants as rc2const
 from ramanchada2.protocols.calibration import (
-    YCalibrationComponent,
-    YCalibrationCertificate,
+    CalibrationModel,
     CertificatesDict,
+    YCalibrationCertificate,
+    YCalibrationComponent,
 )
 from sklearn.metrics.pairwise import cosine_similarity
-import ramanchada2.misc.constants as rc2const
-import matplotlib.pyplot as plt
 
 
 class SetupModule:
