@@ -138,21 +138,25 @@ def test_xcalibration_cal(setup_module):
 
 
 def test_ycalibration(setup_module):
-    fig, ax = plt.subplots(2,1,figsize=(24, 8))
+    fig, ax = plt.subplots(3,1,figsize=(24, 8))
 
     certificates = CertificatesDict()
     print(certificates)
     certs = certificates.get_certificates(wavelength=int(setup_module.laser_wl))
 
-    certificate = certs["NIST785_SRM2241"]
-    certificate.plot(ax = ax[1],color="pink")
-    ycal = YCalibrationComponent(setup_module.laser_wl, setup_module.spe_SRM2241 ,cert = certificate)
-    spe_to_correct  = setup_module.spe_pst2
+    key = "NIST785_SRM2241"
+    certificate = certs[key]
+    certificate.plot(ax = ax[2],color="pink")
+    ycal = YCalibrationComponent(setup_module.laser_wl, setup_module.spe_SRM2241 ,certificate = certificate)
+
+    spe_to_correct = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
+    spe_to_correct = spe_to_correct.trim_axes(method='x-axis',boundaries=(100,2000))
     spe_to_correct.plot(ax=ax[0] , label = "PST")
+    setup_module.spe_SRM2241.plot(ax=ax[0] , label = key)
     spe_ycalibrated = ycal.process(spe_to_correct)
-    spe_ycalibrated.plot(ax=ax[0] , label = "y calibrated")
+    spe_ycalibrated.plot(ax=ax[1] , label = "y calibrated")
     
-    plt.savefig("test_calmodel_{}.png".format("NIST785_SRM2241"))
+    plt.savefig("test_calmodel_{}.png".format(key))
 
 def test_ycertificate():
     cert = YCalibrationCertificate(
@@ -169,4 +173,9 @@ def test_ycertificate():
     plt.savefig("test_calmodel_{}.png".format("ycert"))
 
 def test_ycerts_dict():
-    certificates = CertificatesDict()    
+    certificates = CertificatesDict()  
+    print(type(certificates.get_certificates(785)))
+    assert certificates, "empty certificate"    
+    assert certificates.get_certificates(785), "empty certificate" 
+    cert = CertificatesDict.load(wavelength="785", key="NIST785_SRM2241")
+    assert "NIST785_SRM2241" == cert.id
