@@ -9,7 +9,7 @@ from ramanchada2.misc.plottable import Plottable
 import logging
 import json
 import os
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 from pydantic import BaseModel, ValidationError
 from functools import wraps
 from ramanchada2.misc.constants import NEON_WL
@@ -531,13 +531,17 @@ class CalibrationModel(ProcessingModel, Plottable):
             return pickle.load(file)
 
 
-    def derive_model_x(self, spe_neon : Spectrum, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", spe_sil: Spectrum=None,
+    def derive_model_x(self, spe_neon : Spectrum, spe_neon_units : str, ref_neon : Dict, ref_neon_units : str, spe_sil: Spectrum,
                        spe_sil_units="cm-1", ref_sil={520.45: 1}, ref_sil_units="cm-1", find_kw={"wlen": 200, "width":  1}, fit_kw={},
                        should_fit=False):
         """
         Derives x-calibration models using Neon and Silicon spectra.
         """
         self.components.clear()
+        if ref_neon_units is None:
+            ref_neon_units = "nm"
+        if spe_neon_units is None:
+            spe_neon_units = "cm-1"
         find_kw["prominence"]= spe_neon.y_noise_MAD() * self.prominence_coeff
         model_neon = self._derive_model_curve(
                 spe_neon, 
