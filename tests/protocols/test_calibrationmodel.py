@@ -206,7 +206,14 @@ def test_ycertificate():
         description="optical glass",
         url="https://tsapps.nist.gov/srmext/certificates/2241.pdf",
         wavelength=785,
-        params="A0 = 9.71937e-02, A1 = 2.28325e-04, A2 = -5.86762e-08, A3 = 2.16023e-10, A4 = -9.77171e-14, A5 = 1.15596e-17",
+        params=(
+            "A0 = 9.71937e-02, "
+            "A1 = 2.28325e-04, "
+            "A2 = -5.86762e-08, "
+            "A3 = 2.16023e-10, "
+            "A4 = -9.77171e-14, "
+            "A5 = 1.15596e-17"
+        ),
         equation="A0 + A1 * x + A2 * x**2 + A3 * x**3 + A4 * x**4 + A5 * x**5",
         temperature_c=(20, 25),
         raman_shift=(200, 3500),

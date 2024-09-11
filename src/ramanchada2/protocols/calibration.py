@@ -462,8 +462,8 @@ class CertificatesDict:
 
 class YCalibrationComponent(CalibrationComponent):
     """
-    Class for relative intensity calibration. Uses response functions loaded in ResponseFunctionEvaluator. Functions are defined
-    in json file.
+    Class for relative intensity calibration. Uses response functions loaded in
+    ResponseFunctionEvaluator. Functions are defined in json file.
 
     Usage:
 
