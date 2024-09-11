@@ -150,9 +150,19 @@ def test_ycalibration(setup_module):
     ycal = YCalibrationComponent(setup_module.laser_wl, setup_module.spe_SRM2241 ,certificate = certificate)
 
     spe_to_correct = rc2.spectrum.from_test_spe(sample=['PST'], provider=['FNMT'], OP=['03'], laser_wl=['785'])
-    spe_to_correct = spe_to_correct.trim_axes(method='x-axis',boundaries=(100,2000))
+    #spe_to_correct = spe_to_correct.trim_axes(method='x-axis',boundaries=(100,2000))
+	#remove the pedestal
+    spe_to_correct.y=spe_to_correct.y- min(spe_to_correct.y)
     spe_to_correct.plot(ax=ax[0] , label = "PST")
-    setup_module.spe_SRM2241.plot(ax=ax[0] , label = key)
+
+    window_length = 5
+    maxy= max(spe_to_correct.y)
+    spe_to_correct = spe_to_correct.smoothing_RC1(method="savgol",window_length=window_length,polyorder=3)
+    spe_to_correct.y = maxy*spe_to_correct.y/max(spe_to_correct.y)
+
+    spe_to_correct.plot(ax=ax[0] , label = "smoothed")
+
+    setup_module.spe_SRM2241.plot(ax=ax[0].twinx() , label = key)
     spe_ycalibrated = ycal.process(spe_to_correct)
     spe_ycalibrated.plot(ax=ax[1] , label = "y calibrated")
     
