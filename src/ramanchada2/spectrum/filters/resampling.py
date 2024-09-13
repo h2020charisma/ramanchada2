@@ -26,6 +26,28 @@ def resample_NUDFT(spe: Spectrum, /,
                                                   'kaiser', 'nuttall', 'parzen', 'taylor', 'triang', 'tukey']
                                           ]] = None,
                    cumulative: bool = False):
+    """
+    Resample the spectrum using Non-uniform discrete fourier transform.
+
+    The x-axis of the result will be uniform. The corresponding y-values
+    will be calculated with NUDFT and inverse FFT.
+
+    Args:
+        spe: internal use only
+        x_range: optional. Defaults to (0, 4000).
+            The x_range of the new spectrum.
+        xnew_bins: optional. Defaults to 100.
+            Number of bins of the new spectrum
+        window: optional, Defaults to None.
+            The window to be used for lowpass filter. If None 'blackmanharris' is used.
+            If no low-pass filter is required, one can use `window=lambda x: [1]*len(x)`.
+        cumulative: optional. Defaults to False.
+            If True, the resultant spectrum will be cumulative and normalized
+            (in analogy with CDF).
+
+    Returns:
+        (x_values, y_values)
+    """
 
     x_new = np.linspace(x_range[0], x_range[1], xnew_bins, endpoint=False)
     x = spe.x
@@ -66,6 +88,28 @@ def resample_NUDFT_filter(old_spe: Spectrum,
                           xnew_bins: PositiveInt = 100,
                           window=None,
                           cumulative: bool = False):
+    """
+    Resample the spectrum using Non-uniform discrete fourier transform.
+
+    The x-axis of the result will be uniform. The corresponding y-values
+    will be calculated with NUDFT and inverse FFT.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        x_range: optional. Defaults to (0, 4000).
+            The x_range of the new spectrum.
+        xnew_bins: optional. Defaults to 100.
+            Number of bins of the new spectrum
+        window: optional, Defaults to None.
+            The window to be used for lowpass filter. If None 'blackmanharris' is used.
+            If no low-pass filter is required, one can use `window=lambda x: [1]*len(x)`.
+        cumulative: optional. Defaults to False.
+            If True, the resultant spectrum will be cumulative and normalized
+            (in analogy with CDF).
+
+    Returns: modified Spectrum
+    """
     new_spe.x, new_spe.y = resample_NUDFT(old_spe,
                                           x_range=x_range,
                                           xnew_bins=xnew_bins,
@@ -81,6 +125,27 @@ def resample_spline(spe: Spectrum, /,
                     spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'pchip',
                     interp_kw_args: Optional[Dict] = None,
                     cumulative: bool = False):
+    """
+    Resample the spectrum using spline interpolation.
+
+    The x-axis of the result will be uniform. The corresponding y-values
+    will be calculated with spline interpolation.
+
+    Args:
+        spe: internal use only
+        x_range: optional. Defaults to (0, 4000).
+            The x_range of the new spectrum.
+        xnew_bins: optional. Defaults to 100.
+            Number of bins of the new spectrum
+        spline: optional, Defaults to 'pchip'.
+            Name of the spline funcion to be used.
+        cumulative: optional. Defaults to False.
+            If True, the resultant spectrum will be cumulative and normalized
+            (in analogy with CDF).
+
+    Returns:
+        (x_values, y_values)
+    """
 
     kw_args: Dict[str, Any] = {}
     if spline == 'pchip':
@@ -117,6 +182,27 @@ def resample_spline_filter(old_spe: Spectrum,
                            spline: Literal['pchip', 'akima', 'makima', 'cubic_spline'] = 'pchip',
                            interp_kw_args: Optional[Dict] = None,
                            cumulative: bool = False):
+    """
+    Resample the spectrum using spline interpolation.
+
+    The x-axis of the result will be uniform. The corresponding y-values
+    will be calculated with spline interpolation.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        x_range: optional. Defaults to (0, 4000).
+            The x_range of the new spectrum.
+        xnew_bins: optional. Defaults to 100.
+            Number of bins of the new spectrum
+        spline: optional, Defaults to 'pchip'.
+            Name of the spline funcion to be used.
+        cumulative: optional. Defaults to False.
+            If True, the resultant spectrum will be cumulative and normalized
+            (in analogy with CDF).
+
+    Returns: modified Spectrum
+    """
     new_spe.x, new_spe.y = resample_spline(old_spe,
                                            x_range=x_range,
                                            xnew_bins=xnew_bins,

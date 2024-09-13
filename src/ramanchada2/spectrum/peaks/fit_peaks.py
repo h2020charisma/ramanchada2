@@ -91,6 +91,30 @@ def fit_peak_multimodel(spe, /, *,
                         kwargs_fit={},
                         vary_baseline: bool = False,
                         ) -> FitPeaksResult:
+    """
+    Fit a model based on candidates to the spectrum.
+
+    Args:
+        spe: internal use only
+        profile: str or List[str]
+            possible values are: ["""+str(available_models)+"""]
+        candidates: as provided from find_peak_multipeak
+        no_fit: optional. Defaults to False.
+            If true, do not perform a fit. Result will be the inital guess,
+            based on the data from peak candidates.
+        should_break: optional. Defaults to [False].
+            Use mutability of the python list type to be able to externaly
+            break the minimization procedure.
+        kwargs_fit: optional
+            kwargs for fit function
+        vary_baseline: optional. Defaults to False.
+            If False baseline will not be a free parameter and its amplitude
+            will be taken from the peak candidates.
+
+    Returns:
+        FitPeaksResult: groups of fitted peaks
+    """
+
     def iter_cb(params, iter, resid, *args, **kws):
         return should_break[0]
     if no_fit:
@@ -125,7 +149,13 @@ def fit_peaks_filter(
         **kwargs,
         ):
     """
-    Write fit result as metadata.
+    Same as `fit_peak_multipeak` but the result is stored as metadata in the returned spectrum.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        should_break: same as in fit_peaks_multipeak
+        *args, **kwargs: same as `fit_peaks_multipeak`
     """
     cand_groups = ListPeakCandidateMultiModel.model_validate(old_spe.result)
     new_spe.result = old_spe.fit_peak_multimodel(*args,  # type: ignore

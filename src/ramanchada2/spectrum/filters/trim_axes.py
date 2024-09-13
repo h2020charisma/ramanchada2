@@ -15,6 +15,19 @@ def trim_axes(old_spe: Spectrum,
               method: Literal['x-axis', 'bins'],
               boundaries: Tuple[float, float],
               ):
+    """
+    Trim axes of the spectrum.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        method: 'x-axis' or 'bins'
+            If 'x-axis' boundaries will be interpreted as x-axis values.
+            If 'bins' boundaries will be interpreted as indices.
+        boundaries: lower and upper boundary for the trimming.
+
+    Returns: modified Spectrum
+    """
     if method == 'bins':
         lb = int(boundaries[0])
         rb = int(boundaries[1])

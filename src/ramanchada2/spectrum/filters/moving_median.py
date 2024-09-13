@@ -24,9 +24,15 @@ def moving_median(old_spe: Spectrum,
     """
     Moving median filter.
 
+    The resultant spectrum is moving minimum of the input.
+
     Args:
+        old_spe: internal use only
+        new_spe: internal use only
         window_size:
             `int`, optional, default is `10`.
+
+    Returns: modified Spectrum
     """
 
     new_spe.y = _moving_median(old_spe.y, window_size)
@@ -38,4 +44,17 @@ def subtract_moving_median(
         old_spe: Spectrum,
         new_spe: Spectrum,
         window_size: int):
+    """
+    Subtract moving median filter.
+
+    The resultant spectrum is moving minimum of the input subtracted from the input.
+
+    Args:
+        old_spe: internal use only
+        new_spe: internal use only
+        window_size:
+            `int`, optional, default is `10`.
+
+    Returns: modified Spectrum
+    """
     new_spe.y = old_spe.y - _moving_median(old_spe.y, window_size)

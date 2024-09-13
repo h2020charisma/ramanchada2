@@ -15,6 +15,20 @@ logger = logging.getLogger(__name__)
 @validate_call
 def from_cache_or_calc(required_steps: spe_t.SpeProcessingListModel,
                        cachefile: Optional[str] = None):
+    """
+    Load spectrum from cache or calculate if needed.
+
+    The cache is a nested structure of spectra. All processings applied to
+    a spectrum result to spectra of the initial one. If part of the requred
+    processings are available, only the needed steps are calculated and added
+    to the cache.
+
+    Args:
+        required_steps: List of required steps in the form
+            [{'proc': str, 'args': List[Any], 'kwargs': Dict[str, Any]}, ...]
+        cachefile: optional. Defaults to None.
+            Filename of the cache. If None no cache is used
+    """
     def recall():
         if len(required_steps):
             last_proc = required_steps.pop()

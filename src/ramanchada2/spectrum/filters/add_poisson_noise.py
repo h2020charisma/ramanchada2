@@ -17,14 +17,19 @@ def add_poisson_noise(
         rng_seed=None):
     r"""
     Add poisson noise to the spectrum.
+
     For each particular sample the noise is proportional to $\sqrt{scale*a_i}$.
 
     Args:
+        old_spe: internal use only
+        new_spe: internal use only
         scale:
             `float`, optional, default is `1`. Scale the amplitude of the noise.
         rng_seed:
-            `int` or rng state, optional. Seed for the random generator. If a state is provided, it is updated
-            in-place.
+            `int` or rng state, optional. Seed for the random generator.
+            If a state is provided, it is updated in-place.
+
+    Returns: modified Spectrum
     """
     if isinstance(rng_seed, dict):
         rng = np.random.default_rng()
