@@ -53,7 +53,7 @@ def drop_spikes(old_spe: Spectrum,
 
     Returns: modified Spectrum
     """
-    use_idx = ~old_spe.spike_indices(n_sigma=n_sigma)
+    use_idx = ~spike_indices(n_sigma=n_sigma)
     new_spe.x = old_spe.x[use_idx]
     new_spe.y = old_spe.y[use_idx]
 
@@ -78,7 +78,7 @@ def recover_spikes(old_spe: Spectrum,
 
     Returns: modified Spectrum
     """
-    use_idx = ~old_spe.spike_indices(n_sigma=n_sigma)
+    use_idx = ~spike_indices(n_sigma=n_sigma)
     new_spe.y = np.interp(old_spe.x, old_spe.x[use_idx], old_spe.y[use_idx])
 
 
@@ -102,6 +102,6 @@ def get_spikes(old_spe: Spectrum,
 
     Returns: modified Spectrum
     """
-    spike_idx = old_spe.spike_indices(n_sigma=n_sigma)
+    spike_idx = spike_indices(n_sigma=n_sigma)
     new_spe.x = old_spe.x[spike_idx]
     new_spe.y = old_spe.y[spike_idx]
