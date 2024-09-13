@@ -1,29 +1,31 @@
+import json
+import logging
+import os
+import pickle
+import warnings
+from typing import Dict, Optional, Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
+import pandas as pd
+from matplotlib.axes import Axes
+from pydantic import BaseModel, ValidationError
+from scipy.interpolate import RBFInterpolator
+
 import ramanchada2.misc.constants as rc2const
+from ramanchada2.misc.plottable import Plottable
 from ..misc import utils as rc2utils
 from ..spectrum import Spectrum
-from matplotlib.axes import Axes
-from ramanchada2.misc.plottable import Plottable
-from scipy import interpolate
-import logging
-import json
-import os
-from typing import Tuple, Optional
-from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessingModel:
-
     def __init__(self):
         pass
 
 
 class CalibrationComponent(Plottable):
-
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample=None):
         super(CalibrationComponent, self).__init__()
         self.laser_wl = laser_wl
@@ -37,6 +39,7 @@ class CalibrationComponent(Plottable):
         self.peaks = None
         self.sample = sample
         self.enabled = True
+        self.fit_res = None
 
     def set_model(self, model, model_units, peaks, name=None):
         self.model = model
@@ -45,21 +48,31 @@ class CalibrationComponent(Plottable):
         self.name = "calibration component" if name is None else name
 
     def __str__(self):
-        return (f"{self.name} spe ({self.spe_units}) reference ({self.ref_units}) "
-                f"model ({self.model_units}) {self.model}")
+        return (
+            f"{self.name} spe ({self.spe_units}) reference ({self.ref_units}) "
+            f"model ({self.model_units}) {self.model}"
+        )
 
     def convert_units(self, old_spe, spe_unit="cm-1", newspe_unit="nm", laser_wl=None):
         if laser_wl is None:
             laser_wl = self.laser_wl
-        logger.debug("convert laser_wl {} {} --> {}".format(laser_wl, spe_unit, newspe_unit))
+        logger.debug(
+            "convert laser_wl {} {} --> {}".format(laser_wl, spe_unit, newspe_unit)
+        )
         if spe_unit != newspe_unit:
             new_spe = old_spe.__copy__()
             if spe_unit == "nm":
-                new_spe = old_spe.abs_nm_to_shift_cm_1_filter(laser_wave_length_nm=laser_wl)
+                new_spe = old_spe.abs_nm_to_shift_cm_1_filter(
+                    laser_wave_length_nm=laser_wl
+                )
             elif spe_unit == "cm-1":
-                new_spe = old_spe.shift_cm_1_to_abs_nm_filter(laser_wave_length_nm=laser_wl)
+                new_spe = old_spe.shift_cm_1_to_abs_nm_filter(
+                    laser_wave_length_nm=laser_wl
+                )
             else:
-                raise Exception("Unsupported conversion {} to {}", spe_unit, newspe_unit)
+                raise Exception(
+                    "Unsupported conversion {} to {}", spe_unit, newspe_unit
+                )
         else:
             new_spe = old_spe.__copy__()
         #    new_spe = old_spe.__copy__()
@@ -71,30 +84,86 @@ class CalibrationComponent(Plottable):
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
         raise NotImplementedError(self)
 
-    def plot(self, ax=None, label=' ', **kwargs) -> Axes:
+    def plot(self, ax=None, label=" ", **kwargs) -> Axes:
         if ax is None:
             fig, ax = plt.subplots(3, 1, figsize=(12, 4))
+        elif not isinstance(ax, (list, np.ndarray)):
+            raise ValueError(
+                "ax should be a list or array of Axes when creating multiple subplots."
+            )
+
         self._plot(ax[0], label=label, **kwargs)
-        ax.legend()
+        ax[0].legend()
         return ax
 
     def _plot(self, ax, **kwargs):
         pass
 
+    def __getstate__(self):
+        # Return the state to be serialized, excluding transient_data
+        state = self.__dict__.copy()
+        del state["fit_res"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.fit_res = None
+
+    def fitres2df(self, spe):
+        df = pd.DataFrame(
+            list(
+                zip(
+                    self.fit_res.centers,
+                    self.fit_res.fwhm,
+                    np.array(
+                        [
+                            v
+                            for peak in self.fit_res
+                            for k, v in peak.values.items()
+                            if k.endswith("height")
+                        ]
+                    ),
+                    np.array(
+                        [
+                            v
+                            for peak in self.fit_res
+                            for k, v in peak.values.items()
+                            if k.endswith("amplitude")
+                        ]
+                    ),
+                )
+            ),
+            columns=["center", "fwhm", "height", "amplitude"],
+        )
+        return df[(df["center"] >= min(spe.x)) & (df["center"] <= max(spe.x))]
+
 
 class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
-        super(XCalibrationComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
+        super(XCalibrationComponent, self).__init__(
+            laser_wl, spe, spe_units, ref, ref_units, sample
+        )
         self.spe_pos_dict = None
 
+    # @staticmethod
+    # def from_json(filepath: str):
+    #    rbf_intrpolator, other_data = load_xcalibration_model(filepath)
+    #    calibration_x = XCalibrationComponent(laser_wl, spe, spe_units, ref, ref_units)
+    #    calibration_x.model = rbf_intrpolator
+    #    return calibration_x
+
     def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
-        logger.debug("convert spe_units {} --> model units {}".format(spe_units, self.model_units))
+        logger.debug(
+            "convert spe_units {} --> model units {}".format(
+                spe_units, self.model_units
+            )
+        )
         new_spe = self.convert_units(old_spe, spe_units, self.model_units)
         logger.debug("process", self)
         if self.model is None:
             return new_spe
         elif self.enabled:
-            if isinstance(self.model, interpolate.RBFInterpolator):
+            if isinstance(self.model, RBFInterpolator):
                 new_spe.x = self.model(new_spe.x.reshape(-1, 1))
             elif isinstance(self.model, float):
                 new_spe.x = new_spe.x + self.model
@@ -108,22 +177,22 @@ class XCalibrationComponent(CalibrationComponent):
             return new_spe
 
     def _plot(self, ax, **kwargs):
-        # self.spe.plot(ax=ax[0].twinx(), label=self.spe_units)
-
-        ax.stem(self.spe_pos_dict.keys(), self.spe_pos_dict.values(), linefmt='b-', basefmt=' ',
-                label="{} peaks".format(self.sample))
-        ax.twinx().stem(self.ref.keys(), self.ref.values(), linefmt='r-', basefmt=' ',
-                        label="Reference {}".format(self.sample))
+        ax.stem(
+            self.spe_pos_dict.keys(),
+            self.spe_pos_dict.values(),
+            linefmt="b-",
+            basefmt=" ",
+            label="{} peaks".format(self.sample),
+        )
+        ax.twinx().stem(
+            self.ref.keys(),
+            self.ref.values(),
+            linefmt="r-",
+            basefmt=" ",
+            label="Reference {}".format(self.sample),
+        )
         ax.set_xlabel("{}".format(self.ref_units))
         ax.legend()
-        # fig, ax = plt.subplots(1, 1, figsize=(3, 3))
-        # ax.scatter(x_spe, x_reference, marker='o')
-        # ax.set_xlabel("spectrum x ({})".format(self.ref_units))
-        # ax.set_ylabel("reference x ({})".format(self.ref_units))
-
-        # x_plot = np.linspace(min(x_spe), max(x_spe), 20)
-        # y_plot = interp(x_plot.reshape(-1, 1))
-        # ax.scatter(x_plot, y_plot, marker='.', label=kwargs["kernel"])
 
     def _plot_peaks(self, ax, **kwargs):
         # self.model.peaks
@@ -132,62 +201,103 @@ class XCalibrationComponent(CalibrationComponent):
         # spe.plot(ax=ax[0].twinx(),label=spe_units)
         # spe_to_process.plot(ax=ax[1],label=ref_units)
 
-    def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
+    def derive_model(
+        self, find_kw={"sharpening": None}, fit_peaks_kw={}, should_fit=False, name=None
+    ):
 
         # convert to ref_units
-        logger.debug("[{}]: convert spe_units {} to ref_units {}".format(self.name, self.spe_units, self.ref_units))
+        logger.debug(
+            "[{}]: convert spe_units {} to ref_units {}".format(
+                self.name, self.spe_units, self.ref_units
+            )
+        )
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
-        # spe_to_process.plot(ax=ax[1], label=self.ref_units)
 
-        # if should_fit:
-        #     spe_pos_dict = spe_to_process.fit_peak_positions(center_err_threshold=1,
-        #                    find_peaks_kw=find_kw, fit_peaks_kw=fit_peaks_kw)  # type: ignore
-        # else:
-        #     find_kw = dict(sharpening=None)
-        #     spe_pos_dict = spe_to_process.find_peak_multipeak(**find_kw).get_pos_ampl_dict()  # type: ignore
-        # prominence = prominence, wlen=wlen, width=width
-        find_kw = dict(sharpening=None)
+        peaks_df = None
+        self.fit_res = None
         if should_fit:
-            self.spe_pos_dict = spe_to_process.fit_peak_positions(
-                    center_err_threshold=10, find_peaks_kw=find_kw, fit_peaks_kw=fit_peaks_kw)  # type: ignore
-            # fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_peaks_kw)
-            # pos, amp = fit_res.center_amplitude(threshold=1)
-            # spe_pos_dict = dict(zip(pos, amp))
+            # instead of fit_peak_positions - we don't want movmin here
+            # baseline removal might be done during preprocessing
+            center_err_threshold = 0.5
+            find_kw.update(dict(sharpening=None))
+            cand = spe_to_process.find_peak_multipeak(**find_kw)
+            # print(cand.get_ampl_pos_fwhm())
+            fit_kw = dict(profile="Gaussian")
+            fit_kw.update(fit_peaks_kw)
+            self.fit_res = spe_to_process.fit_peak_multimodel(candidates=cand, **fit_kw)  # type: ignore
+            peaks_df = self.fitres2df(spe_to_process)
+            # self.fit_res.to_dataframe_peaks()
+            pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
+            self.spe_pos_dict = dict(zip(pos, amp))
         else:
             # prominence = prominence, wlen=wlen, width=width
-            print("find_peak_multipeak")
+            logger.debug("find_peak_multipeak")
             cand = spe_to_process.find_peak_multipeak(**find_kw)
             self.spe_pos_dict = cand.get_pos_ampl_dict()
-        x_spe, x_reference, x_distance, df = rc2utils.match_peaks(self.spe_pos_dict, self.ref)
+            # print(cand.get_ampl_pos_fwhm())
+        x_spe, x_reference, x_distance, df = rc2utils.match_peaks(
+            self.spe_pos_dict, self.ref
+        )
+        self.matched_peaks = df
         sum_of_differences = np.sum(np.abs(x_spe - x_reference)) / len(x_spe)
-        logger.debug("sum_of_differences original {} {}".format(sum_of_differences, self.ref_units))
+        logger.debug(
+            "sum_of_differences original {} {}".format(
+                sum_of_differences, self.ref_units
+            )
+        )
         if len(x_reference) == 1:
-            _offset = (x_reference[0] - x_spe[0])
-            logger.debug("ref", x_reference[0], "sample", x_spe[0], "offset", _offset, self.ref_units)
-            self.set_model(_offset, self.ref_units, df, name)
+            _offset = x_reference[0] - x_spe[0]
+            logger.debug(
+                "ref",
+                x_reference[0],
+                "sample",
+                x_spe[0],
+                "offset",
+                _offset,
+                self.ref_units,
+            )
+            self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
             try:
                 kwargs = {"kernel": "thin_plate_spline"}
-                interp = interpolate.RBFInterpolator(x_spe.reshape(-1, 1), x_reference, **kwargs)
-                self.set_model(interp, self.ref_units, df, name)
+                interp = CustomRBFInterpolator(
+                    x_spe.reshape(-1, 1), x_reference, **kwargs
+                )
+                self.set_model(interp, self.ref_units, peaks_df, name)
             except Exception as err:
                 raise err
 
 
 class LazerZeroingComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units="nm", ref={520.45: 1}, ref_units="cm-1", sample="Silicon"):
-        super(LazerZeroingComponent, self).__init__(laser_wl, spe, spe_units, ref, ref_units, sample)
+    def __init__(
+        self,
+        laser_wl,
+        spe,
+        spe_units="nm",
+        ref={520.45: 1},
+        ref_units="cm-1",
+        sample="Silicon",
+    ):
+        super(LazerZeroingComponent, self).__init__(
+            laser_wl, spe, spe_units, ref, ref_units, sample
+        )
         self.profile = "Pearson4"
+        # self.profile = "Gaussian"
 
     def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
         find_kw = dict(sharpening=None)
         cand = self.spe.find_peak_multipeak(**find_kw)
         logger.debug(self.name, cand)
         # init_guess = self.spe.fit_peak_multimodel(profile='Pearson4', candidates=cand, no_fit=False)
-        fit_res = self.spe.fit_peak_multimodel(profile=self.profile, candidates=cand, **fit_peaks_kw)
-        df = fit_res.to_dataframe_peaks()
-        df = df.sort_values(by='height', ascending=False)
+        self.fit_res = self.spe.fit_peak_multimodel(
+            profile=self.profile, candidates=cand, **fit_peaks_kw
+        )
+        # df = self.fit_res.to_dataframe_peaks()
+        df = self.fitres2df(self.spe)
+        # highest peak first
+        df = df.sort_values(by="height", ascending=False)
+        # df = df.sort_values(by='amplitude', ascending=False)
         if df.empty:
             raise Exception("No peaks found")
         else:
@@ -195,14 +305,16 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
-            # print(self.name, "peak", zero_peak_nm)
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-            self.set_model(zero_peak_nm, "nm", df, "Lazer zeroing using {} nm".format(zero_peak_nm))
+            self.set_model(
+                zero_peak_nm, "nm", df, "Laser zeroing using {} nm".format(zero_peak_nm)
+            )
+            print(self.name, "peak", zero_peak_nm)
             logger.info(self.name, "peak", zero_peak_nm)
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
     def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
-        return 1e7*(1/zero_pos_nm - 1/wl) + zero_ref_cm_1
+        return 1e7 * (1 / zero_pos_nm - 1 / wl) + zero_ref_cm_1
 
     # we do not do shift (as initially implemented)
     # just convert the spectrum nm->cm-1 using the Si measured peak in nm and reference in cm-1
@@ -259,19 +371,19 @@ class YCalibrationCertificate(BaseModel, Plottable):
     @property
     def response_function(self):
         local_vars = {}
-        for param in self.params.split(','):
-            key, value = param.split('=')
+        for param in self.params.split(","):
+            key, value = param.split("=")
             key = key.strip()
             value = value.strip()
             local_vars[key] = eval(value)
 
         def evaluate_expression(x_value):
-            local_vars['x'] = x_value
+            local_vars["x"] = x_value
             return eval(self.equation, {"np": np}, local_vars)
 
         return evaluate_expression
 
-    def Y(self,  x_value):
+    def Y(self, x_value):
         return self.response_function(x_value)
 
     def _plot(self, ax, **kwargs):
@@ -279,10 +391,12 @@ class YCalibrationCertificate(BaseModel, Plottable):
             x = np.linspace(100, 4000)
         else:
             x = np.linspace(self.raman_shift[0], self.raman_shift[1])
-        kwargs.pop('label', None)
-        ax.plot(x, self.Y(x), label="{} ({}nm)".format(self.id, self.wavelength), **kwargs)
-        ax.set_xlabel('Raman shift cm-1')
-        ax.set_ylabel('Intensity')
+        kwargs.pop("label", None)
+        ax.plot(
+            x, self.Y(x), label="{} ({}nm)".format(self.id, self.wavelength), **kwargs
+        )
+        ax.set_xlabel("Raman shift cm-1")
+        ax.set_ylabel("Intensity")
 
     @staticmethod
     def load(wavelength=785, key="NIST785_SRM2241"):
@@ -307,12 +421,15 @@ class CertificatesDict:
         ... ax = certs[cert].plot(ax=ax)
         >>> plt.show()
     """
+
     def __init__(self):
-        self.load_certificates(os.path.join(os.path.dirname(__file__), "config_certs.json"))
+        self.load_certificates(
+            os.path.join(os.path.dirname(__file__), "config_certs.json")
+        )
 
     def load_certificates(self, file_path):
 
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             certificates_data = json.load(f)
             certificates = {}
             self.laser_wl = []
@@ -323,7 +440,9 @@ class CertificatesDict:
                     certificate_data["wavelength"] = int(wavelength)
                     certificate_data["id"] = certificate_id
                     try:
-                        certificate = YCalibrationCertificate(**certificate_data)
+                        certificate = YCalibrationCertificate.model_construct(
+                            **certificate_data
+                        )
                         certificates[wavelength][certificate_id] = certificate
                     except ValidationError as e:
                         print(f"Validation error for certificate {certificate_id}: {e}")
@@ -345,8 +464,8 @@ class CertificatesDict:
 
 class YCalibrationComponent(CalibrationComponent):
     """
-    Class for intensity calibration. Uses response functions loaded in ResponseFunctionEvaluator. Functions are defined
-    in json file.
+    Class for relative intensity calibration. Uses response functions loaded in
+    ResponseFunctionEvaluator. Functions are defined in json file.
 
     Usage:
 
@@ -360,9 +479,16 @@ class YCalibrationComponent(CalibrationComponent):
         >>> spe_ycalibrated.plot(label="y-calibrated",color="green",ax=ax.twinx())
     """
 
-    def __init__(self, laser_wl, reference_spe_xcalibrated, certificate: YCalibrationCertificate):
-        super(YCalibrationComponent, self).__init__(laser_wl, spe=reference_spe_xcalibrated, spe_units=None,
-                                                    ref=certificate, ref_units=None)
+    def __init__(
+        self, laser_wl, reference_spe_xcalibrated, certificate: YCalibrationCertificate
+    ):
+        super(YCalibrationComponent, self).__init__(
+            laser_wl,
+            spe=reference_spe_xcalibrated,
+            spe_units=None,
+            ref=certificate,
+            ref_units=None,
+        )
         self.laser_wl = laser_wl
         self.spe = reference_spe_xcalibrated
         self.ref = certificate
@@ -378,8 +504,10 @@ class YCalibrationComponent(CalibrationComponent):
         numerator = spe_to_correct.y
         # numerator_noise = spe_to_correct.y_noise
 
-        scaling_denominator = spe_reference_resampled.y / self.ref.Y(spe_reference_resampled.x)
-        print(np.median(scaling_denominator), np.mean(scaling_denominator), np.std(scaling_denominator))
+        scaling_denominator = spe_reference_resampled.y / self.ref.Y(
+            spe_reference_resampled.x
+        )
+        # print(np.median(scaling_denominator), np.mean(scaling_denominator), np.std(scaling_denominator))
 
         # denominator_noise = spe_reference_resampled.y_noise
         denominator = spe_reference_resampled.y
@@ -395,8 +523,10 @@ class YCalibrationComponent(CalibrationComponent):
         return result
 
     def safe_mask(self, spe_to_correct, spe_reference_resampled):
-        ref_noise = spe_reference_resampled.y_noise
-        return (spe_reference_resampled.y >= 0) & (abs(spe_reference_resampled.y) > ref_noise)
+        ref_noise = spe_reference_resampled.y_noise_MAD()
+        return (spe_reference_resampled.y >= 0) & (
+            abs(spe_reference_resampled.y) > ref_noise
+        )
 
     def safe_factor(self, spe_to_correct, spe_reference_resampled):
         numerator = spe_to_correct.y
@@ -416,10 +546,14 @@ class YCalibrationComponent(CalibrationComponent):
     def process(self, old_spe: Spectrum, spe_units="nm", convert_back=False):
         # resample using probability density function
         _tmp = self.model.pdf(old_spe.x)
-        _tmp = _tmp * max(self.spe.y) / max(_tmp)  # pdf sampling is normalized to area unity, scaling back
+        _tmp = (
+            _tmp * max(self.spe.y) / max(_tmp)
+        )  # pdf sampling is normalized to area unity, scaling back
         spe_reference_resampled = Spectrum(old_spe.x, _tmp)
         # new_spe = Spectrum(old_spe.x,self.safe_divide(old_spe,spe_reference_resampled))
-        new_spe = Spectrum(old_spe.x, self.safe_factor(old_spe, spe_reference_resampled))
+        new_spe = Spectrum(
+            old_spe.x, self.safe_factor(old_spe, spe_reference_resampled)
+        )
         return new_spe
 
     def _plot(self, ax, **kwargs):
@@ -468,21 +602,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         super(ProcessingModel, self).__init__()
         super(Plottable, self).__init__()
         self.set_laser_wavelength(laser_wl)
-        self.neon_wl = {
-            785: rc2const.neon_wl_785_nist_dict,
-            633: rc2const.neon_wl_633_nist_dict,
-            532: rc2const.neon_wl_532_nist_dict
-        }
-        self.prominence_coeff = 10
-
-    def peaks(self, spe, profile='Gaussian', wlen=300, width=1):
-        """
-        Finds and fits peaks in the spectrum spe.
-        """
-        cand = spe.find_peak_multipeak(prominence=spe.y_noise*self.prominence_coeff, wlen=wlen, width=width)
-        init_guess = spe.fit_peak_multimodel(profile=profile, candidates=cand, no_fit=True)
-        fit_res = spe.fit_peak_multimodel(profile=profile, candidates=cand)
-        return cand, init_guess, fit_res
+        self.prominence_coeff = 3
 
     def set_laser_wavelength(self, laser_wl):
         """
@@ -513,35 +633,174 @@ class CalibrationModel(ProcessingModel, Plottable):
         with open(filename, "rb") as file:
             return pickle.load(file)
 
-    def derive_model_x(self, spe_neon, spe_neon_units="cm-1", ref_neon=None, ref_neon_units="nm", spe_sil=None,
-                       spe_sil_units="cm-1", ref_sil=None, ref_sil_units="cm-1", find_kw={}, fit_kw={}):
+    def derive_model_x(
+        self,
+        spe_neon: Spectrum,
+        spe_neon_units: str,
+        ref_neon: Dict,
+        ref_neon_units: str,
+        spe_sil: Spectrum,
+        spe_sil_units="cm-1",
+        ref_sil={520.45: 1},
+        ref_sil_units="cm-1",
+        find_kw={"wlen": 200, "width": 1},
+        fit_kw={},
+        should_fit=False,
+    ):
         """
         Derives x-calibration models using Neon and Silicon spectra.
         """
-        model_neon = self.derive_model_curve(
-                spe_neon, self.neon_wl[self.laser_wl], spe_units=spe_neon_units, ref_units=ref_neon_units, find_kw={},
-                fit_peaks_kw={}, should_fit=False, name="Neon calibration")
-        spe_sil_ne_calib = model_neon.process(spe_sil, spe_units=spe_sil_units, convert_back=False)
-        find_kw = {"prominence": spe_sil_ne_calib.y_noise * 10, "wlen": 200, "width":  1}
-        model_si = self.derive_model_zero(
-                spe_sil_ne_calib, ref={520.45: 1}, spe_units="nm", ref_units=ref_sil_units, find_kw=find_kw,
-                fit_peaks_kw={}, should_fit=True, name="Si laser zeroing")
+        self.components.clear()
+        if ref_neon_units is None:
+            ref_neon_units = "nm"
+        if spe_neon_units is None:
+            spe_neon_units = "cm-1"
+        find_kw["prominence"] = spe_neon.y_noise_MAD() * self.prominence_coeff
+        model_neon = self._derive_model_curve(
+            spe_neon,
+            rc2const.NEON_WL[self.laser_wl] if ref_neon is None else ref_neon,
+            spe_units=spe_neon_units,
+            ref_units=ref_neon_units,
+            find_kw=find_kw,
+            fit_peaks_kw=fit_kw,
+            should_fit=should_fit,
+            name="Neon calibration",
+        )
+        spe_sil_ne_calib = model_neon.process(
+            spe_sil, spe_units=spe_sil_units, convert_back=False
+        )
+
+        find_kw["prominence"] = spe_sil_ne_calib.y_noise_MAD() * self.prominence_coeff
+        model_si = self._derive_model_zero(
+            spe_sil_ne_calib,
+            ref=ref_sil,
+            spe_units=model_neon.model_units,
+            ref_units=ref_sil_units,
+            find_kw=find_kw,
+            fit_peaks_kw=fit_kw,
+            should_fit=True,
+            name="Si laser zeroing",
+        )
         return (model_neon, model_si)
 
-    def derive_model_curve(self, spe, ref, spe_units="cm-1", ref_units="nm", find_kw={}, fit_peaks_kw={},
-                           should_fit=False, name="X calibration"):
-        calibration_x = XCalibrationComponent(self.laser_wl, spe, spe_units, ref, ref_units)
-        calibration_x.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
+    def _derive_model_curve(
+        self,
+        spe: Spectrum,
+        ref=None,
+        spe_units="cm-1",
+        ref_units="nm",
+        find_kw=None,
+        fit_peaks_kw=None,
+        should_fit=False,
+        name="X calibration",
+    ):
+        if find_kw is None:
+            find_kw = {}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}
+        reference_peaks = rc2const.NEON_WL[self.laser_wl] if ref is None else ref
+        calibration_x = XCalibrationComponent(
+            self.laser_wl,
+            spe=spe,
+            spe_units=spe_units,
+            ref=reference_peaks,
+            ref_units=ref_units,
+        )
+        calibration_x.derive_model(
+            find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name
+        )
         self.components.append(calibration_x)
         return calibration_x
 
-    def derive_model_zero(self, spe, ref, spe_units="nm", ref_units="cm-1", find_kw={}, fit_peaks_kw={},
-                          should_fit=False, name="X Shift", profile="Gaussian"):
-        calibration_shift = LazerZeroingComponent(self.laser_wl, spe, spe_units, ref, ref_units)
+    def derive_model_curve(
+        self,
+        spe: Spectrum,
+        ref=None,
+        spe_units="cm-1",
+        ref_units="nm",
+        find_kw={},
+        fit_peaks_kw={},
+        should_fit=False,
+        name="X calibration",
+    ):
+        warnings.warn(
+            message="Do not use directly. Use derive_model_x instead.",
+            category=DeprecationWarning,
+        )
+        return self._derive_model_curve(
+            spe=spe,
+            ref=ref,
+            spe_units=spe_units,
+            ref_units=ref_units,
+            find_kw=find_kw,
+            fit_peaks_kw=fit_peaks_kw,
+            should_fit=should_fit,
+            name=name,
+        )
+
+    def _derive_model_zero(
+        self,
+        spe: Spectrum,
+        ref=None,
+        spe_units="nm",
+        ref_units="cm-1",
+        find_kw=None,
+        fit_peaks_kw=None,
+        should_fit=False,
+        name="Laser zeroing",
+        profile="Gaussian",
+    ):
+        if ref is None:
+            ref = {520.45: 1}
+        if find_kw is None:
+            find_kw = {}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}
+        calibration_shift = LazerZeroingComponent(
+            self.laser_wl, spe, spe_units, ref, ref_units
+        )
         calibration_shift.profile = profile
-        calibration_shift.derive_model(find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name)
-        self.components.append(calibration_shift)
+        calibration_shift.derive_model(
+            find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name
+        )
+        _laser_zeroing_component = None
+        for i, item in enumerate(self.components):
+            if isinstance(item, LazerZeroingComponent):
+                self.components[i] = calibration_shift
+                _laser_zeroing_component = self.components[i]
+        if (
+            _laser_zeroing_component is None
+        ):  # LaserZeroing component should present only once
+            self.components.append(calibration_shift)
         return calibration_shift
+
+    def derive_model_zero(
+        self,
+        spe: Spectrum,
+        ref={520.45: 1},
+        spe_units="nm",
+        ref_units="cm-1",
+        find_kw={},
+        fit_peaks_kw={},
+        should_fit=False,
+        name="X Shift",
+        profile="Gaussian",
+    ):
+        warnings.warn(
+            message="Do not use directly. Use derive_model_x instead.",
+            category=DeprecationWarning,
+        )
+        return self._derive_model_zero(
+            spe=spe,
+            ref=ref,
+            spe_units=spe_units,
+            ref_units=ref_units,
+            find_kw=find_kw,
+            fit_peaks_kw=fit_peaks_kw,
+            should_fit=should_fit,
+            name=name,
+            profile=profile,
+        )
 
     def apply_calibration_x(self, old_spe: Spectrum, spe_units="cm-1"):
         # neon calibration converts to nm
@@ -555,7 +814,7 @@ class CalibrationModel(ProcessingModel, Plottable):
                 model_units = model.model_units
         return new_spe
 
-    def plot(self, ax=None, label=' ', **kwargs) -> Axes:
+    def plot(self, ax=None, label=" ", **kwargs) -> Axes:
         if ax is None:
             fig, ax = plt.subplots(1, 1, figsize=(12, 4))
         self._plot(ax, **kwargs)
@@ -565,3 +824,87 @@ class CalibrationModel(ProcessingModel, Plottable):
         for index, model in enumerate(self.components):
             model._plot(ax, **kwargs)
             break
+
+    @staticmethod
+    def calibration_model_factory(
+        laser_wl,
+        spe_neon: Spectrum,
+        spe_sil: Spectrum,
+        neon_wl=None,
+        find_kw=None,
+        fit_peaks_kw=None,
+        should_fit=False,
+        prominence_coeff=3,
+    ):
+        if neon_wl is None:
+            neon_wl = rc2const.NEON_WL[laser_wl]
+        if find_kw is None:
+            find_kw = {"wlen": 100, "width": 1}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}
+        calmodel = CalibrationModel(laser_wl)
+        calmodel.prominence_coeff = prominence_coeff
+        find_kw["prominence"] = spe_neon.y_noise_MAD() * calmodel.prominence_coeff
+        model_neon = calmodel.derive_model_curve(
+            spe=spe_neon,
+            ref=neon_wl,
+            spe_units="cm-1",
+            ref_units="nm",
+            find_kw=find_kw,
+            fit_peaks_kw=fit_peaks_kw,
+            should_fit=should_fit,
+            name="Neon calibration",
+        )
+        spe_sil_ne_calib = model_neon.process(
+            spe_sil, spe_units="cm-1", convert_back=False
+        )
+        find_kw["prominence"] = (
+            spe_sil_ne_calib.y_noise_MAD() * calmodel.prominence_coeff
+        )
+        calmodel.derive_model_zero(
+            spe=spe_sil_ne_calib,
+            ref={520.45: 1},
+            spe_units=model_neon.model_units,
+            ref_units="cm-1",
+            find_kw=find_kw,
+            fit_peaks_kw=fit_peaks_kw,
+            should_fit=True,
+            name="Si calibration",
+        )
+        return calmodel
+
+
+class CustomRBFInterpolator(RBFInterpolator):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def from_dict(rbf_dict={}):
+        interpolator_loaded = CustomRBFInterpolator(
+            rbf_dict["y"],
+            rbf_dict["d"],
+            epsilon=rbf_dict["epsilon"],
+            smoothing=rbf_dict["smoothing"],
+            kernel=rbf_dict["kernel"],
+            neighbors=rbf_dict["neighbors"],
+        )
+        interpolator_loaded._coeffs = rbf_dict["coeffs"]
+        interpolator_loaded._scale = rbf_dict["scale"]
+        interpolator_loaded._shift = rbf_dict["shift"]
+        return interpolator_loaded
+
+    def to_dict(self):
+        return {
+            "y": self.y,
+            "d": self.d,
+            "d_dtype": self.d_dtype,
+            "d_shape": self.d_shape,
+            "epsilon": self.epsilon,
+            "kernel": self.kernel,
+            "neighbors": self.neighbors,
+            "powers": self.powers,
+            "smoothing": self.smoothing,
+            "coeffs": self._coeffs,
+            "scale": self._scale,
+            "shift": self._shift,
+        }
