@@ -1,8 +1,10 @@
 from typing import Literal
+
 import numpy as np
 from pydantic import validate_call
 
 from ramanchada2.misc.spectrum_deco import add_spectrum_filter
+
 from ..spectrum import Spectrum
 
 
