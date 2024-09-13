@@ -82,13 +82,13 @@
 | src/ramanchada2/spectrum/calc/central\_moments.py                          |       22 |       15 |     32% |     14-28 |
 | src/ramanchada2/spectrum/calibration/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/calibration/by\_deltas.py                         |      133 |      109 |     18% |18-34, 37-46, 72-120, 132-150, 163-187, 211-231 |
-| src/ramanchada2/spectrum/calibration/change\_x\_units.py                   |       21 |        3 |     86% |17, 24, 32 |
-| src/ramanchada2/spectrum/calibration/normalize.py                          |       30 |       12 |     60% |25-27, 29-31, 40-45 |
-| src/ramanchada2/spectrum/calibration/scale\_xaxis.py                       |       18 |        3 |     83% |     18-20 |
-| src/ramanchada2/spectrum/calibration/scale\_yaxis.py                       |        7 |        1 |     86% |        12 |
-| src/ramanchada2/spectrum/calibration/set\_new\_xaxis.py                    |       10 |        3 |     70% |     14-16 |
+| src/ramanchada2/spectrum/calibration/change\_x\_units.py                   |       21 |        3 |     86% |26, 42, 59 |
+| src/ramanchada2/spectrum/calibration/normalize.py                          |       30 |       12 |     60% |27-29, 31-33, 42-47 |
+| src/ramanchada2/spectrum/calibration/scale\_xaxis.py                       |       18 |        3 |     83% |     31-33 |
+| src/ramanchada2/spectrum/calibration/scale\_yaxis.py                       |        7 |        1 |     86% |        26 |
+| src/ramanchada2/spectrum/calibration/set\_new\_xaxis.py                    |       10 |        3 |     70% |     27-29 |
 | src/ramanchada2/spectrum/creators/\_\_init\_\_.py                          |        3 |        0 |    100% |           |
-| src/ramanchada2/spectrum/creators/from\_cache\_or\_calc.py                 |       42 |        2 |     95% |    29, 48 |
+| src/ramanchada2/spectrum/creators/from\_cache\_or\_calc.py                 |       42 |        2 |     95% |    43, 62 |
 | src/ramanchada2/spectrum/creators/from\_chada.py                           |        9 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_delta\_lines.py                    |       23 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       48 |        5 |     90% |44, 49-50, 55, 73 |
@@ -101,20 +101,20 @@
 | src/ramanchada2/spectrum/filters/add\_gaussian\_noise.py                   |       17 |        0 |    100% |           |
 | src/ramanchada2/spectrum/filters/add\_gaussian\_noise\_drift.py            |       24 |        0 |    100% |           |
 | src/ramanchada2/spectrum/filters/add\_poisson\_noise.py                    |       16 |        0 |    100% |           |
-| src/ramanchada2/spectrum/filters/convolve.py                               |       21 |        2 |     90% |    41, 44 |
-| src/ramanchada2/spectrum/filters/drop\_spikes.py                           |       36 |       16 |     56% |21-28, 64-71 |
-| src/ramanchada2/spectrum/filters/moving\_average.py                        |       14 |        3 |     79% | 22-24, 32 |
-| src/ramanchada2/spectrum/filters/moving\_median.py                         |       16 |        4 |     75% |12-16, 32, 41 |
-| src/ramanchada2/spectrum/filters/pad\_zeros.py                             |       14 |        7 |     50% |     13-20 |
-| src/ramanchada2/spectrum/filters/resampling.py                             |       63 |       13 |     79% |46, 56-57, 87, 90-95, 98, 105-106 |
-| src/ramanchada2/spectrum/filters/sharpen\_lines.py                         |       49 |       33 |     33% |22-35, 44-59, 68-71 |
-| src/ramanchada2/spectrum/filters/smoothing.py                              |       30 |       16 |     47% |     28-43 |
-| src/ramanchada2/spectrum/filters/trim\_axes.py                             |       16 |        2 |     88% |     19-20 |
+| src/ramanchada2/spectrum/filters/convolve.py                               |       21 |        2 |     90% |    47, 50 |
+| src/ramanchada2/spectrum/filters/drop\_spikes.py                           |       32 |        6 |     81% |56-58, 105-107 |
+| src/ramanchada2/spectrum/filters/moving\_average.py                        |       14 |        3 |     79% | 26-28, 47 |
+| src/ramanchada2/spectrum/filters/moving\_median.py                         |       16 |        4 |     75% |12-16, 38, 60 |
+| src/ramanchada2/spectrum/filters/pad\_zeros.py                             |       14 |        7 |     50% |     29-36 |
+| src/ramanchada2/spectrum/filters/resampling.py                             |       63 |       13 |     79% |68, 78-79, 152, 155-160, 163, 170-171 |
+| src/ramanchada2/spectrum/filters/sharpen\_lines.py                         |       49 |       33 |     33% |38-51, 73-88, 112-115 |
+| src/ramanchada2/spectrum/filters/smoothing.py                              |       30 |       16 |     47% |     42-57 |
+| src/ramanchada2/spectrum/filters/trim\_axes.py                             |       16 |        2 |     88% |     32-33 |
 | src/ramanchada2/spectrum/peaks/\_\_init\_\_.py                             |        3 |        0 |    100% |           |
-| src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       35 |     70% |57-59, 83-108, 112-134 |
-| src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     21-29 |
-| src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       90 |       17 |     81% |46-50, 53-56, 65-68, 97-98, 111-112 |
-| src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       17 |        9 |     47% |     20-31 |
+| src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       35 |     70% |84-86, 110-135, 139-161 |
+| src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     42-50 |
+| src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       91 |       17 |     81% |46-50, 53-56, 65-68, 121-122, 135-136 |
+| src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       18 |        9 |     50% |     45-56 |
 | src/ramanchada2/spectrum/spectrum.py                                       |      166 |       35 |     79% |36, 65, 71, 74-77, 83, 92-94, 157-163, 185, 189-193, 200, 204-208, 217-220, 238, 243-245 |
 | src/ramanchada2/theoretical\_lines/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/ramanchada2/theoretical\_lines/model\_from\_lines.py                   |       57 |       57 |      0% |      1-84 |
@@ -136,7 +136,7 @@
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3720** | **1187** | **68%** |           |
+|                                                                  **TOTAL** | **3718** | **1177** | **68%** |           |
 
 
 ## Setup coverage badge
