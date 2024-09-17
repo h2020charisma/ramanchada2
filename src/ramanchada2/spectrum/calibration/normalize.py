@@ -40,8 +40,10 @@ def normalize(old_spe: Spectrum,
         res /= np.max(res)
         new_spe.y = res
     elif strategy == 'L1':
+        res = old_spe.y
         res /= np.linalg.norm(res, 1)
         new_spe.y = res
     elif strategy == 'L2':
+        res = old_spe.y
         res /= np.linalg.norm(res)
         new_spe.y = res
