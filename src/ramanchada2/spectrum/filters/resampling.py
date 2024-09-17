@@ -150,6 +150,7 @@ def resample_spline(spe: Spectrum, /,
     kw_args: Dict[str, Any] = {}
     if spline == 'pchip':
         spline_fn = PchipInterpolator
+        kw_args['extrapolate'] = False
     elif spline == 'akima':
         spline_fn = Akima1DInterpolator
     elif spline == 'makima':
@@ -158,6 +159,7 @@ def resample_spline(spe: Spectrum, /,
     elif spline == 'cubic_spline':
         spline_fn = CubicSpline
         kw_args['bc_type'] = 'natural'
+        kw_args['extrapolate'] = False
 
     if interp_kw_args is not None:
         kw_args.update(interp_kw_args)
