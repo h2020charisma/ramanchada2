@@ -82,6 +82,8 @@ The latest ramanchada2 package allows export of a spectrum to [NeXus][] format.
 [h5pyd]: https://github.com/HDFGroup/h5pyd
 [ramanchada]: https://github.com/h2020charisma/ramanchada
 [NeXus]: https://www.nexusformat.org/
+
+.. include:: ../../../../../../spectrum_functions.md
 """
 
 from __future__ import annotations
