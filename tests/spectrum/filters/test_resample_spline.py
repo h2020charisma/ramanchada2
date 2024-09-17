@@ -1,6 +1,7 @@
-import ramanchada2 as rc2
 import numpy as np
 from scipy.interpolate import CubicSpline
+
+import ramanchada2 as rc2
 
 
 def test_resample_spline():
@@ -10,3 +11,11 @@ def test_resample_spline():
     aaa = CubicSpline(spe_tr.x, spe_tr.y)(np.linspace(400, 2000, 1000, endpoint=False))
     assert np.all(res_spe.x == np.linspace(400, 2000, 1000, endpoint=False))
     assert np.allclose(aaa, res_spe.y, rtol=.05)
+
+    spe = rc2.spectrum.from_delta_lines({500: 100, 600: 200})
+    spe = spe.add_gaussian_noise_drift(sigma=2, coef=.3)
+
+    for s in 'pchip', 'akima', 'makima', 'cubic_spline':
+        tt = spe.resample_spline_filter(x_range=(0, 1000), xnew_bins=1000, spline=s)
+        assert np.all(tt.y[:450] == 0)
+        assert np.all(tt.y[650:] == 0)
