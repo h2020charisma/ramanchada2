@@ -7,8 +7,9 @@
 | src/ramanchada2/\_\_init\_\_.py                                            |       29 |        4 |     86% |   131-134 |
 | src/ramanchada2/\_\_main\_\_.py                                            |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
-| src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        0 |        0 |    100% |           |
+| src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        1 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/spectra/datasets2/\_\_init\_\_.py                |       19 |        3 |     84% |209, 213-214 |
+| src/ramanchada2/auxiliary/spectra/simulated/\_\_init\_\_.py                |        5 |        0 |    100% |           |
 | src/ramanchada2/io/HSDS.py                                                 |       89 |       58 |     35% |20-64, 83-85, 95, 103-106, 110-122 |
 | src/ramanchada2/io/\_\_init\_\_.py                                         |        0 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/\_\_init\_\_.py                            |        2 |        0 |    100% |           |
@@ -92,7 +93,7 @@
 | src/ramanchada2/spectrum/creators/from\_chada.py                           |        9 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_delta\_lines.py                    |       23 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       48 |        5 |     90% |44, 49-50, 55, 73 |
-| src/ramanchada2/spectrum/creators/from\_simulation.py                      |       18 |        8 |     56% |     40-48 |
+| src/ramanchada2/spectrum/creators/from\_simulation.py                      |       25 |       14 |     44% |     45-61 |
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
 | src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       12 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        8 |     56% |     30-37 |
@@ -136,7 +137,7 @@
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3718** | **1177** | **68%** |           |
+|                                                                  **TOTAL** | **3731** | **1183** | **68%** |           |
 
 
 ## Setup coverage badge
