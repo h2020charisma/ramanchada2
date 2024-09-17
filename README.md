@@ -4,7 +4,7 @@
 
 | Name                                                                       |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| src/ramanchada2/\_\_init\_\_.py                                            |       29 |        4 |     86% |   131-134 |
+| src/ramanchada2/\_\_init\_\_.py                                            |       29 |        4 |     86% |   133-136 |
 | src/ramanchada2/\_\_main\_\_.py                                            |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        1 |        0 |    100% |           |
