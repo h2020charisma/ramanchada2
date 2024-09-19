@@ -1,0 +1,46 @@
+{
+    "creators": [
+        {
+            "orcid": "0000-0001-6884-3942",
+            "affiliation": "IDEAconsult, BG",
+            "name": "Georgi Georgiev"
+        },
+        {
+            "orcid": "0000-0002-4322-6179",
+            "affiliation": "IDEAconsult, BG",
+            "name": "Nina Jeliazkova"
+        },
+        {
+            "orcid": "0000-0001-7000-8890",
+            "affiliation": "IDEAconsult, BG",
+            "name": "Luchesar ILIEV"
+        },
+        {
+            "orcid": "0000-0002-7797-6859",
+            "affiliation": "Fraunhofer Institute for Structural Durability and System Reliability LBF, DE",
+            "name": "Dirk Lellinger"
+        },
+        {
+            "orcid": "0000-0002-9684-9142",
+            "affiliation": "IDEAconsult, BG",
+            "name": "Evgeni Marinov"
+        },
+        {
+            "orcid": "0000-0002-8678-5034",
+            "affiliation": "Consejo Superior de Investigaciones Científicas (CSIC), ES",
+            "name": "Nicolás Coca López"
+        }
+    ],
+
+    "license": "MIT",
+
+    "title": "A library for Raman spectroscopy harmonization",
+
+    "keywords": ["Raman", "spectroscopy"],
+
+    "communities": [
+        {"identifier": "h2020-nmbp-35-2020-project-charisma"}
+    ],
+
+    "grants": [{"id":"952921"}]
+}
