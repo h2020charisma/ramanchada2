@@ -6,11 +6,6 @@
             "name": "Georgi Georgiev"
         },
         {
-            "orcid": "0000-0002-4322-6179",
-            "affiliation": "IDEAconsult, BG",
-            "name": "Nina Jeliazkova"
-        },
-        {
             "orcid": "0000-0001-7000-8890",
             "affiliation": "IDEAconsult, BG",
             "name": "Luchesar ILIEV"
@@ -29,6 +24,11 @@
             "orcid": "0000-0002-8678-5034",
             "affiliation": "Consejo Superior de Investigaciones Científicas (CSIC), ES",
             "name": "Nicolás Coca López"
+        },
+        {
+            "orcid": "0000-0002-4322-6179",
+            "affiliation": "IDEAconsult, BG",
+            "name": "Nina Jeliazkova"
         }
     ],
 
