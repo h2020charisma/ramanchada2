@@ -1,10 +1,12 @@
 from pydantic import BaseModel, ValidationError 
 from typing import Dict, Optional
 import pandas as pd
-
+from ramanchada2.spectrum import Spectrum
+import numpy as np
 
 class SpectraFrameSchema(BaseModel):
     file_name: Optional[str] = None
+    sample: Optional[str] = None
     provider: Optional[str] = None
     device: Optional[str] = None
     device_id: Optional[str] = None
@@ -14,7 +16,10 @@ class SpectraFrameSchema(BaseModel):
     time_ms: Optional[float] = None
     replicate: Optional[int] = None
     optical_path: Optional[str] = None
-    spectrum: Optional[str] = None
+    spectrum: Optional[Spectrum] = None
+
+    class Config:
+        arbitrary_types_allowed = True  # Allow arbitrary types    
 
 # Define a custom DataFrame class with dynamic column mapping and validation
 class SpectraFrame(pd.DataFrame):
@@ -50,7 +55,7 @@ class SpectraFrame(pd.DataFrame):
         return df_mapped
     
     @classmethod
-    def from_dataframe(cls, df: pd.DataFrame, column_mapping: Dict[str, str]):
+    def from_dataframe(cls, df: pd.DataFrame, column_mapping: Dict[str, str] = None):
         """
         Create an instance of SpectraFrame with dynamic column validation.
         
@@ -61,5 +66,59 @@ class SpectraFrame(pd.DataFrame):
         Returns:
             SpectraFrame: A validated SpectraFrame object.
         """
+        if column_mapping is None:
+            column_mapping = {}
         # Validate columns before creating the MyFrame
-        return cls.validate_columns(df, column_mapping)
+        df_mapped = cls.validate_columns(df, column_mapping)
+        return cls(df_mapped)
+
+    def average(self,
+                grouping_cols = ['sample','provider','laser_wl','laser_power_percent','laser_power_mW','time_ms'],
+                source='spectrum',target='spectrum'
+                ):
+        processed_rows = []
+        
+        for group_keys, group in self.groupby(grouping_cols):
+            # Iterate over each row in the group
+            x = None 
+            y = None
+            for index, row in group.iterrows():
+                if x is None:
+                    x = row[source].x
+                if y is None:            
+                    y = row[source].y
+                else:
+                    y = y + row[source].y
+            spe_average = Spectrum(x,y/ group.shape[0])
+            
+            processed_row = row.copy()  # Make a copy of the row
+            processed_row[target] = spe_average
+            processed_rows.append(processed_row)
+        
+        df =  pd.DataFrame(processed_rows)
+        df.sort_values(by='laser_power_percent')
+        return SpectraFrame.from_dataframe(df)
+    
+    # tbd make it more generic
+    def trim(self,source='spectrum',target='spectrum',**kwargs):
+        kwargs.setdefault('method', 'x-axis')
+        kwargs.setdefault('boundaries', (50, 4000))
+        for index, row in self.iterrows():
+            self.at[index,target] = row[source].trim_axes(**kwargs)
+        return self
+
+    def baseline_snip(self,source='spectrum',target='spectrum',**kwargs):
+        kwargs.setdefault('niter', 40)
+        for index, row in self.iterrows():
+            self.at[index,target] = row[source].subtract_baseline_rc1_snip(**kwargs)       
+        return self
+
+    def spe_area(self,boundaries=(50, 3000), source='spectrum',target="area"):
+        for index, row in self.iterrows():
+            spe = row[source]
+            sc = spe.trim_axes(method='x-axis', boundaries=boundaries)  
+            self.at[index,target] = np.sum(sc.y * np.diff(sc.x_bin_boundaries))
+
+    def multiply(self,multiplier: float, source='spectrum',target='spectrum'):
+        for index, row in self.iterrows():
+            self.at[index,target] = row[source]*multiplier
