@@ -69,7 +69,7 @@ def trim(df,boundaries=(50,3000),source='spectrum',target="spectrum"):
 
 def baseline(df,baseline_kwargs=None,source='spectrum',target="spectrum"):
     if baseline_kwargs is None:
-        baseline_kwargs = {"niter" : 40 }
+        baseline_kwargs = {"niter" : 100 }
     for index, row in df.iterrows():
         df.at[index,target] = row[source].subtract_baseline_rc1_snip(**baseline_kwargs)       
     return df
@@ -107,37 +107,41 @@ def spe_area(df,title="area",boundaries=(50, 3000)):
         df.at[index,title] = np.sum(sc.y * np.diff(sc.x_bin_boundaries))
 
 
-def laser_power_regression(df,peak_at = 144,title=""):
-    fig, ax = plt.subplots(figsize=(6,2))    
+def laser_power_regression(df,peak_at = 144,boundaries=None,no_fit=False,title=""):
+    fig, ax = plt.subplots(df.shape[0],1,figsize=(12,12))
+    r = 0
     for index, row in df.iterrows():
         spe = row['spectrum']
-        df.at[index,'peak_intensity'],fit_res = calc_peak_intensity(spe,peak=peak_at,boundaries=(peak_at-50, peak_at+50))
-        spe.trim_axes(method='x-axis',boundaries=(peak_at-50, peak_at+50)).plot(ax=ax, fmt=':',label=row["laser_power_mW"])
+        if boundaries is None:
+            boundaries=(peak_at-50, peak_at+50)
+        df.at[index,'peak_intensity'],fit_res = calc_peak_intensity(spe,peak=peak_at,boundaries=boundaries,no_fit=no_fit)
+        spe.trim_axes(method='x-axis',boundaries=boundaries).plot(ax=ax[r], fmt=':',label=row["laser_power_mW"])
         if fit_res is not None:
-            fit_res.plot(ax=ax)            
+            fit_res.plot(ax=ax[r])            
+        r = r+1
 
     plt.savefig("test_twinning_peaks_{}.png".format(title))        
-    #print(df[['laser_power_mW','peak_intensity']])
+    print(df[['laser_power_mW','peak_intensity']])
     return LinearRegression().fit(df[["laser_power_mW"]].values,df["peak_intensity"].values)
     #print("Intercept:", model.intercept_)
     #print("Slope (Coefficient):", model.coef_[0])    
 
 
-def normalize_by_laserpower_time(reference,twinned):
+def normalize_by_laserpower_time(reference,twinned,source='spectrum',target='spectrum'):
     for (index_refere4nce, row_reference), (index_twinned, row_twinned) in zip(reference.iterrows(), twinned.iterrows()):
         laser_power_ratio = row_reference['laser_power_mW'] / row_twinned['laser_power_mW']
         time_ratio = row_reference['time_ms'] / row_twinned['time_ms']
-        spe = row_twinned['spectrum']
-        twinned.at[index_twinned, 'spectrum'] = rc2.spectrum.Spectrum(spe.x,spe.y*laser_power_ratio*time_ratio)
+        spe = row_twinned[source]
+        twinned.at[index_twinned, target] = rc2.spectrum.Spectrum(spe.x,spe.y*laser_power_ratio*time_ratio)
 
-def apply_correction_factor(df,CF=1):
+def apply_correction_factor(df,CF=1,source='spectrum',target='spectrum'):
     for index, row in df.iterrows():
-        df.at[index,'spectrum'] = row['spectrum']*CF
+        df.at[index,target] = row[source]*CF
 
-def plot_spectra(df,title="spectra"):
+def plot_spectra(df,title="spectra",source='spectrum'):
     fig, ax = plt.subplots(1, 1, figsize=(12, 2))
     for index, row in df.iterrows():
-        row["spectrum"].plot(ax=ax)
+        row[source].plot(ax=ax)
     plt.savefig("test_twinning_{}.png".format(title))        
 
 def plot_model(A,B,correction_factor =1, regression_A=(0,1), regression_B=(0,1)):
@@ -173,7 +177,7 @@ def plot_model(A,B,correction_factor =1, regression_A=(0,1), regression_B=(0,1))
 
 def test_metadata4twinning(reference_with_replicates,twinned_with_replicates):
     reference = process_replicates(reference_with_replicates,title="reference")
-    boundaries=(144-50,140+50)
+    boundaries=(50, 2000)
     reference = trim(reference,boundaries=boundaries)
     #
     reference = baseline(reference)
@@ -184,17 +188,19 @@ def test_metadata4twinning(reference_with_replicates,twinned_with_replicates):
     assert 5 == twinned.shape[0]
     plot_spectra(reference,"twinned")
     normalize_by_laserpower_time(reference,twinned)
-    #why baseline for the twinned only?
+    plot_spectra(twinned,"twinned_normalized")
     twinned = baseline(twinned)
+    plot_spectra(twinned,"twinned_normalized_baseline")
 
-    boundaries4area = (144-50, 140+50)
+    boundaries4peak = boundaries # (50, 500)
+    boundaries4area = boundaries
     spe_area(reference,title="area",boundaries=boundaries4area)
     spe_area(twinned,title="area",boundaries=boundaries4area)
 
-    plot_spectra(twinned,"twinned_normalized")
-    model_reference = laser_power_regression(reference,title="reference")
+    
+    model_reference = laser_power_regression(reference,title="reference",no_fit=False)
     print("slope reference",model_reference.coef_[0])
-    model_twinned = laser_power_regression(twinned,title="twinned")
+    model_twinned = laser_power_regression(twinned,title="twinned",no_fit=False)
     print("slope twinned",model_twinned.coef_[0])
     CF = model_reference.coef_[0] / model_twinned.coef_[0]
     print("correction factor",CF)
