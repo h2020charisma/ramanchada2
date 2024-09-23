@@ -1,8 +1,9 @@
 from pydantic import BaseModel, ValidationError 
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import pandas as pd
 from ramanchada2.spectrum import Spectrum
 import numpy as np
+from ramanchada2.protocols.metadata_helper import SpectrumMetadataExtractor
 
 class SpectraFrameSchema(BaseModel):
     file_name: Optional[str] = None
@@ -72,6 +73,18 @@ class SpectraFrame(pd.DataFrame):
         df_mapped = cls.validate_columns(df, column_mapping)
         return cls(df_mapped)
 
+    @classmethod
+    def from_metadata(cls, spectra: List[Spectrum],  metadata_extractor : SpectrumMetadataExtractor):
+        data = []
+        for spectrum in spectra:
+            metadata = metadata_extractor.extract(spectrum, None)
+            data.append({"spectrum": spectrum, **metadata})
+        return cls(pd.DataFrame(data))
+
+    @classmethod
+    def from_template(cls, template_file: str,  metadata_extractor : SpectrumMetadataExtractor):
+        return
+    
     def average(self,
                 grouping_cols = ['sample','provider','laser_wl','laser_power_percent','laser_power_mW','time_ms'],
                 source='spectrum',target='spectrum'
