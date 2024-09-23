@@ -8,14 +8,15 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
 class TwinningComponent(Plottable):
-    def __init__(self, twinned : SpectraFrame , reference : SpectraFrame):
+    def __init__(self, twinned : SpectraFrame , reference : SpectraFrame,boundaries=None,peak_at=144):
         self.grouping_cols = ['sample','provider','laser_wl','laser_power_percent','laser_power_mW','time_ms']
         self.twinned = twinned.average(grouping_cols = self.grouping_cols)
         self.reference = reference.average(grouping_cols = self.grouping_cols)        
-        self.boundaries = (50, 2000)
+        self.boundaries = (50, 2000) if boundaries is None else boundaries
         self.linreg_reference = (None,None)
         self.linreg_twinned = (None,None)
         self.correction_factor = None
+        self.peak = peak_at
 
     def normalize_by_laserpower_time(self,source='spectrum',target='spectrum'):
         for (index_refere4nce, row_reference), (index_twinned, row_twinned) in zip(self.reference.iterrows(), self.twinned.iterrows()):
@@ -24,21 +25,22 @@ class TwinningComponent(Plottable):
             spe = row_twinned[source]
             self.twinned.at[index_twinned, target] = Spectrum(spe.x,spe.y*laser_power_ratio*time_ratio)
 
-    def calc_peak_intensity(self,spe : Spectrum,peak=144,boundaries=None,prominence_coeff=0.01,no_fit=False):
+    def calc_peak_intensity(self,spe : Spectrum,boundaries=None,prominence_coeff=0.01,no_fit=False):
         try:
             peak_intensity="height"
             if boundaries is None:
-                boundaries=(peak-50, peak+50)
+                boundaries=(self.peak-50, self.peak+50)
             spe = spe.trim_axes(method='x-axis', boundaries=boundaries)
             prominence = spe.y_noise_MAD() * prominence_coeff
             candidates = spe.find_peak_multipeak(prominence=prominence)
             fit_res = spe.fit_peak_multimodel(profile='Voigt', candidates=candidates,no_fit=no_fit)
             df = fit_res.to_dataframe_peaks()
-            df["sorted"] = abs(df["center"] - peak) #closest peak to 144
+            df["sorted"] = abs(df["center"] - self.peak) #closest peak to 144
             df_sorted = df.sort_values(by='sorted')
-            index_left = np.searchsorted(spe.x, df_sorted["center"][0] , side='left', sorter=None)
-            index_right = np.searchsorted(spe.x, df_sorted["center"][0] , side='right', sorter=None)
+            index_left = np.searchsorted(spe.x, df_sorted["center"].iloc[0] , side='left', sorter=None)
+            index_right = np.searchsorted(spe.x, df_sorted["center"].iloc[0] , side='right', sorter=None)
             intensity_val = (spe.y[index_right] + spe.y[index_left])/2.0
+            #print(index_left,index_right,intensity_val)
             _label = "intensity = {:.3f} {} ={:.3f} amplitude={:.3f} center={:.1f}".format(
                 intensity_val,peak_intensity,df_sorted.iloc[0][peak_intensity],
                 df_sorted.iloc[0]["amplitude"],df_sorted.iloc[0]["center"])
@@ -48,14 +50,14 @@ class TwinningComponent(Plottable):
             print(err)
             return None,None
     
-    def laser_power_regression(self, df : SpectraFrame,peak_at = 144,boundaries=None,no_fit=False,source='spectrum'):
+    def laser_power_regression(self, df : SpectraFrame,boundaries=None,no_fit=False,source='spectrum'):
         #fig, ax = plt.subplots(df.shape[0],1,figsize=(12,12))
         r = 0
         for index, row in df.iterrows():
             spe = row[source]
             if boundaries is None:
-                boundaries=(peak_at-50, peak_at+50)
-            df.at[index,'peak_intensity'],fit_res = self.calc_peak_intensity(spe,peak=peak_at,boundaries=boundaries,no_fit=no_fit)
+                boundaries=(self.peak-50, self.peak+50)
+            df.at[index,'peak_intensity'],fit_res = self.calc_peak_intensity(spe,boundaries=boundaries,no_fit=no_fit)
             #spe.trim_axes(method='x-axis',boundaries=boundaries).plot(ax=ax[r], fmt=':',label=row["laser_power_mW"])
             #if fit_res is not None:
             #    fit_res.plot(ax=ax[r])            
