@@ -62,48 +62,43 @@ def process_replicates(df,grouping_cols = ['sample','provider','laser_wl','laser
     df.sort_values(by='laser_power_percent')
     return df
 
-def trim(df,boundaries=(50,3000)):
+def trim(df,boundaries=(50,3000),source='spectrum',target="spectrum"):
     for index, row in df.iterrows():
-        df.at[index,'spectrum'] = row['spectrum'].trim_axes(method='x-axis',boundaries=boundaries)
+        df.at[index,target] = row[source].trim_axes(method='x-axis',boundaries=boundaries)
     return df
 
-def calc_peak_intensity(spe,peak=144,prominence=0.01,fit_peak=True):
+def baseline(df,baseline_kwargs=None,source='spectrum',target="spectrum"):
+    if baseline_kwargs is None:
+        baseline_kwargs = {"niter" : 40 }
+    for index, row in df.iterrows():
+        df.at[index,target] = row[source].subtract_baseline_rc1_snip(**baseline_kwargs)       
+    return df
+
+def calc_peak_intensity(spe,peak=144,boundaries=None,prominence_coeff=0.01,no_fit=False):
     try:
         peak_intensity="height"
-        boundaries=(peak-50, peak+50)
+        if boundaries is None:
+            boundaries=(peak-50, peak+50)
         spe = spe.trim_axes(method='x-axis', boundaries=boundaries)
+        prominence = spe.y_noise_MAD() * prominence_coeff
         candidates = spe.find_peak_multipeak(prominence=prominence)
-        fig, ax = plt.subplots(figsize=(6,2))
-
-        if fit_peak:
-            fit_res = spe.fit_peak_multimodel(profile='Voigt', candidates=candidates)
-            df = fit_res.to_dataframe_peaks()
-            df["sorted"] = abs(df["center"] - peak) #closest peak to 144
-            df_sorted = df.sort_values(by='sorted')
-            index_left = np.searchsorted(spe.x, df_sorted["center"][0] , side='left', sorter=None)
-            index_right = np.searchsorted(spe.x, df_sorted["center"][0] , side='right', sorter=None)
-            intensity_val = (spe.y[index_right] + spe.y[index_left])/2.0
-            _label = "intensity = {:.3f} {} ={:.3f} amplitude={:.3f} center={:.1f}".format(
-                intensity_val,peak_intensity,df_sorted.iloc[0][peak_intensity],
-                df_sorted.iloc[0]["amplitude"],df_sorted.iloc[0]["center"])
-            spe.plot(ax=ax, fmt=':',label=_label)
-            fit_res.plot(ax=ax)            
-        else:
-            _col = "amplitude"
-            peak_list = []
-            for c in candidates:
-                for p in c.peaks:
-                    peak_list.append({_col: p.amplitude, 'position': p.position})
-            df_sorted = pd.DataFrame(peak_list)
-            df_sorted["sorted"] = abs(df_sorted["position"] - peak) #closest peak to 144
-            df_sorted = df_sorted.sort_values(by='sorted')
-            intensity_val = df_sorted.iloc[0][_col]
-            _label = "{}={:.3f} position={:.1f}".format(_col,intensity_val,df_sorted.iloc[0]["position"])            
-            spe.plot(ax=ax, fmt=':',label=_label)
-        return intensity_val
+        
+        
+        fit_res = spe.fit_peak_multimodel(profile='Voigt', candidates=candidates,no_fit=no_fit)
+        df = fit_res.to_dataframe_peaks()
+        df["sorted"] = abs(df["center"] - peak) #closest peak to 144
+        df_sorted = df.sort_values(by='sorted')
+        index_left = np.searchsorted(spe.x, df_sorted["center"][0] , side='left', sorter=None)
+        index_right = np.searchsorted(spe.x, df_sorted["center"][0] , side='right', sorter=None)
+        intensity_val = (spe.y[index_right] + spe.y[index_left])/2.0
+        _label = "intensity = {:.3f} {} ={:.3f} amplitude={:.3f} center={:.1f}".format(
+            intensity_val,peak_intensity,df_sorted.iloc[0][peak_intensity],
+            df_sorted.iloc[0]["amplitude"],df_sorted.iloc[0]["center"])
+        
+        return intensity_val, fit_res
     except Exception as err:
         print(err)
-        return None
+        return None,None
 
 def spe_area(df,title="area",boundaries=(50, 3000)):
     for index, row in df.iterrows():
@@ -112,10 +107,17 @@ def spe_area(df,title="area",boundaries=(50, 3000)):
         df.at[index,title] = np.sum(sc.y * np.diff(sc.x_bin_boundaries))
 
 
-def laser_power_regression(df,peak_at = 144):
+def laser_power_regression(df,peak_at = 144,title=""):
+    fig, ax = plt.subplots(figsize=(6,2))    
     for index, row in df.iterrows():
-        df.at[index,'peak_intensity'] = calc_peak_intensity(row['spectrum'])
-    print(df[['laser_power_mW','peak_intensity']])
+        spe = row['spectrum']
+        df.at[index,'peak_intensity'],fit_res = calc_peak_intensity(spe,peak=peak_at,boundaries=(peak_at-50, peak_at+50))
+        spe.trim_axes(method='x-axis',boundaries=(peak_at-50, peak_at+50)).plot(ax=ax, fmt=':',label=row["laser_power_mW"])
+        if fit_res is not None:
+            fit_res.plot(ax=ax)            
+
+    plt.savefig("test_twinning_peaks_{}.png".format(title))        
+    #print(df[['laser_power_mW','peak_intensity']])
     return LinearRegression().fit(df[["laser_power_mW"]].values,df["peak_intensity"].values)
     #print("Intercept:", model.intercept_)
     #print("Slope (Coefficient):", model.coef_[0])    
@@ -138,17 +140,20 @@ def plot_spectra(df,title="spectra"):
         row["spectrum"].plot(ax=ax)
     plt.savefig("test_twinning_{}.png".format(title))        
 
-def plot_model(A,B,correction_factor =1, regression_A=None, regression_B=None):
+def plot_model(A,B,correction_factor =1, regression_A=(0,1), regression_B=(0,1)):
     fig, axes = plt.subplots(1,2, figsize=(10,4)) 
     axes[0].plot(A["laser_power_mW"],A["peak_intensity"],'o',label=A["device_id"].unique())
     
-    #A_pred = A["laser_power_mW"]*regression_A["slope"] + regression_A["intercept"]
-    #axes[0].plot(A["laser_power_mW"],A_pred,'-',label="{:.2e} * LP + {:.2e}".format(regression_A["slope"],regression_A["intercept"]))
+    A_pred = A["laser_power_mW"]*regression_A[1] + regression_A[0]
+    axes[0].plot(A["laser_power_mW"],A_pred,'-',label="{:.2e} * LP + {:.2e}".format(regression_A[1],regression_A[0]))
     
     axes[0].plot(B["laser_power_mW"],B["peak_intensity"],'+',label=B["device_id"].unique())
-    #B_pred =B["laser_power_mW"]*regression_B["slope"] + regression_B["intercept"]
-    #axes[0].plot(B["laser_power_mW"],B_pred,'-',label="{:.2e} * LP + {:.2e}".format(regression_B["slope"],regression_B["intercept"]))
-    #plt.plot(x_values, y_values, color='red', label="Linear Regression Line")
+
+    #axes[0].plot(B["laser_power_mW"],B["peak_intensity"]*correction_factor,'+',label="{} corrected".format(B["device_id"].unique()))
+
+    B_pred =B["laser_power_mW"]*regression_B[1] + regression_B[0]
+    axes[0].plot(B["laser_power_mW"],B_pred,'-',label="{:.2e} * LP + {:.2e}".format(regression_B[1],regression_B[0]))
+
     axes[0].set_ylabel("Peak intensity of the (fitted) peak @ 144cm-1")
     axes[0].set_xlabel("laser power, %")
     axes[0].legend()
@@ -168,23 +173,28 @@ def plot_model(A,B,correction_factor =1, regression_A=None, regression_B=None):
 
 def test_metadata4twinning(reference_with_replicates,twinned_with_replicates):
     reference = process_replicates(reference_with_replicates,title="reference")
-    reference = trim(reference)
+    boundaries=(144-50,140+50)
+    reference = trim(reference,boundaries=boundaries)
+    #
+    reference = baseline(reference)
     assert 5 == reference.shape[0]
     plot_spectra(reference,"reference")
     twinned = process_replicates(twinned_with_replicates,title="twinned")
-    twinned = trim(twinned)
+    twinned = trim(twinned,boundaries=boundaries)
     assert 5 == twinned.shape[0]
     plot_spectra(reference,"twinned")
     normalize_by_laserpower_time(reference,twinned)
+    #why baseline for the twinned only?
+    twinned = baseline(twinned)
 
-    boundaries4area = (50, 1000)
+    boundaries4area = (144-50, 140+50)
     spe_area(reference,title="area",boundaries=boundaries4area)
     spe_area(twinned,title="area",boundaries=boundaries4area)
 
     plot_spectra(twinned,"twinned_normalized")
-    model_reference = laser_power_regression(reference)
+    model_reference = laser_power_regression(reference,title="reference")
     print("slope reference",model_reference.coef_[0])
-    model_twinned = laser_power_regression(twinned)
+    model_twinned = laser_power_regression(twinned,title="twinned")
     print("slope twinned",model_twinned.coef_[0])
     CF = model_reference.coef_[0] / model_twinned.coef_[0]
     print("correction factor",CF)
@@ -193,5 +203,7 @@ def test_metadata4twinning(reference_with_replicates,twinned_with_replicates):
     spe_area(twinned,title="area_harmonized",boundaries=boundaries4area)
     plot_spectra(twinned,"twinned_corrected")
 
-    plot_model(reference,twinned,correction_factor=CF)
+    plot_model(reference,twinned,correction_factor=CF,
+               regression_A=(model_reference.intercept_,model_reference.coef_[0]),
+               regression_B=(model_twinned.intercept_,model_twinned.coef_[0]))
     
