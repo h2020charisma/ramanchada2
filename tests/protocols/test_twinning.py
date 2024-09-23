@@ -50,12 +50,12 @@ def plot_spectra(df: SpectraFrame,title="spectra",source="spectrum"):
 
 
 def test_twinning(reference_with_replicates: SpectraFrame,twinned_with_replicates: SpectraFrame):
-    cmp = TwinningComponent(twinned_with_replicates,reference_with_replicates)
-  
-    plot_spectra(cmp.reference,"reference",source="spectrum")
-    plot_spectra(cmp.twinned,"twinned",source="spectrum")
+    cmp = TwinningComponent(twinned_with_replicates,reference_with_replicates,boundaries=(50,3000))
 
     cmp.derive_model()
+
+    plot_spectra(cmp.reference,"reference",source="spectrum")
+    plot_spectra(cmp.twinned,"twinned",source="spectrum")
 
     plot_spectra(cmp.reference,"reference_processed",source="spe_processed")
     plot_spectra(cmp.twinned,"twinned_processed",source="spe_processed")
