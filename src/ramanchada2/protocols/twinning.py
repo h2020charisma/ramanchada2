@@ -2,7 +2,7 @@ from ramanchada2.protocols.calibration import CalibrationComponent
 from ramanchada2.spectrum import Spectrum
 
 class TwinningComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon"):
+    def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Ti"):
         super(TwinningComponent, self).__init__(
             laser_wl, spe, spe_units, ref, ref_units, sample
         )
