@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
 class TwinningComponent(Plottable):
+
     def __init__(self, twinned : SpectraFrame , reference : SpectraFrame,boundaries=None,peak_at=144):
         self.grouping_cols = ['sample','provider','laser_wl','laser_power_percent','laser_power_mW','time_ms']
         self.twinned = twinned.average(grouping_cols = self.grouping_cols)
@@ -15,7 +16,7 @@ class TwinningComponent(Plottable):
         self.boundaries = (50, 2000) if boundaries is None else boundaries
         self.linreg_reference = (None,None)
         self.linreg_twinned = (None,None)
-        self.correction_factor = None
+        self.correction_factor : float = 1.0
         self.peak = peak_at
 
     def normalize_by_laserpower_time(self,source='spectrum',target='spectrum'):
@@ -83,7 +84,7 @@ class TwinningComponent(Plottable):
 
         self.reference.baseline_snip(source="spe_processed",target="spe_processed")
         self.twinned.baseline_snip(source="spe_processed",target="spe_processed")
-        
+
         boundaries4area = self.boundaries
         self.reference.spe_area(target="area",boundaries=boundaries4area,source="spe_processed")
         self.twinned.spe_area(target="area",boundaries=boundaries4area,source="spe_processed")

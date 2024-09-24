@@ -56,7 +56,7 @@ class SpectraFrame(pd.DataFrame):
         return df_mapped
     
     @classmethod
-    def from_dataframe(cls, df: pd.DataFrame, column_mapping: Dict[str, str] = None):
+    def from_dataframe(cls, df: pd.DataFrame, column_mapping: Dict[str, str] ):
         """
         Create an instance of SpectraFrame with dynamic column validation.
         
