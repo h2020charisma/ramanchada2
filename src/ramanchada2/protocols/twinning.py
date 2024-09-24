@@ -23,7 +23,9 @@ class TwinningComponent(Plottable):
             laser_power_ratio = row_reference['laser_power_mW'] / row_twinned['laser_power_mW']
             time_ratio = row_reference['time_ms'] / row_twinned['time_ms']
             spe = row_twinned[source]
-            self.twinned.at[index_twinned, target] = Spectrum(spe.x,spe.y*laser_power_ratio*time_ratio)
+            self.twinned.at[index_twinned, target] = spe*laser_power_ratio*time_ratio
+            self.twinned.at[index_twinned, "laser_power_ratio"] = laser_power_ratio
+            self.twinned.at[index_twinned, "time_ratio"] = time_ratio
 
     def calc_peak_intensity(self,spe : Spectrum,boundaries=None,prominence_coeff=0.01,no_fit=False):
         try:
@@ -76,9 +78,12 @@ class TwinningComponent(Plottable):
     def derive_model(self):
         self.reference.trim(boundaries=self.boundaries,source="spectrum",target="spe_processed")
         self.twinned.trim(boundaries=self.boundaries,source="spectrum",target="spe_processed")
+
         self.normalize_by_laserpower_time(source="spe_processed",target="spe_processed")
+
         self.reference.baseline_snip(source="spe_processed",target="spe_processed")
         self.twinned.baseline_snip(source="spe_processed",target="spe_processed")
+        
         boundaries4area = self.boundaries
         self.reference.spe_area(target="area",boundaries=boundaries4area,source="spe_processed")
         self.twinned.spe_area(target="area",boundaries=boundaries4area,source="spe_processed")
@@ -90,6 +95,7 @@ class TwinningComponent(Plottable):
         self.linreg_twinned = (model_twinned.intercept_,model_twinned.coef_[0])
         
         self.correction_factor = model_reference.coef_[0] / model_twinned.coef_[0]
+        self.twinned["correction_factor"] =  self.correction_factor
 
     def plot(self, ax=None, label=' ', **kwargs) -> Axes:
         if ax is None:

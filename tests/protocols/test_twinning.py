@@ -62,6 +62,8 @@ def test_twinning(reference_with_replicates: SpectraFrame,twinned_with_replicate
 
     cmp.process(cmp.twinned,source='spe_processed',target='spectrum_harmonized')
 
+    cmp.twinned.drop(columns=["spectrum","spe_processed","spectrum_harmonized"]).to_csv("twinned.csv",index=False)
+
     plot_spectra(cmp.twinned,"spectrum_harmonized",source="spectrum_harmonized")
 
     print(cmp.twinned[["laser_power_mW","area",'area_harmonized']])
