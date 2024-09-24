@@ -86,31 +86,28 @@ class SpectraFrame(pd.DataFrame):
         return
     
     def average(self,
-                grouping_cols = ['sample','provider','laser_wl','laser_power_percent','laser_power_mW','time_ms'],
+                grouping_cols = ['sample','provider','device','laser_wl','laser_power_percent','laser_power_mW','time_ms'],
                 source='spectrum',target='spectrum'
                 ):
         processed_rows = []
         
         for group_keys, group in self.groupby(grouping_cols):
             # Iterate over each row in the group
-            x = None 
-            y = None
+            spe_average = None
             for index, row in group.iterrows():
-                if x is None:
-                    x = row[source].x
-                if y is None:            
-                    y = row[source].y
+                if spe_average is None:
+                    spe_average  = row[source]
                 else:
-                    y = y + row[source].y
-            spe_average = Spectrum(x,y/ group.shape[0])
+                    spe_average = spe_average + row[source]
+            spe_average = spe_average / group.shape[0]
             
-            processed_row = row.copy()  # Make a copy of the row
+            processed_row = row.copy()[grouping_cols]  # Make a copy of the row
             processed_row[target] = spe_average
             processed_rows.append(processed_row)
         
         df =  pd.DataFrame(processed_rows)
         df.sort_values(by='laser_power_percent')
-        return SpectraFrame.from_dataframe(df)
+        return SpectraFrame.from_dataframe(df,column_mapping={})
     
     # tbd make it more generic
     def trim(self,source='spectrum',target='spectrum',**kwargs):

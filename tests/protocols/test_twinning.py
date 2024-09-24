@@ -50,7 +50,12 @@ def plot_spectra(df: SpectraFrame,title="spectra",source="spectrum"):
 
 
 def test_twinning(reference_with_replicates: SpectraFrame,twinned_with_replicates: SpectraFrame):
-    cmp = TwinningComponent(twinned_with_replicates,reference_with_replicates,boundaries=(50,3000))
+
+    grouping_cols = [col for col in reference_with_replicates.columns if col not in ["replicate","file_name","spectrum"]]
+    print(grouping_cols)
+    cmp = TwinningComponent(twinned_with_replicates,reference_with_replicates,
+                            reference_band_nm=144.0,
+                            boundaries=(50,3000),grouping_cols=grouping_cols)
 
     cmp.derive_model()
 
@@ -63,6 +68,7 @@ def test_twinning(reference_with_replicates: SpectraFrame,twinned_with_replicate
     cmp.process(cmp.twinned,source='spe_processed',target='spectrum_harmonized')
 
     cmp.twinned.drop(columns=["spectrum","spe_processed","spectrum_harmonized"]).to_csv("twinned.csv",index=False)
+    cmp.reference.drop(columns=["spectrum","spe_processed"]).to_csv("reference.csv",index=False)
 
     plot_spectra(cmp.twinned,"spectrum_harmonized",source="spectrum_harmonized")
 
