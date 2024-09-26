@@ -306,11 +306,12 @@ class LazerZeroingComponent(CalibrationComponent):
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
+
+            msg = "{} using {:.3f} nm".format(self.name,zero_peak_nm)
             self.set_model(
-                zero_peak_nm, "nm", df, "Laser zeroing using {} nm".format(zero_peak_nm)
+                zero_peak_nm, "nm", df, msg
             )
-            print(self.name, "peak", zero_peak_nm)
-            logger.info(self.name, "peak", zero_peak_nm)
+            logger.info(msg)
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
     def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
