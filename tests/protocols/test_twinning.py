@@ -36,10 +36,10 @@ def twinned_with_replicates():
                 {"filename":"file_name"})
 
 def checkmetadata4twinning(df,expected_rows=25):
-    assert "laser_power_mW" in df.columns
-    assert "laser_power_percent" in df.columns
-    assert "time_ms" in df.columns
-    assert "replicate" in df.columns
+    for col in ["laser_power_mW","laser_power_percent","time_ms","replicate"]:
+        assert col in df.columns
+        # these are strings in the test , we want numerics
+        df[col] = df[col].astype(float)
     assert expected_rows == df.shape[0]
 
 def plot_spectra(df: SpectraFrame,title="spectra",source="spectrum"):
