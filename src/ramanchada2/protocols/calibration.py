@@ -307,7 +307,7 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["center"]
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
 
-            msg = "{} using {:.3f} nm".format(self.name,zero_peak_nm)
+            msg = "Laser zeroing using {:.3f} nm".format(zero_peak_nm)
             self.set_model(
                 zero_peak_nm, "nm", df, msg
             )
