@@ -191,7 +191,12 @@ class XCalibrationComponent(CalibrationComponent):
             basefmt=" ",
             label="Reference {}".format(self.sample),
         )
-        ax.set_xlabel("{}".format(self.ref_units))
+        
+        if self.ref_units=="cm-1":
+            _units = rf'$\mathrm{{[{_units}]}}$'
+        else:
+            _units = self.ref_units
+        ax.set_xlabel(_units)
         ax.legend()
 
     def _plot_peaks(self, ax, **kwargs):
@@ -396,7 +401,8 @@ class YCalibrationCertificate(BaseModel, Plottable):
         ax.plot(
             x, self.Y(x), label="{} ({}nm)".format(self.id, self.wavelength), **kwargs
         )
-        ax.set_xlabel("Raman shift cm-1")
+        _units = 'cm^{-1}'
+        ax.set_xlabel(rf'Raman shift $\mathrm{{[{_units}]}}$')
         ax.set_ylabel("Intensity")
 
     @staticmethod
