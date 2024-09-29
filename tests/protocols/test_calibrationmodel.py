@@ -96,7 +96,7 @@ def test_laser_zeroing(setup_module):
 
     _units = setup_module.calmodel.components[1].model_units
     if _units == "cm-1":
-        _units = rf'$\mathrm{{[{_units}]}}$'    
+        _units = rf'$\mathrm{{[cm^{-1}]}}$'    
     assert _units == "nm"
     ax.set_xlabel(_units)
     # print(setup_module.calmodel.components[1])
