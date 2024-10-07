@@ -19,7 +19,7 @@ def from_local_file(
         in_file_name: str,
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                       'wdf', 'ngs', 'jdx', 'dx',
-                                      'txt', 'txtr', 'csv', 'prn', 'rruf']] = None,
+                                      'txt', 'txtr', 'csv', 'prn', 'rruf', 'spe']] = None,
         backend: Union[None, Literal['native', 'rc1_parser']] = None):
     """
     Read experimental spectrum from a local file.
