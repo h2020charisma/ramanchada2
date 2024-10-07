@@ -35,19 +35,3 @@ def test_spectraframe(spectra2test):
     assert("optical_path" in spe_frame.columns)
     assert("file_name" in spe_frame.columns)
     
-
-def test_tbd():
-
-    # Initialize individual metadata extractors
-    template_extractor = TemplateMetadataExtractor(template=['name'])
-    filename_extractor = FilenameMetadataExtractor()
-    spectrum_extractor = SpectrumMetadataExtractor()
-
-    # Chain the metadata extractors
-    chained_extractor = ChainedMetadataExtractor(template_extractor, filename_extractor, spectrum_extractor)
-
-    # Create the data table
-    data_table_creator = SpectraFrame.from_metadata(spectrum_extractor)
-    data_table = data_table_creator.create_datatable()
-
-    print(data_table)        
