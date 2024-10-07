@@ -4,7 +4,7 @@
 
 | Name                                                                       |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| src/ramanchada2/\_\_init\_\_.py                                            |       29 |        4 |     86% |   133-136 |
+| src/ramanchada2/\_\_init\_\_.py                                            |       29 |        7 |     76% |127-129, 133-136 |
 | src/ramanchada2/\_\_main\_\_.py                                            |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        1 |        0 |    100% |           |
@@ -17,9 +17,9 @@
 | src/ramanchada2/io/experimental/neegala\_format.py                         |       12 |        1 |     92% |        12 |
 | src/ramanchada2/io/experimental/rc1\_parser/\_\_init\_\_.py                |        1 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/rc1\_parser/binary\_readers.py             |      143 |      136 |      5% |16-37, 41-116, 120-125, 130-134, 138-202 |
-| src/ramanchada2/io/experimental/rc1\_parser/io.py                          |       48 |       15 |     69% |18, 20, 22, 25-32, 60-64 |
-| src/ramanchada2/io/experimental/rc1\_parser/third\_party\_readers.py       |       35 |        8 |     77% |     26-33 |
-| src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |      110 |     10% |11-43, 48-117, 121-141, 145-151, 155-166, 170-171 |
+| src/ramanchada2/io/experimental/rc1\_parser/io.py                          |       48 |       10 |     79% |20, 22, 26, 28, 32, 60-64 |
+| src/ramanchada2/io/experimental/rc1\_parser/third\_party\_readers.py       |       35 |        1 |     97% |        29 |
+| src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |       37 |     70% |11-43, 84, 99-100, 110-115, 129, 131, 170-171 |
 | src/ramanchada2/io/experimental/read\_csv.py                               |       11 |        7 |     36% |     10-19 |
 | src/ramanchada2/io/experimental/read\_txt.py                               |       36 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/rruf\_format.py                            |       16 |        0 |    100% |           |
@@ -69,7 +69,7 @@
 | src/ramanchada2/spectral\_components/spectral\_component.py                |        8 |        3 |     62% |     11-13 |
 | src/ramanchada2/spectral\_components/spectral\_component\_collection.py    |       49 |       34 |     31% |14-18, 21, 26-27, 30-31, 34, 38-39, 42-43, 46-65 |
 | src/ramanchada2/spectral\_components/spectral\_peak.py                     |       27 |       13 |     52% | 14, 17-30 |
-| src/ramanchada2/spectrum/\_\_init\_\_.py                                   |       16 |        0 |    100% |           |
+| src/ramanchada2/spectrum/\_\_init\_\_.py                                   |       17 |        0 |    100% |           |
 | src/ramanchada2/spectrum/arithmetics/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/arithmetics/add.py                                |       20 |       11 |     45% |     18-29 |
 | src/ramanchada2/spectrum/arithmetics/mul.py                                |       20 |       11 |     45% |     18-29 |
@@ -95,6 +95,7 @@
 | src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       48 |        5 |     90% |44, 49-50, 55, 73 |
 | src/ramanchada2/spectrum/creators/from\_simulation.py                      |       25 |       14 |     44% |     45-61 |
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
+| src/ramanchada2/spectrum/creators/from\_stream.py                          |       65 |        6 |     91% |34-38, 45, 50 |
 | src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       12 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        8 |     56% |     30-37 |
 | src/ramanchada2/spectrum/creators/hdr\_from\_multi\_exposure.py            |       17 |        9 |     47% |     24-32 |
@@ -131,6 +132,7 @@
 | tests/peak/pearson4\_test.py                                               |       50 |        0 |    100% |           |
 | tests/protocols/test\_calibrationmodel.py                                  |      116 |        8 |     93% |77-79, 102-108 |
 | tests/spectrum/creators/test\_from\_local\_file.py                         |       14 |        0 |    100% |           |
+| tests/spectrum/creators/test\_from\_stream.py                              |       22 |        0 |    100% |           |
 | tests/spectrum/filters/test\_resample\_NUDFT.py                            |       22 |        0 |    100% |           |
 | tests/spectrum/filters/test\_resample\_spline.py                           |       16 |        0 |    100% |           |
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
@@ -138,7 +140,7 @@
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3761** | **1163** | **69%** |           |
+|                                                                  **TOTAL** | **3849** | **1087** | **72%** |           |
 
 
 ## Setup coverage badge
