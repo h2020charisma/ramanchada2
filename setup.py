@@ -52,6 +52,7 @@ INSTALL_REQUIRES = [
         "spc-io~=0.2.0",
         "statsmodels==0.14.*",
         "uncertainties==3.*",
+        "spe2py~=2.0",
 ]
 
 CLASSIFIERS = [
