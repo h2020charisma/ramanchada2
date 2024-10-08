@@ -7,7 +7,8 @@ from typing import Literal, Optional, Union
 import spc_io
 from pydantic import validate_call
 
-from ramanchada2.io.experimental import rc1_parser, read_csv, read_txt
+from ramanchada2.io.experimental import (rc1_parser, read_csv, read_spe,
+                                         read_txt)
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 from ramanchada2.misc.types import SpeMetadataModel
 
@@ -19,7 +20,7 @@ from ..spectrum import Spectrum
 def from_stream(in_stream: Union[io.TextIOBase, io.BytesIO, io.BufferedReader],
                 filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                               'wdf', 'ngs', 'jdx', 'dx',
-                                              'txt', 'txtr', 'csv', 'prn', 'rruf']],
+                                              'txt', 'txtr', 'csv', 'prn', 'rruf', 'spe']],
                 filename: Optional[str] = None,
                 backend: Union[None, Literal['native', 'rc1_parser']] = None,
                 ):
@@ -46,6 +47,17 @@ def from_stream(in_stream: Union[io.TextIOBase, io.BytesIO, io.BufferedReader],
             x = spc[0].xarray
             y = spc[0].yarray
             meta = spc.log_book.text
+        elif filetype in {'spe'}:
+            if isinstance(in_stream, io.TextIOBase):
+                raise ValueError('For spc filetype does not support io.TextIOBase')
+            with tempfile.TemporaryDirectory(suffix='ramanchada2') as dn:
+                fn = os.path.basename(filename or in_stream.name or f'noname.{filetype}')
+                path = os.path.join(dn, fn)
+                with open(path, 'wb') as fp:
+                    shutil.copyfileobj(in_stream, fp)
+                    print(f'shutil.copyfileobj({in_stream}, {fp}')
+                x, y, meta = read_spe(path)
+            spe = Spectrum(x=x, y=y, metadata=meta)
         else:
             raise ValueError(f'filetype {filetype} not supported')
         meta["Original file"] = os.path.basename(filename) if filename else 'N/A loaded from stream'
@@ -56,7 +68,6 @@ def from_stream(in_stream: Union[io.TextIOBase, io.BytesIO, io.BufferedReader],
         with tempfile.TemporaryDirectory(suffix='ramanchada2') as dn:
             fn = os.path.basename(filename or in_stream.name or f'noname.{filetype}')
             path = os.path.join(dn, fn)
-            print(path)
             if isinstance(in_stream, io.TextIOBase):
                 with open(path, 'w') as fp:
                     shutil.copyfileobj(in_stream, fp)

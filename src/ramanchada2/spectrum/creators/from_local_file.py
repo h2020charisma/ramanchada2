@@ -6,7 +6,8 @@ from typing import Literal, Union
 import spc_io
 from pydantic import validate_call
 
-from ramanchada2.io.experimental import rc1_parser, read_csv, read_txt, read_spe
+from ramanchada2.io.experimental import (rc1_parser, read_csv, read_spe,
+                                         read_txt)
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 from ramanchada2.misc.types import SpeMetadataModel
 
