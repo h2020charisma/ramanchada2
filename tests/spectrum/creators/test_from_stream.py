@@ -11,16 +11,17 @@ def test_from_stream(experimental_filename):
         print('skip', ft)
         return
     print(ft)
-    with open(experimental_filename, 'rb') as fp:
-        spe = rc2.spectrum.from_stream(fp, filetype=ft, backend='rc1_parser')
-        assert len(spe.x) > 10
+    if ft not in {'spe'}:
+        with open(experimental_filename, 'rb') as fp:
+            spe = rc2.spectrum.from_stream(fp, filetype=ft, backend='rc1_parser')
+            assert len(spe.x) > 10
 
     if ft not in {'wdf'}:
         with open(experimental_filename, 'rb') as fp:
             spe = rc2.spectrum.from_stream(fp, filetype=ft, backend='native')
             assert len(spe.x) > 10
 
-        if ft in {'spc'}:
+        if ft in {'spc', 'spe'}:
             with pytest.raises(UnicodeDecodeError):
                 with open(experimental_filename, 'r') as fp:
                     rc2.spectrum.from_stream(fp, filetype=ft)

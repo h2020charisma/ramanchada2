@@ -6,7 +6,8 @@ from typing import Literal, Union
 import spc_io
 from pydantic import validate_call
 
-from ramanchada2.io.experimental import rc1_parser, read_csv, read_txt
+from ramanchada2.io.experimental import (rc1_parser, read_csv, read_spe,
+                                         read_txt)
 from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 from ramanchada2.misc.types import SpeMetadataModel
 
@@ -19,7 +20,7 @@ def from_local_file(
         in_file_name: str,
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                       'wdf', 'ngs', 'jdx', 'dx',
-                                      'txt', 'txtr', 'csv', 'prn', 'rruf']] = None,
+                                      'txt', 'txtr', 'csv', 'prn', 'rruf', 'spe']] = None,
         backend: Union[None, Literal['native', 'rc1_parser']] = None):
     """
     Read experimental spectrum from a local file.
@@ -29,7 +30,8 @@ def from_local_file(
             Path to a local file containing a spectrum.
         filetype:
             Specify the filetype. Filetype can be any of: `spc`, `sp`, `spa`, `0`, `1`, `2`, `wdf`, `ngs`, `jdx`, `dx`,
-            `txt`, `txtr`, `csv`, `prn`, `rruf` or `None`. `None` used to determine by extension of the file.
+            `txt`, `txtr`, `csv`, `prn`, `rruf`, `spe` (Princeton Instruments) or `None`.
+            `None` used to determine by extension of the file.
         backend:
             `native`, `rc1_parser` or `None`. `None` means both.
 
@@ -56,6 +58,9 @@ def from_local_file(
                 x = spc[0].xarray
                 y = spc[0].yarray
                 meta = spc.log_book.text
+        elif ft in {'spe'}:
+            x, y, meta = read_spe(in_file_name)
+            spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
         else:
             raise ValueError(f'filetype {ft} not supported')
         meta["Original file"] = os.path.basename(in_file_name)
