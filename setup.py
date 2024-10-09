@@ -71,6 +71,10 @@ CLASSIFIERS = [
     'Topic :: Software Development :: Libraries',
 ]
 
+CONSOLE_SCRIPTS = [
+        'spg2csv = ramanchada2.standalone.spg2csv:spg2csv',
+]
+
 
 def setup_package():
     setup(
@@ -91,6 +95,7 @@ def setup_package():
         packages=PACKAGES,
         python_requires=PYTHON_REQUIRES,
         url=URL,
+        entry_points=dict(console_scripts=CONSOLE_SCRIPTS),
         version=VERSION,
     )
 
