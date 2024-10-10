@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_29bace2118452fb8_neegala_format_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.1">coverage.py v7.6.1</a>,
-            created at 2024-10-09 21:11 +0000
+            created at 2024-10-10 15:08 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -100,7 +100,7 @@
     <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t">    <span class="nam">spec_split</span> <span class="op">=</span> <span class="op">[</span><span class="nam">s</span><span class="op">.</span><span class="nam">replace</span><span class="op">(</span><span class="str">','</span><span class="op">,</span> <span class="str">'.'</span><span class="op">)</span><span class="op">.</span><span class="nam">replace</span><span class="op">(</span><span class="str">' '</span><span class="op">,</span> <span class="str">''</span><span class="op">)</span><span class="op">.</span><span class="nam">strip</span><span class="op">(</span><span class="str">'\r\n ;'</span><span class="op">)</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">';'</span><span class="op">)</span> <span class="key">for</span> <span class="nam">s</span> <span class="key">in</span> <span class="nam">spec</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t">    <span class="nam">spe_parsed</span> <span class="op">=</span> <span class="nam">pandas</span><span class="op">.</span><span class="nam">DataFrame</span><span class="op">.</span><span class="nam">from_records</span><span class="op">(</span><span class="nam">data</span><span class="op">=</span><span class="nam">spec_split</span><span class="op">[</span><span class="num">1</span><span class="op">:</span><span class="op">]</span><span class="op">,</span> <span class="nam">columns</span><span class="op">=</span><span class="nam">spec_split</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="nam">spe_parsed</span> <span class="op">=</span> <span class="nam">spe_parsed</span><span class="op">.</span><span class="nam">apply</span><span class="op">(</span><span class="nam">pandas</span><span class="op">.</span><span class="nam">to_numeric</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="nam">spe_parsed</span> <span class="op">=</span> <span class="nam">spe_parsed</span><span class="op">.</span><span class="nam">apply</span><span class="op">(</span><span class="nam">pandas</span><span class="op">.</span><span class="nam">to_numeric</span><span class="op">,</span> <span class="nam">errors</span><span class="op">=</span><span class="str">'coerce'</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t22" href="#t22">22</a></span><span class="t">    <span class="nam">spe_parsed</span> <span class="op">=</span> <span class="nam">spe_parsed</span><span class="op">.</span><span class="nam">dropna</span><span class="op">(</span><span class="nam">axis</span><span class="op">=</span><span class="num">0</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t23" href="#t23">23</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t">    <span class="key">return</span> <span class="nam">spe_parsed</span><span class="op">,</span> <span class="nam">meta_dict</span>&nbsp;</span><span class="r"></span></p>
@@ -113,7 +113,7 @@
             <a class="nav" href="z_29bace2118452fb8_neegala_format_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.1">coverage.py v7.6.1</a>,
-            created at 2024-10-09 21:11 +0000
+            created at 2024-10-10 15:08 +0000
         </p>
     </div>
 </footer>
