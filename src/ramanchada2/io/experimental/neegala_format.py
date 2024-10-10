@@ -13,7 +13,7 @@ def neegala_format(lines: List[str]) -> Tuple[pandas.DataFrame, Dict]:
     meta = dict([i.split(',', 1) for i in lines[:start_spe]])
     spe_lines = [ll.strip().split(',') for ll in lines[start_spe:]]
 
-    data = pandas.DataFrame.from_records(
-        data=spe_lines[1:], columns=spe_lines[0]
-        ).apply(pandas.to_numeric).dropna(axis=0)
+    data = pandas.DataFrame.from_records(data=spe_lines[1:], columns=spe_lines[0]
+                                         ).apply(pandas.to_numeric, errors='coerce'
+                                                 ).dropna(axis=0)
     return data, meta
