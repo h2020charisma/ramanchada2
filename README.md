@@ -106,6 +106,7 @@
 | src/ramanchada2/spectrum/filters/add\_poisson\_noise.py                    |       16 |        0 |    100% |           |
 | src/ramanchada2/spectrum/filters/convolve.py                               |       21 |        2 |     90% |    47, 50 |
 | src/ramanchada2/spectrum/filters/drop\_spikes.py                           |       32 |        6 |     81% |56-58, 105-107 |
+| src/ramanchada2/spectrum/filters/dropna.py                                 |       17 |        0 |    100% |           |
 | src/ramanchada2/spectrum/filters/moving\_average.py                        |       14 |        3 |     79% | 26-28, 47 |
 | src/ramanchada2/spectrum/filters/moving\_median.py                         |       16 |        4 |     75% |12-16, 38, 60 |
 | src/ramanchada2/spectrum/filters/pad\_zeros.py                             |       14 |        7 |     50% |     29-36 |
@@ -134,6 +135,7 @@
 | tests/protocols/test\_calibrationmodel.py                                  |      116 |        8 |     93% |77-79, 102-108 |
 | tests/spectrum/creators/test\_from\_local\_file.py                         |       14 |        0 |    100% |           |
 | tests/spectrum/creators/test\_from\_stream.py                              |       23 |        0 |    100% |           |
+| tests/spectrum/filters/test\_dropna.py                                     |       11 |        0 |    100% |           |
 | tests/spectrum/filters/test\_resample\_NUDFT.py                            |       22 |        0 |    100% |           |
 | tests/spectrum/filters/test\_resample\_spline.py                           |       16 |        0 |    100% |           |
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
@@ -141,7 +143,7 @@
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3875** | **1088** | **72%** |           |
+|                                                                  **TOTAL** | **3903** | **1088** | **72%** |           |
 
 
 ## Setup coverage badge
