@@ -36,7 +36,7 @@
 | src/ramanchada2/io/simulated/vasp/vasp\_simulation\_dat.py                 |       19 |        0 |    100% |           |
 | src/ramanchada2/misc/\_\_init\_\_.py                                       |        0 |        0 |    100% |           |
 | src/ramanchada2/misc/base\_class.py                                        |       20 |       11 |     45% |3, 6, 12, 16, 20-26 |
-| src/ramanchada2/misc/constants.py                                          |       19 |        0 |    100% |           |
+| src/ramanchada2/misc/constants.py                                          |       21 |        0 |    100% |           |
 | src/ramanchada2/misc/exceptions.py                                         |        6 |        0 |    100% |           |
 | src/ramanchada2/misc/plottable.py                                          |       14 |        1 |     93% |        17 |
 | src/ramanchada2/misc/spectrum\_deco/\_\_init\_\_.py                        |        5 |        0 |    100% |           |
@@ -143,7 +143,7 @@
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **3903** | **1088** | **72%** |           |
+|                                                                  **TOTAL** | **3905** | **1088** | **72%** |           |
 
 
 ## Setup coverage badge
