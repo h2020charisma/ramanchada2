@@ -1,17 +1,9 @@
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-
 import pytest
 import ramanchada2 as rc2
-from ramanchada2.auxiliary.spectra.datasets2 import (
-    filtered_df,
-    get_filenames,
-    prepend_prefix,
-)
+from ramanchada2.auxiliary.spectra.datasets2 import filtered_df, prepend_prefix
 from ramanchada2.protocols.spectraframe import SpectraFrame
 from ramanchada2.protocols.twinning import TwinningComponent
-from sklearn.linear_model import LinearRegression
 
 
 def load_spectrum(row):

@@ -4,7 +4,6 @@ from matplotlib.axes import Axes
 from sklearn.linear_model import LinearRegression
 
 from ramanchada2.misc.plottable import Plottable
-from ramanchada2.protocols.calibration import CalibrationComponent
 from ramanchada2.protocols.spectraframe import SpectraFrame
 from ramanchada2.spectrum import Spectrum
 
@@ -235,7 +234,12 @@ class TwinningComponent(Plottable):
             B["laser_power_mW"], B["peak_intensity"], "+", label=B["device_id"].unique()
         )
 
-        # axes[0].plot(B["laser_power_mW"],B["peak_intensity"]*correction_factor,'+',label="{} corrected".format(B["device_id"].unique()))
+        # axes[0].plot(
+        #     B["laser_power_mW"],
+        #     B["peak_intensity"] * correction_factor,
+        #     "+",
+        #     label="{} corrected".format(B["device_id"].unique()),
+        # )
 
         B_pred = B["laser_power_mW"] * regression_B[1] + regression_B[0]
         ax[0].plot(

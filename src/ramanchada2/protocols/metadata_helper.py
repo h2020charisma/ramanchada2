@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 class MetadataExtractor:
     def extract(self, spectrum, filename=None):
         raise NotImplementedError("Subclasses should implement this method.")

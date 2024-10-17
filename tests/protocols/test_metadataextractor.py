@@ -1,16 +1,5 @@
-import pandas as pd
 import pytest
-from ramanchada2.auxiliary.spectra.datasets2 import (
-    filtered_df,
-    get_filenames,
-    prepend_prefix,
-)
-from ramanchada2.protocols.metadata_helper import (
-    ChainedMetadataExtractor,
-    FilenameMetadataExtractor,
-    SpectrumMetadataExtractor,
-    TemplateMetadataExtractor,
-)
+from ramanchada2.auxiliary.spectra.datasets2 import filtered_df, prepend_prefix
 from ramanchada2.protocols.spectraframe import SpectraFrame
 
 
