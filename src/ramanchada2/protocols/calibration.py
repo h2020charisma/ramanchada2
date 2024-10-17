@@ -193,7 +193,7 @@ class XCalibrationComponent(CalibrationComponent):
         )
 
         if self.ref_units == "cm-1":
-            _units = rf"$\mathrm{{[{_units}]}}$"
+            _units = rf"$\mathrm{{[{self.ref_units}]}}$"
         else:
             _units = self.ref_units
         ax.set_xlabel(_units)
