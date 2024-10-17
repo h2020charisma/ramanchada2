@@ -96,7 +96,7 @@ def test_laser_zeroing(setup_module):
 
     _units = setup_module.calmodel.components[1].model_units
     if _units == "cm-1":
-        _units = rf'$\mathrm{{[cm^{-1}]}}$'    
+        _units = rf"$\mathrm{{[cm^{-1}]}}$"
     assert _units == "nm"
     ax.set_xlabel(_units)
     # print(setup_module.calmodel.components[1])
@@ -145,9 +145,9 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
             ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
         )
         spe_calibrated.append(spe_c_norm.y)
-        _units = 'cm^{-1}'
-        _units = rf'$\mathrm{{[{_units}]}}$'    
-        ax[index + 1].set_xlabel(_units)        
+        _units = "cm^{-1}"
+        _units = rf"$\mathrm{{[{_units}]}}$"
+        ax[index + 1].set_xlabel(_units)
     cos_sim_matrix_original = cosine_similarity(spe_y_original)
     cos_sim_matrix = cosine_similarity(spe_calibrated)
     plt.tight_layout()

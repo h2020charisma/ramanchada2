@@ -191,9 +191,9 @@ class XCalibrationComponent(CalibrationComponent):
             basefmt=" ",
             label="Reference {}".format(self.sample),
         )
-        
-        if self.ref_units=="cm-1":
-            _units = rf'$\mathrm{{[{_units}]}}$'
+
+        if self.ref_units == "cm-1":
+            _units = rf"$\mathrm{{[{_units}]}}$"
         else:
             _units = self.ref_units
         ax.set_xlabel(_units)
@@ -313,9 +313,7 @@ class LazerZeroingComponent(CalibrationComponent):
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
 
             msg = "Laser zeroing using {:.3f} nm".format(zero_peak_nm)
-            self.set_model(
-                zero_peak_nm, "nm", df, msg
-            )
+            self.set_model(zero_peak_nm, "nm", df, msg)
             logger.info(msg)
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
@@ -401,8 +399,8 @@ class YCalibrationCertificate(BaseModel, Plottable):
         ax.plot(
             x, self.Y(x), label="{} ({}nm)".format(self.id, self.wavelength), **kwargs
         )
-        _units = 'cm^{-1}'
-        ax.set_xlabel(rf'Raman shift $\mathrm{{[{_units}]}}$')
+        _units = "cm^{-1}"
+        ax.set_xlabel(rf"Raman shift $\mathrm{{[{_units}]}}$")
         ax.set_ylabel("Intensity")
 
     @staticmethod
