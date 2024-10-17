@@ -35,7 +35,7 @@ class DeltaSpeModel:
 
     def fit(self, spe, sigma, ax=None, no_fit=False):
         self.params['sigma'].set(value=sigma if sigma > 1 else 1)
-        spe_conv = spe.convolve('gaussian', sigma=sigma)
+        spe_conv = spe.convolve('gaussian', sigma=sigma/np.mean(np.diff(spe.x)))
         if no_fit:
             fit_res = self.model.fit(spe_conv.y, x=spe_conv.x, params=self.params, max_nfev=-1)
         else:
