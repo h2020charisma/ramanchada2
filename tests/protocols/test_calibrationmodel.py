@@ -93,8 +93,14 @@ def test_laser_zeroing(setup_module):
     setup_module.spe_sil.plot(label="Si original", ax=ax)
     spe_sil_calib.plot(ax=ax, label="Si laser zeroed", fmt=":")
     # ax.set_xlim(520.45-50,520.45+50)
-    ax.set_xlabel(setup_module.calmodel.components[1].model_units)
+
+    _units = setup_module.calmodel.components[1].model_units
+    if _units == "cm-1":
+        _units = rf"$\mathrm{{[cm^{-1}]}}$"
+    assert _units == "nm"
+    ax.set_xlabel(_units)
     # print(setup_module.calmodel.components[1])
+    plt.tight_layout()
     plt.savefig("test_calmodel_{}.png".format("laser_zeroing"))
 
 
@@ -139,8 +145,12 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
             ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
         )
         spe_calibrated.append(spe_c_norm.y)
+        _units = "cm^{-1}"
+        _units = rf"$\mathrm{{[{_units}]}}$"
+        ax[index + 1].set_xlabel(_units)
     cos_sim_matrix_original = cosine_similarity(spe_y_original)
     cos_sim_matrix = cosine_similarity(spe_calibrated)
+    plt.tight_layout()
     plt.savefig("test_calmodel_{}.png".format(name))
     # print(name,np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
     # assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))

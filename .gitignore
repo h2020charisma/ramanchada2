@@ -1,5 +1,4 @@
 # Test files
-test_calmodel_*.png
 pearson4.png
 pearson4_synthetic.csv
 pearson4_synthetic.png
@@ -9,6 +8,10 @@ pearson4_synthetic_noise_shift.csv
 pearson4_synthetic_noise_shift.png
 pearson4_synthetic_single.csv
 pearson4_synthetic_single.png
+reference.csv
+test_calmodel_*.png
+test_twinning_*.png
+twinned.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
