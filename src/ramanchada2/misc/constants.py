@@ -411,12 +411,14 @@ neon_rs_dict = {
     785: {k: v for k, v in abs_nm_to_shift_cm_1_dict(neon_nist_wl_nm, 785).items() if 100 < k < 3000},
     633: {k: v for k, v in abs_nm_to_shift_cm_1_dict(neon_nist_wl_nm, 633).items() if 100 < k < 4500},
     532: {k: v for k, v in abs_nm_to_shift_cm_1_dict(neon_nist_wl_nm, 532).items() if 100 < k < 4000},
+    514: {k: v for k, v in abs_nm_to_shift_cm_1_dict(neon_nist_wl_nm, 514).items() if 100 < k < 4000},
 }
 
 neon_wl_dict = {
     785: {k: v for k, v in shift_cm_1_to_abs_nm_dict(neon_rs_dict[785], 785).items()},
     633: {k: v for k, v in shift_cm_1_to_abs_nm_dict(neon_rs_dict[633], 633).items()},
     532: {k: v for k, v in shift_cm_1_to_abs_nm_dict(neon_rs_dict[532], 532).items()},
+    514: {k: v for k, v in shift_cm_1_to_abs_nm_dict(neon_rs_dict[514], 514).items()},
 }
 
 
@@ -424,6 +426,7 @@ neon_rs_spe = {
     785: rc2spectrum.from_delta_lines(neon_rs_dict[785], xcal=lambda x: x, nbins=4500).convolve('gaussian', sigma=1),
     633: rc2spectrum.from_delta_lines(neon_rs_dict[633], xcal=lambda x: x, nbins=4500).convolve('gaussian', sigma=2),
     532: rc2spectrum.from_delta_lines(neon_rs_dict[532], xcal=lambda x: x, nbins=4500).convolve('gaussian', sigma=3),
+    514: rc2spectrum.from_delta_lines(neon_rs_dict[514], xcal=lambda x: x, nbins=4500).convolve('gaussian', sigma=3),
 }
 
 neon_wl_spe = {
@@ -432,6 +435,8 @@ neon_wl_spe = {
     633: rc2spectrum.from_delta_lines(neon_wl_dict[633], xcal=lambda x: x/17.64 + 633, nbins=4500
                                       ).convolve('gaussian', sigma=1.5),
     532: rc2spectrum.from_delta_lines(neon_wl_dict[532], xcal=lambda x: x/31.69 + 535, nbins=4500
+                                      ).convolve('gaussian', sigma=1.5),
+    514: rc2spectrum.from_delta_lines(neon_wl_dict[514], xcal=lambda x: x/31.69 + 514, nbins=4500
                                       ).convolve('gaussian', sigma=1.5),
 }
 
@@ -522,6 +527,28 @@ neon_wl_532_nist_dict = {
 }
 
 
+neon_wl_514_nist_dict = {  # generated with `neon_wl_spe[514].fit_peak_positions()`
+    533.1227516566739: 1.893341747575223, 534.1325339224629: 3.155569580094588,
+    534.3534237930478: 1.893341747594008, 540.0965604291574: 6.311139160528673,
+    556.316188071947: 1.5777847894388257, 565.6882297254654: 1.5777847894388244,
+    571.9678131902808: 1.577784789438823, 574.8709372041653: 1.5777847894384802,
+    576.480277690123: 2.208898705700221, 580.4878510571158: 1.577784789439162,
+    582.0340801514673: 1.577784789438819, 585.2843168191858: 6.3111391605299945,
+    587.3038813505837: 1.5777847894388177, 588.2189965288734: 3.1555695799820027,
+    590.2701167560745: 0.15777847901555297, 590.6803408015146: 0.1577784790155361,
+    594.5301356894919: 1.577784789438816, 596.5812559166928: 1.577784789438815,
+    597.5497766401437: 3.5613026786141493, 598.8217103187125: 0.4733354370463101,
+    603.0186178605237: 3.155569579981991, 607.4679709687598: 3.1555695799819894,
+    609.6453139791731: 0.9466708736863838, 612.8639949510887: 0.3155569580308466,
+    614.347112653834: 3.155569579981985, 616.3982328810349: 3.155569579981983,
+    618.2600189334174: 0.47333543704630987, 621.7627011675606: 3.1555695799819796,
+    626.6853897128431: 3.1555695799819743, 630.5036289050173: 0.3155569580308466,
+    632.8387503944462: 0.9466708736863778, 633.469864310508: 3.15556957998197,
+    638.3294414641841: 3.1555695799826475, 640.2543389081728: 6.311139160528551
+}
+
+
+neon_rs_514_nist_dict = abs_nm_to_shift_cm_1_dict(neon_wl_532_nist_dict, 514)
 neon_rs_532_nist_dict = abs_nm_to_shift_cm_1_dict(neon_wl_532_nist_dict, 532)
 neon_rs_633_nist_dict = abs_nm_to_shift_cm_1_dict(neon_wl_633_nist_dict, 633)
 neon_rs_785_nist_dict = abs_nm_to_shift_cm_1_dict(neon_wl_785_nist_dict, 785)
@@ -545,5 +572,6 @@ neon_wl_D3_3_dict = dict(zip(neon_wl_D3_3, [1]*len(neon_wl_D3_3)))
 NEON_WL: Final = {
     785: neon_wl_785_nist_dict,
     633: neon_wl_633_nist_dict,
-    532: neon_wl_532_nist_dict
+    532: neon_wl_532_nist_dict,
+    514: neon_wl_532_nist_dict,
 }
