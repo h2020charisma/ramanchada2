@@ -33,11 +33,11 @@ class Spectrum(Plottable):
         super(Plottable, self).__init__()
         if x is not None:
             if isinstance(x, int):
-                self.x = np.arange(x)
+                self.x = np.arange(x) * 1.
             else:
-                self.x = x
+                self.x = x * 1.
         if y is not None:
-            self.y = y
+            self.y = y * 1.
 
         self._x_err: Union[npt.NDArray, None] = None
         self._y_err: Union[npt.NDArray, None] = None
