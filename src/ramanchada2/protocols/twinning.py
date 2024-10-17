@@ -166,9 +166,6 @@ class TwinningComponent(Plottable):
             source=target, target="area_harmonized", boundaries=self.boundaries
         )
 
-    def process_spectrum(self, spe: Spectrum):
-        return spe * self.correction_factor
-
     def derive_model(self):
         self.reference.trim(
             boundaries=self.boundaries, source="spectrum", target="spe_processed"
