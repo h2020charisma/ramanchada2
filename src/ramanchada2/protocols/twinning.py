@@ -99,10 +99,11 @@ class TwinningComponent(Plottable):
         try:
             if boundaries is None:
                 boundaries = (self.reference_band_nm - 50, self.reference_band_nm + 50)
-            spe = spe.trim_axes(method="x-axis", boundaries=boundaries)
+            # TODO: Check if the MyPy type ignores below can be handled better.
+            spe = spe.trim_axes(method="x-axis", boundaries=boundaries)  # type: ignore
             prominence = spe.y_noise_MAD() * prominence_coeff
-            candidates = spe.find_peak_multipeak(prominence=prominence)
-            fit_res = spe.fit_peak_multimodel(
+            candidates = spe.find_peak_multipeak(prominence=prominence)  # type: ignore
+            fit_res = spe.fit_peak_multimodel(  # type: ignore
                 profile="Voigt", candidates=candidates, no_fit=no_fit
             )
             df = fit_res.to_dataframe_peaks()
