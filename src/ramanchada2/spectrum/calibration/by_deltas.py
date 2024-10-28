@@ -1,9 +1,9 @@
-from typing import Dict, List, Literal, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import lmfit
 import numpy as np
 import numpy.typing as npt
-from pydantic import NonNegativeInt, validate_call
+from pydantic import BaseModel, NonNegativeInt, validate_call
 from scipy import interpolate
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
@@ -46,10 +46,23 @@ class DeltaSpeModel:
             ax.plot(spe_conv.x, fit_res.eval(x=spe_conv.x), 'r')
 
 
+class ParamBounds(BaseModel):
+    min: float = -np.inf
+    max: float = np.inf
+
+
+class FitBounds(BaseModel):
+    shift: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+    scale: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+    scale2: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+    scale3: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+
+
 @add_spectrum_method
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def calibrate_by_deltas_model(spe: Spectrum, /,
                               deltas: Dict[float, float],
+                              bounds: Optional[FitBounds] = None,
                               convolution_steps: Union[None, List[float]] = [15, 1],
                               scale2=True, scale3=False,
                               init_guess: Literal[None, 'cumulative'] = None,
@@ -96,8 +109,12 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
         scale = 1
         shift = 0
     gain = np.sum(spe.y)/np.sum(list(deltas.values()))
-    mod.params['scale'].set(value=scale)
-    mod.params['shift'].set(value=shift)
+    if bounds is not None:
+        mod.params['scale'].set(value=scale, min=bounds.scale.min, max=bounds.scale.max)
+        mod.params['shift'].set(value=shift, min=bounds.shift.min, max=bounds.shift.max)
+    else:
+        mod.params['scale'].set(value=scale)
+        mod.params['shift'].set(value=shift)
     mod.params['gain'].set(value=gain)
     mod.params['sigma'].set(value=2.5)
 
@@ -109,14 +126,19 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
             mod.fit(spe=spe_padded, sigma=sig, ax=ax, **kwargs)
 
     if scale2:
-        mod.params['scale2'].set(vary=True, value=0)
-        # mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
-        mod.fit(spe_padded, sigma=0, ax=ax, **kwargs)
+        if bounds is not None:
+            mod.params['scale2'].set(vary=True, value=0, min=bounds.scale2.min, max=bounds.scale2.max)
+        else:
+            mod.params['scale2'].set(vary=True, value=0)
+        mod.fit(spe_padded, sigma=0.05, ax=ax, **kwargs)
     if scale3:
-        mod.params['scale2'].set(vary=True, value=0)
-        mod.params['scale3'].set(vary=True, value=0)
-        # mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
-        mod.fit(spe_padded, sigma=0, ax=ax, **kwargs)
+        if bounds is not None:
+            mod.params['scale2'].set(vary=True, value=0, min=bounds.scale2.min, max=bounds.scale2.max)
+            mod.params['scale3'].set(vary=True, value=0, min=bounds.scale3.min, max=bounds.scale3.max)
+        else:
+            mod.params['scale2'].set(vary=True, value=0)
+            mod.params['scale3'].set(vary=True, value=0)
+        mod.fit(spe_padded, sigma=0.05, ax=ax, **kwargs)
     return mod.model, mod.params
 
 
