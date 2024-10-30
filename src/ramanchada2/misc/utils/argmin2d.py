@@ -7,7 +7,7 @@ from pydantic import PositiveInt, validate_call
 from scipy import linalg
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
-
+from scipy.optimize import linear_sum_assignment
 
 def argmin2d(A):
     ymin_idx = np.argmin(A, axis=0)
@@ -148,12 +148,12 @@ def match_peaks_cluster(spe_pos_dict, ref):
 
 def cost_function_position(p1, p2, order_weight=1.0 ,priority_weight=1.0):
     order_penalty = order_weight * abs(p1[0] - p2[0])
-    return order_penalty
+    return order_penalty 
+    #order_penalty - priority_bonus
 
 def cost_function(p1, p2, order_weight=1.0, priority_weight=.1):
     """
     Modified cost function with an order preservation penalty and priority weighting.
-    
     - `order_weight` increases penalty for large differences in the x-axis values.
     - `priority_weight` decreases the cost for higher values in the y-axis for set_b points.
     """
@@ -244,7 +244,7 @@ def match_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, df=Fal
     >>> match_peaks(spectrum_a, spectrum_b)
 
     """    
-    cost_matrix = cost_matrix_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=threshold_max_distance*2, cost_func = cost_function if cost_func is None else cost_func)        
+    cost_matrix = cost_matrix_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=threshold_max_distance, cost_func = cost_function if cost_func is None else cost_func)        
     
     # Use the Hungarian algorithm to find the optimal assignment
     try:

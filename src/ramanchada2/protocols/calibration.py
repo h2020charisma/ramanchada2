@@ -223,7 +223,7 @@ class XCalibrationComponent(CalibrationComponent):
             )
         )
         peaks_df = self.fit_peaks(find_kw,fit_peaks_kw,should_fit)
-        x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(threshold_max_distance=15,return_df=True)
+        x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(threshold_max_distance=8,return_df=True)
         
         self.cost_matrix = cost_matrix
         self.matched_peaks = df
@@ -962,8 +962,16 @@ class CustomRBFInterpolator(RBFInterpolator):
         }
     
     def plot(self,ax):
-        ax.scatter(self.y.reshape(-1),self.d.reshape(-1))
+        ax.scatter(self.y.reshape(-1),self.d.reshape(-1),marker="+",color="blue",label="Matched peaks")
 
+        x_range = np.linspace(self.y.min(), self.y.max(), 100)  # Adjust number of points if needed
+        predicted_x = self(x_range.reshape(-1, 1)) 
+
+        ax.plot(x_range, predicted_x,color="red",linestyle='-',label="Calibration curve")
+        ax.set_xlabel("Ne peaks, nm")
+        ax.set_ylabel("Reference peaks, nm")
+        ax.grid(which='both', linestyle='--', linewidth=0.5, color='gray')
+        ax.legend()
 
     def __str__(self):
         return (
