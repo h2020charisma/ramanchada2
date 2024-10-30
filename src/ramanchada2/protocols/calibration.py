@@ -14,8 +14,7 @@ from scipy.interpolate import RBFInterpolator
 
 import ramanchada2.misc.constants as rc2const
 from ramanchada2.misc.plottable import Plottable
-from ..misc import utils as rc2utils
-from ..misc.utils.argmin2d import match_peaks, match_peaks_cluster,cost_function,cost_function_position
+from ..misc.utils.argmin2d import match_peaks, match_peaks_cluster, cost_function_position
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
@@ -140,7 +139,7 @@ class CalibrationComponent(Plottable):
 
 
 class XCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon",match_method = "cluster"):
+    def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon", match_method="cluster"):
         super(XCalibrationComponent, self).__init__(
             laser_wl, spe, spe_units, ref, ref_units, sample
         )
@@ -222,18 +221,18 @@ class XCalibrationComponent(CalibrationComponent):
                 self.name, self.spe_units, self.ref_units
             )
         )
-        peaks_df = self.fit_peaks(find_kw,fit_peaks_kw,should_fit)
-        x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(threshold_max_distance=8,return_df=True)
-        
+        peaks_df = self.fit_peaks(find_kw, fit_peaks_kw, should_fit)
+        x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(threshold_max_distance=8, return_df=True)
+
         self.cost_matrix = cost_matrix
         self.matched_peaks = df
-        #if df is None:
+        # if df is None:
         #    self.matched_peaks = pd.DataFrame({
         #        'spe': x_spe,
         #        'reference': x_reference,
         #        'distances': x_distance
         #    })
-        
+
         sum_of_differences = np.sum(np.abs(x_spe - x_reference)) / len(x_spe)
         logger.debug(
             "sum_of_differences original {} {}".format(
@@ -262,30 +261,30 @@ class XCalibrationComponent(CalibrationComponent):
             except Exception as err:
                 raise err
 
-    def match_peaks(self, threshold_max_distance=9 , return_df = False): 
+    def match_peaks(self, threshold_max_distance=9, return_df=False):
         if self.match_method == "cluster":
             x_spe, x_reference, x_distance, df = match_peaks_cluster(
-                        self.spe_pos_dict, self.ref 
-                    )    
-            cost_matrix = None        
-            return x_spe, x_reference, x_distance,cost_matrix, df
+                        self.spe_pos_dict, self.ref
+                    )
+            cost_matrix = None
+            return x_spe, x_reference, x_distance, cost_matrix, df
         else:
             try:
-                x_spe, x_reference, x_distance,cost_matrix, df = match_peaks(
-                        self.spe_pos_dict, self.ref, threshold_max_distance=threshold_max_distance,df=return_df,
+                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks(
+                        self.spe_pos_dict, self.ref, threshold_max_distance=threshold_max_distance, df=return_df,
                         cost_func=self.cost_function
                     )
-                return x_spe, x_reference, x_distance,cost_matrix, df
+                return x_spe, x_reference, x_distance, cost_matrix, df
             except Exception as err:
                 raise err
 
-    def fit_peaks(self,find_kw,fit_peaks_kw,should_fit):
+    def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x", max(spe_to_process.x), self.ref_units)
 
         peaks_df = None
         self.fit_res = None
-        
+
         # instead of fit_peak_positions - we don't want movmin here
         # baseline removal might be done during preprocessing
         center_err_threshold = 0.5
@@ -293,7 +292,7 @@ class XCalibrationComponent(CalibrationComponent):
         cand = spe_to_process.find_peak_multipeak(**find_kw)
         # print(cand.get_ampl_pos_fwhm())
 
-        self.fit_res = spe_to_process.fit_peak_multimodel(profile="Gaussian",candidates=cand, **fit_peaks_kw, no_fit = not should_fit)  # type: ignore
+        self.fit_res = spe_to_process.fit_peak_multimodel(profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit)
         peaks_df = self.fitres2df(spe_to_process)
         # self.fit_res.to_dataframe_peaks()
         if should_fit:
@@ -323,7 +322,7 @@ class LazerZeroingComponent(CalibrationComponent):
         if find_kw is None:
             find_kw = {}
         if fit_peaks_kw is None:
-            fit_peaks_kw = {}        
+            fit_peaks_kw = {}
 
         cand = self.spe.find_peak_multipeak(**find_kw)
         logger.debug(self.name, cand)
@@ -343,9 +342,9 @@ class LazerZeroingComponent(CalibrationComponent):
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-            zero_peak_cm1 = self.zero_nm_to_shift_cm_1(zero_peak_nm, zero_peak_nm,list(self.ref.keys())[0])
+            zero_peak_cm1 = self.zero_nm_to_shift_cm_1(zero_peak_nm, zero_peak_nm, list(self.ref.keys())[0])
             self.set_model(
-                zero_peak_nm, "nm", df, "Laser zeroing using {} nm {} cm-1 ({}) ".format(zero_peak_nm,zero_peak_cm1,self.profile)
+                zero_peak_nm, "nm", df, "Laser zeroing using {} nm {} cm-1 ({}) ".format(zero_peak_nm, zero_peak_cm1, self.profile)
             )
             logger.info(self.name, f"peak {self.profile} at {zero_peak_nm} nm")
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
@@ -599,7 +598,6 @@ class YCalibrationComponent(CalibrationComponent):
             self.ref.plot(ax, **kwargs)
 
 
-
 class CalibrationModel(ProcessingModel, Plottable):
     """
     A class representing a calibration model for Raman spectrum.
@@ -618,7 +616,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         # Create an instance of CalibrationModel
         import ramanchada2 as rc2
         import ramanchada2.misc.constants as rc2const
-        from ramanchada2.protocols.calibration import CalibrationModel        
+        from ramanchada2.protocols.calibration import CalibrationModel
         laser_wl=785
         calmodel = CalibrationModel.calibration_model_factory(
             laser_wl,
@@ -687,7 +685,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         find_kw={"wlen": 200, "width": 1},
         fit_kw={},
         should_fit=False,
-        match_method = "cluster"
+        match_method="cluster"
     ):
         """
         Derives x-calibration models using Neon and Silicon spectra.
@@ -707,7 +705,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             fit_peaks_kw=fit_kw,
             should_fit=should_fit,
             name="Neon calibration",
-            match_method= match_method
+            match_method=match_method
         )
         spe_sil_ne_calib = model_neon.process(
             spe_sil, spe_units=spe_sil_units, convert_back=False
@@ -736,7 +734,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
-        match_method = "cluster"
+        match_method="cluster"
     ):
         if find_kw is None:
             find_kw = {}
@@ -767,7 +765,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw={},
         should_fit=False,
         name="X calibration",
-        match_method = "cluster"
+        match_method="cluster"
     ):
         warnings.warn(
             message="Do not use directly. Use derive_model_x instead.",
@@ -882,8 +880,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw=None,
         should_fit=False,
         prominence_coeff=3,
-        match_method = "cluster",
-        si_profile = "Pearson4"
+        match_method="cluster",
+        si_profile="Pearson4"
 
     ):
         if neon_wl is None:
@@ -904,7 +902,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             fit_peaks_kw=fit_peaks_kw,
             should_fit=should_fit,
             name="Neon calibration",
-            match_method = match_method
+            match_method=match_method
         )
         spe_sil_ne_calib = model_neon.process(
             spe_sil, spe_units="cm-1", convert_back=False
@@ -960,14 +958,14 @@ class CustomRBFInterpolator(RBFInterpolator):
             "scale": self._scale,
             "shift": self._shift,
         }
-    
-    def plot(self,ax):
-        ax.scatter(self.y.reshape(-1),self.d.reshape(-1),marker="+",color="blue",label="Matched peaks")
 
-        x_range = np.linspace(self.y.min(), self.y.max(), 100)  # Adjust number of points if needed
-        predicted_x = self(x_range.reshape(-1, 1)) 
+    def plot(self, ax):
+        ax.scatter(self.y.reshape(-1), self.d.reshape(-1), marker="+", color="blue", label="Matched peaks")
 
-        ax.plot(x_range, predicted_x,color="red",linestyle='-',label="Calibration curve")
+        x_range = np.linspace(self.y.min(), self.y.max(), 100)
+        predicted_x = self(x_range.reshape(-1, 1))
+
+        ax.plot(x_range, predicted_x, color="red", linestyle='-', label="Calibration curve")
         ax.set_xlabel("Ne peaks, nm")
         ax.set_ylabel("Reference peaks, nm")
         ax.grid(which='both', linestyle='--', linewidth=0.5, color='gray')
@@ -976,5 +974,5 @@ class CustomRBFInterpolator(RBFInterpolator):
     def __str__(self):
         return (
             f"Calibration curve {len(self.y)} points) {self.kernel}"
-            
+
         )

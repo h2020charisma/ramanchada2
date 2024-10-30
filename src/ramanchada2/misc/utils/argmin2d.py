@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 from scipy.optimize import linear_sum_assignment
 
+
 def argmin2d(A):
     ymin_idx = np.argmin(A, axis=0)
     xmin_idx = np.argmin(A, axis=1)
@@ -113,7 +114,7 @@ def match_peaks_cluster(spe_pos_dict, ref):
 
     n_ref = len(ref.keys())
     n_spe = len(spe_pos_dict.keys())
-    kmeans = KMeans(n_clusters=n_ref if n_ref > n_spe else n_spe, random_state= 68)
+    kmeans = KMeans(n_clusters=n_ref if n_ref > n_spe else n_spe, random_state=68)
     kmeans.fit(feature_matrix)
     labels = kmeans.labels_
     # Extract cluster labels, x values, and y values
@@ -146,10 +147,11 @@ def match_peaks_cluster(spe_pos_dict, ref):
     sort_indices = np.argsort(x_spe)
     return (x_spe[sort_indices], x_reference[sort_indices], x_distance[sort_indices], df)
 
-def cost_function_position(p1, p2, order_weight=1.0 ,priority_weight=1.0):
+
+def cost_function_position(p1, p2, order_weight=1.0, priority_weight=1.0):
     order_penalty = order_weight * abs(p1[0] - p2[0])
-    return order_penalty 
-    #order_penalty - priority_bonus
+    return order_penalty
+
 
 def cost_function(p1, p2, order_weight=1.0, priority_weight=.1):
     """
@@ -159,7 +161,6 @@ def cost_function(p1, p2, order_weight=1.0, priority_weight=.1):
     """
     order_penalty = order_weight * abs(p1[0] - p2[0])
     priority_bonus = priority_weight * p2[1]  # Rewards points in set_b with higher second dimension values
-    #distance_cost = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
     return order_penalty - priority_bonus
 
 
@@ -171,7 +172,7 @@ def normalize_tuples(tuples):
     return [(tuples[i][0], normalized_values[i]) for i in range(len(tuples))]
 
 
-def cost_matrix_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, cost_func = None):
+def cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9, cost_func=None):
     if cost_func is None:
         cost_func = cost_function_position
     peaks_a = np.array(list(spectrum_a_dict.keys()))
@@ -190,25 +191,17 @@ def cost_matrix_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, 
     intensities_a_normalized = normalize_intensities(intensities_a)
     intensities_b_normalized = normalize_intensities(intensities_b)
 
-    min_peak_b = np.min(peaks_b)-threshold_max_distance
-    max_peak_b = np.max(peaks_b)+threshold_max_distance
-
-    num_peaks_a = len(peaks_a)  
+    num_peaks_a = len(peaks_a)
     cost_matrix = np.full((num_peaks_a, num_peaks_b), np.inf)  # Initialize with infinity
 
     for i in range(num_peaks_a):
-        #if peaks_a[i] < min_peak_b or peaks_a[i] > max_peak_b:
-        #    continue
         for j in range(num_peaks_b):
-            position_cost = abs(peaks_a[i] - peaks_b[j])
-            #if position_cost > threshold_max_distance*2:
-            #    continue
-            cost = cost_func([peaks_a[i],intensities_a_normalized[i]],[peaks_b[j],intensities_b_normalized[j]],priority_weight=2)
-             
-            cost_matrix[i, j] =  cost
+            cost = cost_func([peaks_a[i], intensities_a_normalized[i]], [peaks_b[j], intensities_b_normalized[j]], priority_weight=1)
+            cost_matrix[i, j] = cost
     return cost_matrix
 
-def match_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, df=False , cost_func = None):
+
+def match_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9, df=False, cost_func=None):
     """
     Match peaks between two spectra based on their positions and intensities.
 
@@ -218,19 +211,19 @@ def match_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, df=Fal
     Parameters:
     ----------
     spectrum_a_dict : dict
-        A dictionary representing the first spectrum, where keys are peak 
+        A dictionary representing the first spectrum, where keys are peak
         positions (float) and values are peak intensities (float).
 
     spectrum_b_dict : dict
-        A dictionary representing the second spectrum, where keys are peak 
+        A dictionary representing the second spectrum, where keys are peak
         positions (float) and values are peak intensities (float).
 
     threshold_max_distance : float, optional
-        The maximum allowed distance for two peaks to be considered a match. 
-        Default is 5. 
+        The maximum allowed distance for two peaks to be considered a match.
+        Default is 8.
 
     df : bool, optional
-        If True, return a DataFrame with matched peaks and their respective 
+        If True, return a DataFrame with matched peaks and their respective
         intensities; if False, return None
 
     Returns:
@@ -243,22 +236,15 @@ def match_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, df=Fal
     >>> spectrum_b = {102: 12, 106: 22, 111: 16}
     >>> match_peaks(spectrum_a, spectrum_b)
 
-    """    
-    cost_matrix = cost_matrix_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=threshold_max_distance, cost_func = cost_function if cost_func is None else cost_func)        
-    
+    """
+    cost_matrix = cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=threshold_max_distance, cost_func=cost_function if cost_func is None else cost_func)
+
     # Use the Hungarian algorithm to find the optimal assignment
     try:
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
     except Exception as err:
         raise err
-
-    # experiments with dynamic programming
-    #print(normalize_tuples(list(spectrum_a_dict.items())))
-
-    #matches, min_cost, _df =  partial_ordered_match(normalize_tuples(list(spectrum_a_dict.items())), normalize_tuples(list(spectrum_b_dict.items())), 
-    #           order_weight=1.0, priority_weight=0, cost_func = cost_function_euclidean)
-    #print("matches",matches)
 
     # Prepare matched peaks and distances
     # I am sure this could be done in a more efficient way
@@ -303,20 +289,19 @@ def match_peaks(spectrum_a_dict,spectrum_b_dict,threshold_max_distance=9, df=Fal
 
     # Sort matched peaks by peaks_a
     # linear_sum_assignment shall give the row_ind sorted
-    #sorted_indices = np.argsort(matched_peaks_a)
-    #matched_peaks_a = matched_peaks_a[sorted_indices]
-    #matched_peaks_b = matched_peaks_b[sorted_indices]
-    #matched_distances = matched_distances[sorted_indices]  
+    # sorted_indices = np.argsort(matched_peaks_a)
+    # matched_peaks_a = matched_peaks_a[sorted_indices]
+    # matched_peaks_b = matched_peaks_b[sorted_indices]
+    # matched_distances = matched_distances[sorted_indices]
 
     if df:
         df = pd.DataFrame({
                 'spe': matched_peaks_a,
                 'reference': matched_peaks_b,
                 'distances': matched_distances,
-                'intensity_a' : intensity_a,
-                'intensity_b' : intensity_b
-            })    
+                'intensity_a': intensity_a,
+                'intensity_b': intensity_b
+            })
     else:
-        df = None  
-    return (matched_peaks_a,matched_peaks_b,matched_distances,cost_matrix, df)
-
+        df = None
+    return (matched_peaks_a, matched_peaks_b, matched_distances, cost_matrix, df)
