@@ -12,7 +12,7 @@ from ramanchada2.protocols.calibration import (
     YCalibrationComponent,
 )
 from sklearn.metrics.pairwise import cosine_similarity
-
+import traceback
 
 class SetupModule:
     def __init__(self):
@@ -147,7 +147,7 @@ def test_laser_zeroing(setup_module):
     plt.tight_layout()
     plt.savefig("test_calmodel_{}.png".format("laser_zeroing"))
     
-    assert(abs(df.iloc[0]["center"] - si_peak) < 1E-2),"Si peak found at {}".format(df.iloc[0]["center"])
+    assert(abs(df.iloc[0]["center"] - si_peak) < 1E-2,"Si peak found at {}".format(df.iloc[0]["center"]))
 
 
 

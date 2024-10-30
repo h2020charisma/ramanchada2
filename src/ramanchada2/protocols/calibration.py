@@ -15,6 +15,7 @@ from scipy.interpolate import RBFInterpolator
 import ramanchada2.misc.constants as rc2const
 from ramanchada2.misc.plottable import Plottable
 from ..misc import utils as rc2utils
+from ..misc.utils.argmin2d import match_peaks, match_peaks_cluster,cost_function,cost_function_position
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
@@ -959,3 +960,13 @@ class CustomRBFInterpolator(RBFInterpolator):
             "scale": self._scale,
             "shift": self._shift,
         }
+    
+    def plot(self,ax):
+        ax.scatter(self.y.reshape(-1),self.d.reshape(-1))
+
+
+    def __str__(self):
+        return (
+            f"Calibration curve {len(self.y)} points) {self.kernel}"
+            
+        )

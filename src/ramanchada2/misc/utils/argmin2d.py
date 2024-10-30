@@ -113,7 +113,7 @@ def match_peaks_cluster(spe_pos_dict, ref):
 
     n_ref = len(ref.keys())
     n_spe = len(spe_pos_dict.keys())
-    kmeans = KMeans(n_clusters=n_ref if n_ref > n_spe else n_spe)
+    kmeans = KMeans(n_clusters=n_ref if n_ref > n_spe else n_spe, random_state= 68)
     kmeans.fit(feature_matrix)
     labels = kmeans.labels_
     # Extract cluster labels, x values, and y values
