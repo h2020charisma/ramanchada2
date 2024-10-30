@@ -146,8 +146,8 @@ def test_laser_zeroing(setup_module):
     plt.grid()
     plt.tight_layout()
     plt.savefig("test_calmodel_{}.png".format("laser_zeroing"))
-    
-    assert(abs(df.iloc[0]["center"] - si_peak) < 1E-2,"Si peak found at {}".format(df.iloc[0]["center"]))
+    difference = abs(df.iloc[0]["center"] - si_peak)
+    assert difference < 1E-2 , f"Si peak found at {df.iloc[0]['center']}"
 
 
 
