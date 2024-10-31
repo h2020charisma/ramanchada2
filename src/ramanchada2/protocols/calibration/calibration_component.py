@@ -1,10 +1,12 @@
-from ramanchada2.spectrum import Spectrum
-from ramanchada2.misc.plottable import Plottable
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 import logging
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.axes import Axes
+
+from ramanchada2.misc.plottable import Plottable
+from ramanchada2.spectrum import Spectrum
 
 
 logger = logging.getLogger(__name__)

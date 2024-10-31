@@ -1,9 +1,15 @@
-import numpy as np
-from .calibration_component import CalibrationComponent
-from ramanchada2.misc.utils.matchsets import match_peaks, match_peaks_cluster, cost_function_position
-from ramanchada2.spectrum import Spectrum
-from scipy.interpolate import RBFInterpolator
 import logging
+
+import numpy as np
+from scipy.interpolate import RBFInterpolator
+
+from ramanchada2.misc.utils.matchsets import (
+    cost_function_position,
+    match_peaks,
+    match_peaks_cluster,
+)
+from ramanchada2.spectrum import Spectrum
+from .calibration_component import CalibrationComponent
 
 logger = logging.getLogger(__name__)
 

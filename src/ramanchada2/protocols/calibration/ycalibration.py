@@ -1,10 +1,12 @@
-import numpy as np
-from pydantic import BaseModel, ValidationError
-from typing import Optional, Tuple
 import json
 import os.path
-from ramanchada2.spectrum import Spectrum
+from typing import Optional, Tuple
+
+import numpy as np
+from pydantic import BaseModel, ValidationError
+
 from ramanchada2.misc.plottable import Plottable
+from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
 
 

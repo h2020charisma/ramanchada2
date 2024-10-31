@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 
+import traceback
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from ramanchada2.spectrum import from_test_spe
 
 import ramanchada2.misc.constants as rc2const
 from ramanchada2.protocols.calibration.calibration_model import CalibrationModel
 from ramanchada2.protocols.calibration.ycalibration import (
-    YCalibrationComponent, YCalibrationCertificate, CertificatesDict
-    )
+    CertificatesDict,
+    YCalibrationCertificate,
+    YCalibrationComponent,
+)
+from ramanchada2.spectrum import from_test_spe
 
 from sklearn.metrics.pairwise import cosine_similarity
-import traceback
 
 _plots = False
-
+si_peak = 520.45
 
 class SetupModule:
     def __init__(self):
@@ -101,9 +104,21 @@ def setup_module():
     return SetupModule()
 
 
+def test_fit_si(setup_module):
+    spe_sil = setup_module.spe_sil.trim_axes(
+            method="x-axis", boundaries=(max(100, 520.45 - 50), 520.45 + 50)
+        )
+    find_kw = {"wlen": 200, "width": 1, "sharpening": None}
+    find_kw["prominence"] = spe_sil.y_noise_MAD() * 3
+    cand = spe_sil.find_peak_multipeak(**find_kw)
+    fitres = spe_sil.fit_peak_multimodel(profile="Pearson4", candidates=cand, no_fit=False, vary_baseline=False)
+    df = fitres.to_dataframe_peaks().sort_values(by="height", ascending=False)
+    difference = abs(df.iloc[0]["center"] - si_peak)
+    assert difference < 1E-2, f"Si peak found at {df.iloc[0]['center']}"
+
+
 def test_laser_zeroing(setup_module):
     assert setup_module.calmodel is not None
-    si_peak = 520.45
     spe_sil_calib = setup_module.calmodel.apply_calibration_x(
         setup_module.spe_sil, spe_units="cm-1"
     )
