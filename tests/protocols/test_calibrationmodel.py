@@ -14,7 +14,7 @@ from ramanchada2.protocols.calibration.ycalibration import (
 from sklearn.metrics.pairwise import cosine_similarity
 import traceback
 
-_plots = True
+_plots = False
 
 
 class SetupModule:
@@ -167,8 +167,9 @@ def resample_spline(spe, xmin, xmax, npoints):
 
 
 def compare_calibrated_spe(setup_module, spectra, name="calibration"):
-    fig, ax = plt.subplots(len(spectra) + 1, 1, figsize=(24, 8))
-    setup_module.calmodel.plot(ax=ax[0])
+    if _plots:
+        fig, ax = plt.subplots(len(spectra) + 1, 1, figsize=(24, 8))
+        setup_module.calmodel.plot(ax=ax[0])
     crl = [("blue", "red"), ("green", "gray")]
     spe_y_original = []
     _min = 200
@@ -180,22 +181,25 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
         spe_norm = resample_spline(spe_norm, _min, _max, _max - _min)
         # resample with histogram
         # spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
-        spe_norm.plot(ax=ax[index + 1], label=f"original {index}", color=crl[index][0])
         spe_y_original.append(spe_norm.y)
         spe_c = setup_module.calmodel.apply_calibration_x(spe, spe_units="cm-1")
         spe_c_norm = spe_c.normalize(strategy="unity_area")
         spe_c_norm = resample_spline(spe_c_norm, _min, _max, _max - _min)
-        spe_c_norm.plot(
-            ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
-        )
         spe_calibrated.append(spe_c_norm.y)
         _units = "cm^{-1}"
         _units = rf"$\mathrm{{[{_units}]}}$"
-        ax[index + 1].set_xlabel(_units)
+        if _plots:
+            spe_norm.plot(ax=ax[index + 1], label=f"original {index}", color=crl[index][0])        
+            spe_c_norm.plot(
+                ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
+            )
+            ax[index + 1].set_xlabel(_units)
     cos_sim_matrix_original = cosine_similarity(spe_y_original)
     cos_sim_matrix = cosine_similarity(spe_calibrated)
-    plt.tight_layout()
-    plt.savefig("test_calmodel_{}.png".format(name))
+
+    if _plots:
+        plt.tight_layout()
+        plt.savefig("test_calmodel_{}.png".format(name))
     # print(name,np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
     # assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
     assert np.mean(cos_sim_matrix_original) <= (np.mean(cos_sim_matrix) + 1e-5)
@@ -223,35 +227,35 @@ def test_xcalibration_cal(setup_module):
 
 
 def test_ycalibration(setup_module):
-    fig, ax = plt.subplots(3, 1, figsize=(24, 8))
     certificates = CertificatesDict()
     certs = certificates.get_certificates(wavelength=int(setup_module.laser_wl))
     key = "NIST785_SRM2241"
     certificate = certs[key]
-    certificate.plot(ax=ax[2], color="pink")
     ycal = YCalibrationComponent(
         setup_module.laser_wl, setup_module.spe_SRM2241, certificate=certificate
     )
-
     spe_to_correct = from_test_spe(
         sample=["PST"], provider=["FNMT"], OP=["03"], laser_wl=["785"]
     )
     # spe_to_correct = spe_to_correct.trim_axes(method='x-axis',boundaries=(100,2000))
     # remove the pedestal
     spe_to_correct.y = spe_to_correct.y - min(spe_to_correct.y)
-    spe_to_correct.plot(ax=ax[0], label="PST")
-
     window_length = 5
     maxy = max(spe_to_correct.y)
-    spe_to_correct = spe_to_correct.smoothing_RC1(
+    spe_to_correct1 = spe_to_correct.smoothing_RC1(
         method="savgol", window_length=window_length, polyorder=3
     )
-    spe_to_correct.y = maxy * spe_to_correct.y / max(spe_to_correct.y)
-    spe_to_correct.plot(ax=ax[0], label="smoothed")
-    setup_module.spe_SRM2241.plot(ax=ax[0].twinx(), label=key)
-    spe_ycalibrated = ycal.process(spe_to_correct)
-    spe_ycalibrated.plot(ax=ax[1], label="y calibrated")
-    plt.savefig("test_calmodel_{}.png".format(key))
+    spe_to_correct1.y = maxy * spe_to_correct.y / max(spe_to_correct.y)
+    spe_ycalibrated = ycal.process(spe_to_correct1)
+
+    if _plots:
+        fig, ax = plt.subplots(3, 1, figsize=(24, 8))
+        certificate.plot(ax=ax[2], color="pink")
+        spe_to_correct.plot(ax=ax[0], label="PST") 
+        spe_to_correct1.plot(ax=ax[0], label="smoothed")
+        setup_module.spe_SRM2241.plot(ax=ax[0].twinx(), label=key)
+        spe_ycalibrated.plot(ax=ax[1], label="y calibrated")
+        plt.savefig("test_calmodel_{}.png".format(key))
 
 
 def test_ycertificate():
@@ -272,8 +276,9 @@ def test_ycertificate():
         temperature_c=(20, 25),
         raman_shift=(200, 3500),
     )
-    cert.plot()
-    plt.savefig("test_calmodel_{}.png".format("ycert"))
+    if _plots:
+        cert.plot()
+        plt.savefig("test_calmodel_{}.png".format("ycert"))
 
 
 def test_ycerts_dict():
