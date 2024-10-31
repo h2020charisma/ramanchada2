@@ -3,16 +3,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-import ramanchada2 as rc2
+from ramanchada2.spectrum import from_test_spe
+
 import ramanchada2.misc.constants as rc2const
-from ramanchada2.protocols.calibration import (
-    CalibrationModel,
-    CertificatesDict,
-    YCalibrationCertificate,
-    YCalibrationComponent,
-)
+from ramanchada2.protocols.calibration.calibration_model import CalibrationModel
+from ramanchada2.protocols.calibration.ycalibration import (
+    YCalibrationComponent, YCalibrationCertificate, CertificatesDict
+    )
+
 from sklearn.metrics.pairwise import cosine_similarity
 import traceback
+
+_plots = True
 
 
 class SetupModule:
@@ -24,36 +26,36 @@ class SetupModule:
         _wl_str = str(self.laser_wl)
         self.si_profile = "Pearson4"
         # self.si_profile = "Gaussian"
-        self.spe_neon = rc2.spectrum.from_test_spe(
+        self.spe_neon = from_test_spe(
             sample=["Neon"], provider=[_provider], device=[_device],  OP=[_optical_path], laser_wl=[_wl_str]
         )
 
-        self.spe_pst2 = rc2.spectrum.from_test_spe(
+        self.spe_pst2 = from_test_spe(
             sample=["PST"], provider=[_provider], device=[_device], OP=[_optical_path], laser_wl=[_wl_str]
         )
-        self.spe_pst3 = rc2.spectrum.from_test_spe(
+        self.spe_pst3 = from_test_spe(
             sample=["PST"], provider=[_provider], device=[_device], OP=["020"], laser_wl=[_wl_str]
         )
-        self.spe_sil = rc2.spectrum.from_test_spe(
+        self.spe_sil = from_test_spe(
             sample=["S0B"], provider=[_provider], device=[_device], OP=[_optical_path], laser_wl=[_wl_str]
         )
-        self.spe_sil2 = rc2.spectrum.from_test_spe(
+        self.spe_sil2 = from_test_spe(
             sample=["S0B"], provider=[_provider], device=[_device], OP=[_optical_path], laser_wl=[_wl_str]
         )
-        self.spe_nCal = rc2.spectrum.from_test_spe(
+        self.spe_nCal = from_test_spe(
             sample=["nCAL"], provider=[_provider], device=[_device], OP=[_optical_path], laser_wl=[_wl_str]
         )
 
-        self.spe_SRM2241 = rc2.spectrum.from_test_spe(
+        self.spe_SRM2241 = from_test_spe(
             sample=["NIST785_SRM2241"], provider=[_provider], device=[_device], OP=[_optical_path], laser_wl=[_wl_str]
         )
         # NIR785_EL0-9002
 
         self.spe_sil = self.spe_sil.trim_axes(
-            method="x-axis", boundaries=(max(100, 520.45 - 200), 520.45 + 200)
+            method="x-axis", boundaries=(max(100, 520.45 - 50), 520.45 + 50)
         )
         self.spe_sil2 = self.spe_sil2.trim_axes(
-            method="x-axis", boundaries=(max(100, 520.45 - 200), 520.45 + 200)
+            method="x-axis", boundaries=(max(100, 520.45 - 50), 520.45 + 50)
         )
 
         self.spe_neon = self.spe_neon.trim_axes(
@@ -102,45 +104,46 @@ def setup_module():
 def test_laser_zeroing(setup_module):
     assert setup_module.calmodel is not None
     si_peak = 520.45
-    fig, (ax, axpeak, axsifit) = plt.subplots(3, 1, figsize=(12, 4))
     spe_sil_calib = setup_module.calmodel.apply_calibration_x(
         setup_module.spe_sil, spe_units="cm-1"
     )
-    setup_module.spe_sil.plot(label="Si original", ax=ax)
-    spe_sil_calib.plot(ax=ax, label="Si laser zeroed", fmt=":")
-    plt.grid()
-    ax.set_xlim(si_peak-50, si_peak+50)
-    _units = setup_module.calmodel.components[1].model_units
-    if _units == "cm-1":
-        _units = r"$\mathrm{{[cm^{-1}]}}$"
-    assert _units == "nm"
-    ax.set_xlabel(_units)
     spe_test = spe_sil_calib  # .trim_axes(method='x-axis',boundaries=(si_peak-50,si_peak+50))
     find_kw = {"wlen": 200, "width": 1, "sharpening": None}
     find_kw["prominence"] = spe_test.y_noise_MAD() * setup_module.calmodel.prominence_coeff
     cand = spe_test.find_peak_multipeak(**find_kw)
-    fit_kw = {}
-    fitres = spe_test.fit_peak_multimodel(profile=setup_module.si_profile, candidates=cand, **fit_kw, no_fit=False)
-    fitres.plot(ax=axpeak, label="fit res")
-    spe_test.plot(ax=axpeak, label="Si laser zeroed", fmt=":")
-
-    axpeak.set_xlim(si_peak-50, si_peak+50)
-
-    # let's look at the peak before laser zeroing
-    spe_test_necalibrated_only = setup_module.calmodel.components[0].process(spe_test)
-    setup_module.calmodel.components[1].fit_res.plot(ax=axsifit)
-    si_peak_nm = setup_module.calmodel.components[1].model
-    axsifit.set_xlim(si_peak_nm-5, si_peak_nm+5)
-    spe_test_necalibrated_only.plot(ax=axsifit, label="Si (Ne calibrated only)", fmt=":")
-
+    fitres = spe_test.fit_peak_multimodel(profile=setup_module.si_profile, candidates=cand, no_fit=False)
     df = fitres.to_dataframe_peaks().sort_values(by="height", ascending=False)
-    print(df.iloc[0]["center"])
 
-    print(df.sort_values(by="amplitude", ascending=False).head())
+    _units = setup_module.calmodel.components[1].model_units
+    assert _units == "nm"
 
-    plt.grid()
-    plt.tight_layout()
-    plt.savefig("test_calmodel_{}.png".format("laser_zeroing"))
+    if _plots:
+        fig, (ax, axpeak, axsifit) = plt.subplots(3, 1, figsize=(12, 4))
+        setup_module.spe_sil.plot(label="Si original", ax=ax)
+        spe_sil_calib.plot(ax=ax, label="Si laser zeroed", fmt=":")
+        plt.grid()
+        ax.set_xlim(si_peak-50, si_peak+50)
+        if _units == "cm-1":
+            _units = r"$\mathrm{{[cm^{-1}]}}$"
+        ax.set_xlabel(_units)
+        fitres.plot(ax=axpeak, label="fit res")
+        spe_test.plot(ax=axpeak, label="Si laser zeroed", fmt=":")
+        axpeak.set_xlim(si_peak-50, si_peak+50)
+        # let's look at the peak before laser zeroing
+
+        ne_model = setup_module.calmodel.components[0]
+        si_model = setup_module.calmodel.components[1]
+        spe_test_necalibrated_only = ne_model.process(spe_test)
+        si_model.fit_res.plot(ax=axsifit)
+        si_peak_nm = si_model.model
+        axsifit.set_xlim(si_peak_nm-5, si_peak_nm+5)
+        spe_test_necalibrated_only.plot(ax=axsifit, label="Si (Ne calibrated only)", fmt=":")
+
+        print(df.sort_values(by="amplitude", ascending=False).head())
+        plt.grid()
+        plt.tight_layout()
+        plt.savefig("test_calmodel_{}.png".format("laser_zeroing"))
+
     difference = abs(df.iloc[0]["center"] - si_peak)
     assert difference < 1E-2, f"Si peak found at {df.iloc[0]['center']}"
 
@@ -230,7 +233,7 @@ def test_ycalibration(setup_module):
         setup_module.laser_wl, setup_module.spe_SRM2241, certificate=certificate
     )
 
-    spe_to_correct = rc2.spectrum.from_test_spe(
+    spe_to_correct = from_test_spe(
         sample=["PST"], provider=["FNMT"], OP=["03"], laser_wl=["785"]
     )
     # spe_to_correct = spe_to_correct.trim_axes(method='x-axis',boundaries=(100,2000))
