@@ -105,11 +105,12 @@ def setup_module():
     return SetupModule()
 
 
-def test_fit_si(setup_module):
-    spe_sil = setup_module.spe_sil.trim_axes(
-            method="x-axis", boundaries=(max(100, 520.45 - 50), 520.45 + 50)
+def fit_si(spe_sil):
+    spe_sil = spe_sil.trim_axes(
+            method="x-axis", boundaries=(520.45 - 50, 520.45 + 50)
         )
-    find_kw = {"wlen": 200, "width": 1, "sharpening": None}
+
+    find_kw = {"wlen": 200, "width": 2, "sharpening": None}
     find_kw["prominence"] = spe_sil.y_noise_MAD() * 3
     cand = spe_sil.find_peak_multipeak(**find_kw)
     fitres = spe_sil.fit_peak_multimodel(profile="Pearson4", candidates=cand, no_fit=False, vary_baseline=False)
