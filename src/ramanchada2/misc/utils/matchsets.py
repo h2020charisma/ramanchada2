@@ -4,6 +4,7 @@ from sklearn.metrics.pairwise import euclidean_distances
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 
+
 def match_peaks_cluster(spe_pos_dict, ref):
     # Min-Max normalize the reference values
     min_value = min(ref.values())
@@ -116,7 +117,10 @@ def cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9
 
     for i in range(num_peaks_a):
         for j in range(num_peaks_b):
-            cost = cost_func([peaks_a[i], intensities_a_normalized[i]], [peaks_b[j], intensities_b_normalized[j]], priority_weight=1)
+            cost = cost_func([peaks_a[i], intensities_a_normalized[i]], 
+                             [peaks_b[j], intensities_b_normalized[j]], 
+                             priority_weight=1
+                             )
             cost_matrix[i, j] = cost
     return cost_matrix
 
@@ -157,7 +161,10 @@ def match_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9, df=F
     >>> match_peaks(spectrum_a, spectrum_b)
 
     """
-    cost_matrix = cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=threshold_max_distance, cost_func=cost_function if cost_func is None else cost_func)
+    cost_matrix = cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, 
+                                    threshold_max_distance=threshold_max_distance, 
+                                    cost_func=cost_function if cost_func is None else cost_func
+                                    )
 
     # Use the Hungarian algorithm to find the optimal assignment
     try:

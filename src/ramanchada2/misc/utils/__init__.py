@@ -18,5 +18,6 @@ from .argmin2d import (argmin2d,
                        )
 
 from .matchsets import (
-                       match_peaks,match_peaks_cluster
+                       match_peaks, 
+                       match_peaks_cluster
                        )

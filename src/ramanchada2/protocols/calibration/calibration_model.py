@@ -2,9 +2,8 @@ from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
 import ramanchada2.misc.constants as rc2const
 import pickle
-from .CalibrationComponent import ProcessingModel
-from .XCalibrationComponent import XCalibrationComponent
-from .LazerZeroingComponent import LazerZeroingComponent
+from .calibration_component import ProcessingModel
+from .xcalibration import XCalibrationComponent, LazerZeroingComponent
 
 from typing import Dict
 import warnings
