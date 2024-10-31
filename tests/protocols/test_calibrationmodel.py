@@ -112,7 +112,7 @@ def test_laser_zeroing(setup_module):
     ax.set_xlim(si_peak-50, si_peak+50)
     _units = setup_module.calmodel.components[1].model_units
     if _units == "cm-1":
-        _units = rf"$\mathrm{{[cm^{-1}]}}$"
+        _units = r"$\mathrm{{[cm^{-1}]}}$"
     assert _units == "nm"
     ax.set_xlabel(_units)
     spe_test = spe_sil_calib  # .trim_axes(method='x-axis',boundaries=(si_peak-50,si_peak+50))

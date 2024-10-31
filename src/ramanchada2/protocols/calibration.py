@@ -14,7 +14,7 @@ from scipy.interpolate import RBFInterpolator
 
 import ramanchada2.misc.constants as rc2const
 from ramanchada2.misc.plottable import Plottable
-from ..misc.utils.argmin2d import match_peaks, match_peaks_cluster, cost_function_position
+from ..misc.utils.matchsets import match_peaks, match_peaks_cluster, cost_function_position
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
