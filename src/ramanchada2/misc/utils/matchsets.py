@@ -50,11 +50,11 @@ def match_peaks_cluster(spe_pos_dict, ref):
         # Get the unique sources within the group
         unique_sources = group['Source'].unique()
         if 'reference' in unique_sources and 'spe' in unique_sources:
+            x = None
+            r = None
+            e_min = None            
             # Pivot the DataFrame to create the desired structure
             for w_spe in group.loc[group["Source"] == "spe"]["Wavelength"].values:
-                x = None
-                r = None
-                e_min = None
                 for w_ref in group.loc[group["Source"] == "reference"]["Wavelength"].values:
                     e = euclidean_distances(w_spe.reshape(-1, 1), w_ref.reshape(-1, 1))[0][0]
                     if (e_min is None) or (e < e_min):
