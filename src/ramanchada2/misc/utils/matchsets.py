@@ -61,10 +61,10 @@ def match_peaks_cluster(spe_pos_dict, ref):
                         x = w_spe
                         r = w_ref
                         e_min = e
-                x_spe = np.append(x_spe, x)
-                x_reference = np.append(x_reference, r)
-                x_distance = np.append(x_distance, e_min)
-                clusters = np.append(clusters, cluster)
+            x_spe = np.append(x_spe, x)
+            x_reference = np.append(x_reference, r)
+            x_distance = np.append(x_distance, e_min)
+            clusters = np.append(clusters, cluster)
     sort_indices = np.argsort(x_spe)
     return (x_spe[sort_indices], x_reference[sort_indices], x_distance[sort_indices], df)
 
