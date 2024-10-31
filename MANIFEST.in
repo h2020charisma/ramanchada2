@@ -1,2 +1,2 @@
 include README.pypi
-include src/ramanchada2/protocols/config_certs.json
+include src/ramanchada2/protocols/calibration/config_certs.json
