@@ -5,6 +5,7 @@ import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, NonNegativeInt, validate_call
 from scipy import interpolate
+from scipy import fft, signal
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
@@ -251,3 +252,43 @@ def xcal_fine_RBF(old_spe: Spectrum,
         kwargs["kernel"] = kernel
         interp = interpolate.RBFInterpolator(spe_cent[spe_idx].reshape(-1, 1), ref_pos[ref_idx], **kwargs)
         new_spe.x = interp(old_spe.x.reshape(-1, 1))
+
+
+@add_spectrum_filter
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
+                               new_spe: Spectrum, /, *,
+                               ref: Dict[float, float],
+                               low_pass_nfreqs: List[int] = [100, 500]):
+    def semi_spe_from_dict(deltas: dict, xaxis):
+        y = np.zeros_like(xaxis)
+        for pos, ampl in deltas.items():
+            idx = np.argmin(np.abs(xaxis - pos))
+            y[idx] += ampl
+        # remove overflows and underflows
+        y[0] = 0
+        y[-1] = 0
+        return y
+
+    def low_pass(x, nbin, window=signal.windows.blackmanharris):
+        h = window(nbin*2-1)[nbin-1:]
+        X = fft.rfft(x)
+        X[:nbin] *= h  # apply the window
+        X[nbin:] = 0  # clear upper frequencies
+        return fft.irfft(X, n=len(x))
+
+    spe = old_spe.__copy__()
+    for low_pass_i in low_pass_nfreqs:
+        xaxis = spe.x
+        y_ref_semi_spe = semi_spe_from_dict(ref, spe.x)
+        y_ref_semi_spe = low_pass(y_ref_semi_spe, low_pass_i)
+
+        r = xaxis[signal.find_peaks(y_ref_semi_spe)[0]]
+
+        spe_low = spe.__copy__()
+        spe_low.y = low_pass(spe.y, low_pass_i)
+
+        spe_cal = spe_low.xcal_fine(ref=r, should_fit=False, poly_order=2)
+        spe.x = spe_cal.x
+    spe_cal_fin = spe.xcal_fine(ref=ref, should_fit=False, poly_order=2)
+    new_spe.x = spe_cal_fin.x
