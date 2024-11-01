@@ -170,7 +170,7 @@ class YCalibrationComponent(CalibrationComponent):
         self.model = self.spe.spe_distribution(trim_range=certificate.raman_shift)
         self.model_units = "cm-1"
 
-    def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=True, name=None):
+    def derive_model(self, find_kw=None, fit_peaks_kw=None, should_fit=True, name=None):
         # measured reference spectrum as distribution, so we can resample
         self.model = self.spe.spe_distribution(trim_range=self.ref.raman_shift)
 

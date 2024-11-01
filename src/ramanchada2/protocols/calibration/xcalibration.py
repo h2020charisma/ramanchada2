@@ -185,7 +185,9 @@ class CustomRBFInterpolator(RBFInterpolator):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def from_dict(rbf_dict={}):
+    def from_dict(rbf_dict=None):
+        if rbf_dict is None:
+            rbf_dict = {}
         interpolator_loaded = CustomRBFInterpolator(
             rbf_dict["y"],
             rbf_dict["d"],

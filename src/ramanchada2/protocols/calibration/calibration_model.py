@@ -240,12 +240,16 @@ class CalibrationModel(ProcessingModel, Plottable):
         ref={520.45: 1},
         spe_units="nm",
         ref_units="cm-1",
-        find_kw={},
-        fit_peaks_kw={},
+        find_kw=None,
+        fit_peaks_kw=None,
         should_fit=False,
         name="X Shift",
         profile="Pearson4",
     ):
+        if find_kw is None:
+            find_kw = {}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}
         warnings.warn(
             message="Do not use directly. Use derive_model_x instead.",
             category=DeprecationWarning,

@@ -73,7 +73,7 @@ class CalibrationComponent(Plottable):
     def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
         raise NotImplementedError(self)
 
-    def derive_model(self, find_kw={}, fit_peaks_kw={}, should_fit=False, name=None):
+    def derive_model(self, find_kw=None, fit_peaks_kw=None, should_fit=False, name=None):
         raise NotImplementedError(self)
 
     def plot(self, ax=None, label=" ", **kwargs) -> Axes:
