@@ -2,9 +2,9 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
+from typing import Dict
 
-
-def match_peaks_cluster(spe_pos_dict, ref, _filter_range=True, cost_intensity=0.25):
+def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float], _filter_range=True, cost_intensity=0.25):
     wl_label = "Wavelength"
     intensity_label = "Intensity"
     source_label = "Source"
@@ -87,12 +87,12 @@ def match_peaks_cluster(spe_pos_dict, ref, _filter_range=True, cost_intensity=0.
     return (x_spe[sort_indices], x_reference[sort_indices], x_distance[sort_indices], df)
 
 
-def cost_function_position(p1, p2, order_weight=1.0, priority_weight=1.0):
+def cost_function_position(p1: Dict[float, float], p2: Dict[float, float], order_weight=1.0, priority_weight=1.0):
     order_penalty = order_weight * abs(p1[0] - p2[0])
     return order_penalty
 
 
-def cost_function(p1, p2, order_weight=1.0, priority_weight=.1):
+def cost_function(p1: Dict[float, float], p2: Dict[float, float], order_weight=1.0, priority_weight=.1):
     """
     Modified cost function with an order preservation penalty and priority weighting.
     - `order_weight` increases penalty for large differences in the x-axis values.
@@ -111,7 +111,7 @@ def normalize_tuples(tuples):
     return [(tuples[i][0], normalized_values[i]) for i in range(len(tuples))]
 
 
-def cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9, cost_func=None):
+def cost_matrix_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float], threshold_max_distance=9, cost_func=None):
     if cost_func is None:
         cost_func = cost_function_position
     peaks_a = np.array(list(spectrum_a_dict.keys()))
@@ -143,7 +143,7 @@ def cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9
     return cost_matrix
 
 
-def match_peaks(spectrum_a_dict, spectrum_b_dict, threshold_max_distance=9, df=False, cost_func=None):
+def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float], threshold_max_distance=9, df=False, cost_func=None):
     """
     Match peaks between two spectra based on their positions and intensities.
 
