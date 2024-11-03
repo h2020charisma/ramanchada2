@@ -1,5 +1,5 @@
 import logging
-from typing import Literal
+from typing import Literal, Dict
 import numpy as np
 from scipy.interpolate import RBFInterpolator, PchipInterpolator, CubicSpline
 import pandas as pd
@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class XCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe: Spectrum, spe_units: Literal["cm-1", "nm"] = "cm-1",
-                 ref: Spectrum = None, ref_units: Literal["cm-1", "nm"] = "nm", sample="Neon",
+    def __init__(self, laser_wl, spe: Spectrum, ref: Dict[float, float],
+                 spe_units: Literal["cm-1", "nm"] = "cm-1",
+                 ref_units: Literal["cm-1", "nm"] = "nm", sample="Neon",
                  match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
                  interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
                  extrapolate=True
@@ -362,7 +363,7 @@ class CustomRBFInterpolator(RBFInterpolator):
             f"Calibration curve {len(self.y)} points) {self.kernel}"
 
         )
-    
+  
 
 class CustomPChipInterpolator(PchipInterpolator):
     def __init__(self, x, y):

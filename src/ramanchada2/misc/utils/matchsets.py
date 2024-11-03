@@ -2,7 +2,8 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from typing import Dict
+from typing import Dict, List
+
 
 def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float], _filter_range=True, cost_intensity=0.25):
     wl_label = "Wavelength"
@@ -79,10 +80,11 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
                         x = w_spe
                         r = w_ref
                         e_min = e
-            x_spe = np.append(x_spe, x)
-            x_reference = np.append(x_reference, r)
-            x_distance = np.append(x_distance, e_min)
-            clusters = np.append(clusters, cluster)
+            if x is not None and r is not None and e_min is not None:      
+                x_spe = np.append(x_spe, x)
+                x_reference = np.append(x_reference, r)
+                x_distance = np.append(x_distance, e_min)
+                clusters = np.append(clusters, cluster)
     sort_indices = np.argsort(x_spe)
     return (x_spe[sort_indices], x_reference[sort_indices], x_distance[sort_indices], df)
 
@@ -193,11 +195,11 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
 
     # Prepare matched peaks and distances
     # I am sure this could be done in a more efficient way
-    matched_peaks_a = []
-    matched_peaks_b = []
-    matched_distances = []
-    intensity_a = []
-    intensity_b = []
+    matched_peaks_a: List[float] = []
+    matched_peaks_b: List[float] = []
+    matched_distances: List[float] = []
+    intensity_a: List[float] = []
+    intensity_b: List[float] = []
 
     peaks_a = np.array(list(spectrum_a_dict.keys()))
     intensities_a = np.array(list(spectrum_a_dict.values()))
@@ -228,9 +230,9 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
                 intensity_b[-1] = intensities_b[col_ind[i]]
                 last_matched_cost = cost
 
-    matched_peaks_a = np.array(matched_peaks_a)
-    matched_peaks_b = np.array(matched_peaks_b)
-    matched_distances = np.array(matched_distances)
+    matched_peaks_a_np = np.array(matched_peaks_a)
+    matched_peaks_b_np = np.array(matched_peaks_b)
+    matched_distances_np = np.array(matched_distances)
 
     # Sort matched peaks by peaks_a
     # linear_sum_assignment shall give the row_ind sorted
@@ -249,4 +251,4 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
             })
     else:
         df = None
-    return (matched_peaks_a, matched_peaks_b, matched_distances, cost_matrix, df)
+    return (matched_peaks_a_np, matched_peaks_b_np, matched_distances_np, cost_matrix, df)

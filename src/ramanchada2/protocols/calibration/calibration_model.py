@@ -148,7 +148,7 @@ class CalibrationModel(ProcessingModel, Plottable):
     def _derive_model_curve(
         self,
         spe: Spectrum,
-        ref=None,
+        ref=Dict[float, float],
         spe_units="cm-1",
         ref_units="nm",
         find_kw=None,
