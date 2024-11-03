@@ -5,8 +5,12 @@ import numpy as np
 from typing import Dict, List
 
 
-def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float],
-                        _filter_range=True, cost_intensity=0.25):
+def match_peaks_cluster(
+    spe_pos_dict: Dict[float, float],
+    ref: Dict[float, float],
+    _filter_range=True,
+    cost_intensity=0.25,
+):
     wl_label = "Wavelength"
     intensity_label = "Intensity"
     source_label = "Source"
@@ -15,7 +19,10 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
     min_value = min(ref.values())
     max_value = max(ref.values())
     if len(ref.keys()) > 1:
-        normalized_ref = {key: (value - min_value) / (max_value - min_value) for key, value in ref.items()}
+        normalized_ref = {
+            key: (value - min_value) / (max_value - min_value)
+            for key, value in ref.items()
+        }
     else:
         normalized_ref = ref
 
@@ -24,14 +31,17 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
     # Min-Max normalize the spe_pos_dict
     if len(spe_pos_dict.keys()) > 1:
         normalized_spe = {
-                key: (value - min_value_spe) / (max_value_spe - min_value_spe) for key, value in spe_pos_dict.items()
-                }
+            key: (value - min_value_spe) / (max_value_spe - min_value_spe)
+            for key, value in spe_pos_dict.items()
+        }
     else:
         normalized_spe = spe_pos_dict
     data_list = [
-        {wl_label: key, intensity_label: value, source_label: 'spe'} for key, value in normalized_spe.items()
+        {wl_label: key, intensity_label: value, source_label: "spe"}
+        for key, value in normalized_spe.items()
     ] + [
-        {wl_label: key, intensity_label: value, source_label: 'reference'} for key, value in normalized_ref.items()
+        {wl_label: key, intensity_label: value, source_label: "reference"}
+        for key, value in normalized_ref.items()
     ]
 
     # Create a DataFrame from the list of dictionaries
@@ -43,8 +53,8 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
         left_limit = max(min(ref.keys()), min(spe_pos_dict.keys())) - _tollerance
         right_limit = min(max(ref.keys()), max(spe_pos_dict.keys())) + _tollerance
         df = df.loc[(df[wl_label] <= right_limit) & (df[wl_label] >= left_limit)]
-        n_spe = len(df[df[source_label] == 'spe'])
-        n_ref = len(df[df[source_label] == 'reference'])
+        n_spe = len(df[df[source_label] == "spe"])
+        n_ref = len(df[df[source_label] == "reference"])
     else:
         n_ref = len(ref.keys())
         n_spe = len(spe_pos_dict.keys())
@@ -57,8 +67,8 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
     kmeans.fit(feature_matrix)
     labels = kmeans.labels_
     # Extract cluster labels, x values, and y values
-    df['Cluster'] = labels
-    grouped = df.groupby('Cluster')
+    df["Cluster"] = labels
+    grouped = df.groupby("Cluster")
     x_spe = np.array([])
     x_reference = np.array([])
     x_distance = np.array([])
@@ -67,16 +77,20 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
     # Iterate through each group
     for cluster, group in grouped:
         # Get the unique sources within the group
-        unique_sources = group['Source'].unique()
-        if 'reference' in unique_sources and 'spe' in unique_sources:
+        unique_sources = group["Source"].unique()
+        if "reference" in unique_sources and "spe" in unique_sources:
             x = None
             r = None
             e_min = None
             for _, row_spe in group.loc[group[source_label] == "spe"].iterrows():
                 w_spe = row_spe[wl_label]
-                for _, row_ref in group.loc[group[source_label] == "reference"].iterrows():
+                for _, row_ref in group.loc[
+                    group[source_label] == "reference"
+                ].iterrows():
                     w_ref = row_ref[wl_label]
-                    e = (w_spe-w_ref)**2 + (row_spe[intensity_label]-row_ref[intensity_label])**2
+                    e = (w_spe - w_ref) ** 2 + (
+                        row_spe[intensity_label] - row_ref[intensity_label]
+                    ) ** 2
                     if (e_min is None) or (e < e_min):
                         x = w_spe
                         r = w_ref
@@ -87,22 +101,39 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
                 x_distance = np.append(x_distance, e_min)
                 clusters = np.append(clusters, cluster)
     sort_indices = np.argsort(x_spe)
-    return (x_spe[sort_indices], x_reference[sort_indices], x_distance[sort_indices], df)
+    return (
+        x_spe[sort_indices],
+        x_reference[sort_indices],
+        x_distance[sort_indices],
+        df,
+    )
 
 
-def cost_function_position(p1: Dict[float, float], p2: Dict[float, float], order_weight=1.0, priority_weight=1.0):
+def cost_function_position(
+    p1: Dict[float, float],
+    p2: Dict[float, float],
+    order_weight=1.0,
+    priority_weight=1.0,
+):
     order_penalty = order_weight * abs(p1[0] - p2[0])
     return order_penalty
 
 
-def cost_function(p1: Dict[float, float], p2: Dict[float, float], order_weight=1.0, priority_weight=.1):
+def cost_function(
+    p1: Dict[float, float],
+    p2: Dict[float, float],
+    order_weight=1.0,
+    priority_weight=0.1,
+):
     """
     Modified cost function with an order preservation penalty and priority weighting.
     - `order_weight` increases penalty for large differences in the x-axis values.
     - `priority_weight` decreases the cost for higher values in the y-axis for set_b points.
     """
     order_penalty = order_weight * abs(p1[0] - p2[0])
-    priority_bonus = priority_weight * p2[1]  # Rewards points in set_b with higher second dimension values
+    priority_bonus = (
+        priority_weight * p2[1]
+    )  # Rewards points in set_b with higher second dimension values
     return order_penalty - priority_bonus
 
 
@@ -114,8 +145,12 @@ def normalize_tuples(tuples):
     return [(tuples[i][0], normalized_values[i]) for i in range(len(tuples))]
 
 
-def cost_matrix_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float],
-                      threshold_max_distance=9, cost_func=None):
+def cost_matrix_peaks(
+    spectrum_a_dict: Dict[float, float],
+    spectrum_b_dict: Dict[float, float],
+    threshold_max_distance=9,
+    cost_func=None,
+):
     if cost_func is None:
         cost_func = cost_function_position
     peaks_a = np.array(list(spectrum_a_dict.keys()))
@@ -135,20 +170,28 @@ def cost_matrix_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict
     intensities_b_normalized = normalize_intensities(intensities_b)
 
     num_peaks_a = len(peaks_a)
-    cost_matrix = np.full((num_peaks_a, num_peaks_b), np.inf)  # Initialize with infinity
+    cost_matrix = np.full(
+        (num_peaks_a, num_peaks_b), np.inf
+    )  # Initialize with infinity
 
     for i in range(num_peaks_a):
         for j in range(num_peaks_b):
-            cost = cost_func([peaks_a[i], intensities_a_normalized[i]],
-                             [peaks_b[j], intensities_b_normalized[j]],
-                             priority_weight=1
-                             )
+            cost = cost_func(
+                [peaks_a[i], intensities_a_normalized[i]],
+                [peaks_b[j], intensities_b_normalized[j]],
+                priority_weight=1,
+            )
             cost_matrix[i, j] = cost
     return cost_matrix
 
 
-def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float],
-                threshold_max_distance=9, df=False, cost_func=None):
+def match_peaks(
+    spectrum_a_dict: Dict[float, float],
+    spectrum_b_dict: Dict[float, float],
+    threshold_max_distance=9,
+    df=False,
+    cost_func=None,
+):
     """
     Match peaks between two spectra based on their positions and intensities.
 
@@ -184,10 +227,12 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
     >>> match_peaks(spectrum_a, spectrum_b)
 
     """
-    cost_matrix = cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict,
-                                    threshold_max_distance=threshold_max_distance,
-                                    cost_func=cost_function if cost_func is None else cost_func
-                                    )
+    cost_matrix = cost_matrix_peaks(
+        spectrum_a_dict,
+        spectrum_b_dict,
+        threshold_max_distance=threshold_max_distance,
+        cost_func=cost_function if cost_func is None else cost_func,
+    )
 
     # Use the Hungarian algorithm to find the optimal assignment
     try:
@@ -213,7 +258,7 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
     last_matched_cost = np.inf
     for i in range(len(row_ind)):
         cost = cost_matrix[row_ind[i], col_ind[i]]
-        if abs(peaks_a[row_ind[i]]-peaks_b[col_ind[i]]) >= threshold_max_distance:
+        if abs(peaks_a[row_ind[i]] - peaks_b[col_ind[i]]) >= threshold_max_distance:
             continue
         if cost < np.inf:  # Only consider valid pairs
             current_reference = peaks_b[col_ind[i]]
@@ -245,13 +290,21 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
     # matched_distances = matched_distances[sorted_indices]
 
     if df:
-        df = pd.DataFrame({
-                'spe': matched_peaks_a,
-                'reference': matched_peaks_b,
-                'distances': matched_distances,
-                'intensity_a': intensity_a,
-                'intensity_b': intensity_b
-            })
+        df = pd.DataFrame(
+            {
+                "spe": matched_peaks_a,
+                "reference": matched_peaks_b,
+                "distances": matched_distances,
+                "intensity_a": intensity_a,
+                "intensity_b": intensity_b,
+            }
+        )
     else:
         df = None
-    return (matched_peaks_a_np, matched_peaks_b_np, matched_distances_np, cost_matrix, df)
+    return (
+        matched_peaks_a_np,
+        matched_peaks_b_np,
+        matched_distances_np,
+        cost_matrix,
+        df,
+    )

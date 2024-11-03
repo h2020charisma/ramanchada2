@@ -103,7 +103,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         should_fit=False,
         match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
-        extrapolate=True
+        extrapolate=True,
     ):
         """
         Derives x-calibration models using Neon and Silicon spectra.
@@ -125,7 +125,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             name="Neon calibration",
             match_method=match_method,
             interpolator_method=interpolator_method,
-            extrapolate=extrapolate
+            extrapolate=extrapolate,
         )
         model_neon.nonmonotonic = self.nonmonotonic
         spe_sil_ne_calib = model_neon.process(
@@ -157,7 +157,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         name="X calibration",
         match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
-        extrapolate=True
+        extrapolate=True,
     ):
         if find_kw is None:
             find_kw = {}
@@ -172,7 +172,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             ref_units=ref_units,
             match_method=match_method,
             interpolator_method=interpolator_method,
-            extrapolate=extrapolate
+            extrapolate=extrapolate,
         )
         calibration_x.nonmonotonic = self.nonmonotonic
         calibration_x.derive_model(
@@ -193,7 +193,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         name="X calibration",
         match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
-        extrapolate=True
+        extrapolate=True,
     ):
         warnings.warn(
             message="Do not use directly. Use derive_model_x instead.",
@@ -210,7 +210,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             name=name,
             match_method=match_method,
             interpolator_method=interpolator_method,
-            extrapolate=True
+            extrapolate=True,
         )
 
     def _derive_model_zero(
@@ -317,8 +317,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         si_profile="Pearson4",
         match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
-        extrapolate=True
-
+        extrapolate=True,
     ):
         if neon_wl is None:
             neon_wl = rc2const.NEON_WL[laser_wl]
@@ -341,7 +340,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             name="Neon calibration",
             match_method=match_method,
             interpolator_method=interpolator_method,
-            extrapolate=extrapolate
+            extrapolate=extrapolate,
         )
         spe_sil_ne_calib = model_neon.process(
             spe_sil, spe_units="cm-1", convert_back=False
@@ -358,6 +357,6 @@ class CalibrationModel(ProcessingModel, Plottable):
             fit_peaks_kw=fit_peaks_kw,
             should_fit=True,
             name="Si calibration",
-            profile=si_profile
+            profile=si_profile,
         )
         return calmodel
