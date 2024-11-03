@@ -1,11 +1,15 @@
 import pandas as pd
 from sklearn.cluster import KMeans
-from sklearn.metrics.pairwise import euclidean_distances
 from scipy.optimize import linear_sum_assignment
 import numpy as np
+from . import argmin2d, find_closest_pairs
 
 
-def match_peaks_cluster(spe_pos_dict, ref):
+def match_peaks_cluster(spe_pos_dict, ref, _filter_range=True, cost_intensity=0.25):
+    wl_label = "Wavelength"
+    intensity_label = "Intensity"
+    source_label = "Source"
+
     # Min-Max normalize the reference values
     min_value = min(ref.values())
     max_value = max(ref.values())
@@ -24,14 +28,27 @@ def match_peaks_cluster(spe_pos_dict, ref):
     else:
         normalized_spe = spe_pos_dict
     data_list = [
-        {'Wavelength': key, 'Intensity': value, 'Source': 'spe'} for key, value in normalized_spe.items()
+        {wl_label: key, intensity_label: value, source_label: 'spe'} for key, value in normalized_spe.items()
     ] + [
-        {'Wavelength': key, 'Intensity': value, 'Source': 'reference'} for key, value in normalized_ref.items()
+        {wl_label: key, intensity_label: value, source_label: 'reference'} for key, value in normalized_ref.items()
     ]
 
     # Create a DataFrame from the list of dictionaries
     df = pd.DataFrame(data_list)
-    feature_matrix = df[['Wavelength', 'Intensity']].to_numpy()
+    df["intensity4cluster"] = df[intensity_label] * cost_intensity
+
+    if _filter_range:
+        _tollerance = 50
+        left_limit = max(min(ref.keys()), min(spe_pos_dict.keys())) - _tollerance
+        right_limit = min(max(ref.keys()), max(spe_pos_dict.keys())) + _tollerance
+        df = df.loc[(df[wl_label] <= right_limit) & (df[wl_label] >= left_limit)]
+        n_spe = len(df[df[source_label] == 'spe'])
+        n_ref = len(df[df[source_label] == 'reference'])
+    else:
+        n_ref = len(ref.keys())
+        n_spe = len(spe_pos_dict.keys())
+
+    feature_matrix = df[[wl_label, "intensity4cluster"]].to_numpy()
 
     n_ref = len(ref.keys())
     n_spe = len(spe_pos_dict.keys())
@@ -45,18 +62,21 @@ def match_peaks_cluster(spe_pos_dict, ref):
     x_reference = np.array([])
     x_distance = np.array([])
     clusters = np.array([])
+
     # Iterate through each group
     for cluster, group in grouped:
         # Get the unique sources within the group
         unique_sources = group['Source'].unique()
         if 'reference' in unique_sources and 'spe' in unique_sources:
+            print(group)
             x = None
             r = None
-            e_min = None            
-            # Pivot the DataFrame to create the desired structure
-            for w_spe in group.loc[group["Source"] == "spe"]["Wavelength"].values:
-                for w_ref in group.loc[group["Source"] == "reference"]["Wavelength"].values:
-                    e = euclidean_distances(w_spe.reshape(-1, 1), w_ref.reshape(-1, 1))[0][0]
+            e_min = None
+            for _, row_spe in group.loc[group[source_label] == "spe"].iterrows():
+                w_spe = row_spe[wl_label]
+                for _, row_ref in group.loc[group[source_label] == "reference"].iterrows():
+                    w_ref = row_ref[wl_label]
+                    e = (w_spe-w_ref)**2 + (row_spe[intensity_label]-row_ref[intensity_label])**2
                     if (e_min is None) or (e < e_min):
                         x = w_spe
                         r = w_ref
