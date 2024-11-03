@@ -5,7 +5,8 @@ import numpy as np
 from typing import Dict, List
 
 
-def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float], _filter_range=True, cost_intensity=0.25):
+def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float],
+                        _filter_range=True, cost_intensity=0.25):
     wl_label = "Wavelength"
     intensity_label = "Intensity"
     source_label = "Source"
@@ -80,7 +81,7 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
                         x = w_spe
                         r = w_ref
                         e_min = e
-            if x is not None and r is not None and e_min is not None:      
+            if x is not None and r is not None and e_min is not None: 
                 x_spe = np.append(x_spe, x)
                 x_reference = np.append(x_reference, r)
                 x_distance = np.append(x_distance, e_min)
@@ -113,7 +114,8 @@ def normalize_tuples(tuples):
     return [(tuples[i][0], normalized_values[i]) for i in range(len(tuples))]
 
 
-def cost_matrix_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float], threshold_max_distance=9, cost_func=None):
+def cost_matrix_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float],
+                      threshold_max_distance=9, cost_func=None):
     if cost_func is None:
         cost_func = cost_function_position
     peaks_a = np.array(list(spectrum_a_dict.keys()))
@@ -137,15 +139,16 @@ def cost_matrix_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict
 
     for i in range(num_peaks_a):
         for j in range(num_peaks_b):
-            cost = cost_func([peaks_a[i], intensities_a_normalized[i]], 
-                             [peaks_b[j], intensities_b_normalized[j]], 
+            cost = cost_func([peaks_a[i], intensities_a_normalized[i]],
+                             [peaks_b[j], intensities_b_normalized[j]],
                              priority_weight=1
                              )
             cost_matrix[i, j] = cost
     return cost_matrix
 
 
-def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float], threshold_max_distance=9, df=False, cost_func=None):
+def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float, float],
+                threshold_max_distance=9, df=False, cost_func=None):
     """
     Match peaks between two spectra based on their positions and intensities.
 
@@ -181,8 +184,8 @@ def match_peaks(spectrum_a_dict: Dict[float, float], spectrum_b_dict: Dict[float
     >>> match_peaks(spectrum_a, spectrum_b)
 
     """
-    cost_matrix = cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict, 
-                                    threshold_max_distance=threshold_max_distance, 
+    cost_matrix = cost_matrix_peaks(spectrum_a_dict, spectrum_b_dict,
+                                    threshold_max_distance=threshold_max_distance,
                                     cost_func=cost_function if cost_func is None else cost_func
                                     )
 

@@ -208,7 +208,7 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
         _units = "cm^{-1}"
         _units = rf"$\mathrm{{[{_units}]}}$"
         if _plots:
-            spe_norm.plot(ax=ax[index + 1], label=f"original {index}", color=crl[index][0])        
+            spe_norm.plot(ax=ax[index + 1], label=f"original {index}", color=crl[index][0])       
             spe_c_norm.plot(
                 ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
             )
@@ -219,7 +219,7 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
     if _plots:
         plt.tight_layout()
         plt.savefig("test_calmodel_{}.png".format(name))
-    # print(name,np.mean(cos_sim_matrix_original),np.mean(cos_sim_matrix))
+    print(name, np.mean(cos_sim_matrix_original), np.mean(cos_sim_matrix))
     # assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
     assert np.mean(cos_sim_matrix_original) <= (np.mean(cos_sim_matrix) + 1e-4)
 
@@ -270,7 +270,7 @@ def test_ycalibration(setup_module):
     if _plots:
         fig, ax = plt.subplots(3, 1, figsize=(24, 8))
         certificate.plot(ax=ax[2], color="pink")
-        spe_to_correct.plot(ax=ax[0], label="PST") 
+        spe_to_correct.plot(ax=ax[0], label="PST")
         spe_to_correct1.plot(ax=ax[0], label="smoothed")
         setup_module.spe_SRM2241.plot(ax=ax[0].twinx(), label=key)
         spe_ycalibrated.plot(ax=ax[1], label="y calibrated")

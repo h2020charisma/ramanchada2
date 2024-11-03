@@ -67,8 +67,10 @@ def write_nexus(filename: str,
 class DatasetExistsError(Exception):
     pass
 
+
 def sanitize_key(key: str) -> str:
     return ''.join(c if ord(c) < 128 else '_' for c in key)
+
 
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def write_cha(filename: str,
