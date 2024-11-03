@@ -2,12 +2,14 @@ import logging
 
 import numpy as np
 from scipy.interpolate import RBFInterpolator
+import pandas as pd
 
 from ramanchada2.misc.utils.matchsets import (
     cost_function_position,
     match_peaks,
     match_peaks_cluster,
 )
+from ramanchada2.misc.utils import find_closest_pairs_idx
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
 
@@ -143,6 +145,18 @@ class XCalibrationComponent(CalibrationComponent):
                     )
             cost_matrix = None
             return x_spe, x_reference, x_distance, cost_matrix, df
+        elif self.match_method == "argmin2d":
+            x = np.array(list(self.spe_pos_dict.keys()))
+            y = np.array(list(self.ref.keys()))
+            x_idx, y_idx = find_closest_pairs_idx(x, y)
+            x_spe = x[x_idx]
+            x_reference = y[y_idx]
+            df = pd.DataFrame({
+                    'spe': x_spe,
+                    'reference': x_reference,
+                    'distances':  x_spe-x_reference
+                })
+            return x_spe, x_reference, x_spe-x_reference, None, df
         else:
             try:
                 x_spe, x_reference, x_distance, cost_matrix, df = match_peaks(
