@@ -363,7 +363,7 @@ class CustomRBFInterpolator(RBFInterpolator):
             f"Calibration curve {len(self.y)} points) {self.kernel}"
 
         )
-  
+
 
 class CustomPChipInterpolator(PchipInterpolator):
     def __init__(self, x, y):
@@ -417,7 +417,7 @@ class CustomPChipInterpolator(PchipInterpolator):
 
     def __str__(self):
         return f"Calibration curve {len(self.y)} points) (PchipInterpolator)"
-   
+
 
 class CustomCubicSplineInterpolator(CubicSpline):
     def __init__(self, *args, **kwargs):

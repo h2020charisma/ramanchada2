@@ -81,7 +81,7 @@ def match_peaks_cluster(spe_pos_dict: Dict[float, float], ref: Dict[float, float
                         x = w_spe
                         r = w_ref
                         e_min = e
-            if x is not None and r is not None and e_min is not None: 
+            if x is not None and r is not None and e_min is not None:
                 x_spe = np.append(x_spe, x)
                 x_reference = np.append(x_reference, r)
                 x_distance = np.append(x_distance, e_min)

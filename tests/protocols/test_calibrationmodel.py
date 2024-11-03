@@ -208,7 +208,7 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
         _units = "cm^{-1}"
         _units = rf"$\mathrm{{[{_units}]}}$"
         if _plots:
-            spe_norm.plot(ax=ax[index + 1], label=f"original {index}", color=crl[index][0])       
+            spe_norm.plot(ax=ax[index + 1], label=f"original {index}", color=crl[index][0])
             spe_c_norm.plot(
                 ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
             )
