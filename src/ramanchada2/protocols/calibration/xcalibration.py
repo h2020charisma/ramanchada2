@@ -1,7 +1,7 @@
 import logging
-
+from typing import Literal
 import numpy as np
-from scipy.interpolate import RBFInterpolator
+from scipy.interpolate import RBFInterpolator, PchipInterpolator, CubicSpline
 import pandas as pd
 
 from ramanchada2.misc.utils.matchsets import (
@@ -12,18 +12,26 @@ from ramanchada2.misc.utils.matchsets import (
 from ramanchada2.misc.utils import find_closest_pairs_idx
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
+import json
 
 logger = logging.getLogger(__name__)
 
 
 class XCalibrationComponent(CalibrationComponent):
-    def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample="Neon", match_method="cluster"):
+    def __init__(self, laser_wl, spe: Spectrum, spe_units: Literal["cm-1", "nm"] = "cm-1",
+                 ref: Spectrum = None, ref_units: Literal["cm-1", "nm"] = "nm", sample="Neon",
+                 match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
+                 interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+                 extrapolate=True
+                 ):
         super(XCalibrationComponent, self).__init__(
             laser_wl, spe, spe_units, ref, ref_units, sample
         )
         self.spe_pos_dict = None
         self.match_method = match_method
         self.cost_function = cost_function_position
+        self.interpolator_method = interpolator_method
+        self.extrapolate = extrapolate
 
     # @staticmethod
     # def from_json(filepath: str):
@@ -32,7 +40,8 @@ class XCalibrationComponent(CalibrationComponent):
     #    calibration_x.model = rbf_intrpolator
     #    return calibration_x
 
-    def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
+    def process(self, old_spe: Spectrum, spe_units: Literal["cm-1", "nm"] = "cm-1", convert_back=False,
+                nonmonotonic: Literal["ignore", "nan", "error"] = "nan"):
         logger.debug(
             "convert spe_units {} --> model units {}".format(
                 spe_units, self.model_units
@@ -43,14 +52,27 @@ class XCalibrationComponent(CalibrationComponent):
         if self.model is None:
             return new_spe
         elif self.enabled:
-            if isinstance(self.model, RBFInterpolator):
-                new_spe.x = self.model(new_spe.x.reshape(-1, 1))
-                assert np.all(np.diff(new_spe.x) > 0)
-            elif isinstance(self.model, float):
+            if isinstance(self.model, float):
                 new_spe.x = new_spe.x + self.model
-        else:
-            return new_spe
+            else:
+                if isinstance(self.model, CustomPChipInterpolator):
+                    new_spe.x = self.model(new_spe.x)
+                elif isinstance(self.model, CustomRBFInterpolator):
+                    new_spe.x = self.model(new_spe.x.reshape(-1, 1))
+                    if not self.extrapolate:
+                        min_train, max_train = self.model.y.min(), self.model.y.max()
+                        out_of_bounds = (new_spe.x < min_train) | (new_spe.x > max_train)
+                        new_spe.x[out_of_bounds] = np.nan
 
+                elif isinstance(self.model, CustomCubicSplineInterpolator):
+                    new_spe.x = self.model(new_spe.x)
+                if not np.all(np.diff(new_spe.x) > 0):
+                    if nonmonotonic == "nan":
+                        new_spe.x = np.where(np.diff(new_spe.x, prepend=new_spe.x[0]) < 0, np.nan, new_spe.x)
+                    elif nonmonotonic == "error":
+                        assert nonmonotonic
+                    else:
+                        pass
         if convert_back:
             return self.convert_units(new_spe, self.model_units, spe_units)
         else:
@@ -131,20 +153,37 @@ class XCalibrationComponent(CalibrationComponent):
             self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
             try:
-                kwargs = {"kernel": "thin_plate_spline"}
-                interp = CustomRBFInterpolator(
-                    x_spe.reshape(-1, 1), x_reference, **kwargs
-                )
+                if self.interpolator_method == "pchip":
+                    # kwargs = {"kernel": "thin_plate_spline"}
+                    interp = CustomPChipInterpolator(
+                        x_spe, x_reference
+                    )
+                elif self.interpolator_method == "cubic_spline":
+                    kwargs = {"bc_type": "clamped"}
+                    interp = CustomPChipInterpolator(
+                        x_spe, x_reference
+                    )
+                elif self.interpolator_method == "rbf":
+                    kwargs = {"kernel": "thin_plate_spline", "neighbors": len(x_spe)/3, "smoothing": 0}
+                    interp = CustomRBFInterpolator(
+                        x_spe.reshape(-1, 1), x_reference, **kwargs
+                    )
                 self.set_model(interp, self.ref_units, peaks_df, name)
             except Exception as err:
+                print(err)
                 raise err
 
     def match_peaks(self, threshold_max_distance=9, return_df=False):
         if self.match_method == "cluster":
-            x_spe, x_reference, x_distance, df = match_peaks_cluster(
+            x_spe, x_reference, x_distance, _ = match_peaks_cluster(
                         self.spe_pos_dict, self.ref
                     )
             cost_matrix = None
+            df = pd.DataFrame({
+                    'spe': x_spe,
+                    'reference': x_reference,
+                    'distances':  x_distance
+                })
             return x_spe, x_reference, x_distance, cost_matrix, df
         elif self.match_method == "argmin2d":
             x = np.array(list(self.spe_pos_dict.keys()))
@@ -193,6 +232,81 @@ class XCalibrationComponent(CalibrationComponent):
         else:
             self.spe_pos_dict = cand.get_pos_ampl_dict()
         return peaks_df
+
+
+class LazerZeroingComponent(CalibrationComponent):
+    def __init__(
+        self,
+        laser_wl,
+        spe: Spectrum,
+        spe_units: Literal["cm-1", "nm"] = "nm",
+        ref=None,
+        ref_units: Literal["cm-1", "nm"] = "cm-1",
+        sample="Silicon",
+        profile="Pearson4"
+    ):
+        if ref is None:
+            ref = {520.45: 1}
+        super(LazerZeroingComponent, self).__init__(
+            laser_wl, spe, spe_units, ref, ref_units, sample
+        )
+        self.profile = profile
+
+    def derive_model(self, find_kw=None, fit_peaks_kw=None, should_fit=True, name=None):
+        if find_kw is None:
+            find_kw = {}
+        if fit_peaks_kw is None:
+            fit_peaks_kw = {}
+
+        cand = self.spe.find_peak_multipeak(**find_kw)
+        logger.debug(self.name, cand)
+        self.fit_res = self.spe.fit_peak_multimodel(
+            profile=self.profile, candidates=cand, **fit_peaks_kw
+        )
+        # df = self.fit_res.to_dataframe_peaks()
+        df = self.fitres2df(self.spe)
+        # highest peak first
+        df = df.sort_values(by="height", ascending=False)
+        # df = df.sort_values(by='amplitude', ascending=False)
+        if df.empty:
+            raise Exception("No peaks found")
+        else:
+            if "position" in df.columns:
+                zero_peak_nm = df.iloc[0]["position"]
+            elif "center" in df.columns:
+                zero_peak_nm = df.iloc[0]["center"]
+            # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
+            zero_peak_cm1 = self.zero_nm_to_shift_cm_1(zero_peak_nm, zero_peak_nm, list(self.ref.keys())[0])
+            self.set_model(
+                zero_peak_nm, "nm", df, "Laser zeroing using {} nm {} cm-1 ({}) ".
+                format(zero_peak_nm, zero_peak_cm1, self.profile
+                       )
+            )
+            logger.info(self.name, f"peak {self.profile} at {zero_peak_nm} nm")
+        # laser_wl should be calculated  based on the peak position and set instead of the nominal
+
+    def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
+        return 1e7 * (1 / zero_pos_nm - 1 / wl) + zero_ref_cm_1
+
+    # we do not do shift (as initially implemented)
+    # just convert the spectrum nm->cm-1 using the Si measured peak in nm and reference in cm-1
+    # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
+    def process(self, old_spe: Spectrum, spe_units: Literal["cm-1", "nm"] = "nm", convert_back=False):
+        wl_si_ref = list(self.ref.keys())[0]
+        logger.debug(self.name, "process", self.model, wl_si_ref)
+        new_x = self.zero_nm_to_shift_cm_1(old_spe.x, self.model, wl_si_ref)
+        new_spe = Spectrum(x=new_x, y=old_spe.y, metadata=old_spe.meta)
+        # new_spe = old_spe.lazer_zero_nm_to_shift_cm_1(self.model, wl_si_ref)
+        # print("old si", old_spe.x)
+        # print("new si", new_spe.x)
+        return new_spe
+
+    def _plot(self, ax, **kwargs):
+        # spe_sil.plot(label="{} original".format(si_tag),ax=ax)
+        # spe_sil_calib.plot(ax = ax,label="{} laser zeroed".format(si_tag),fmt=":")
+        # ax.set_xlim(520.45-50,520.45+50)
+        # ax.set_xlabel("cm-1")
+        pass
 
 
 class CustomRBFInterpolator(RBFInterpolator):
@@ -249,75 +363,96 @@ class CustomRBFInterpolator(RBFInterpolator):
             f"Calibration curve {len(self.y)} points) {self.kernel}"
 
         )
+    
 
+class CustomPChipInterpolator(PchipInterpolator):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.x = x  # Store x values
+        self.y = y  # Store y values
 
-class LazerZeroingComponent(CalibrationComponent):
-    def __init__(
-        self,
-        laser_wl,
-        spe,
-        spe_units="nm",
-        ref={520.45: 1},
-        ref_units="cm-1",
-        sample="Silicon",
-    ):
-        super(LazerZeroingComponent, self).__init__(
-            laser_wl, spe, spe_units, ref, ref_units, sample
+    @staticmethod
+    def from_dict(pchip_dict=None):
+        if pchip_dict is None:
+            pchip_dict = {}
+        # Load the PCHIP interpolator from a dictionary
+        interpolator_loaded = CustomPChipInterpolator(
+            np.array(pchip_dict["x"]),  # Convert back to numpy arrays
+            np.array(pchip_dict["y"]),
         )
-        self.profile = "Pearson4"
+        return interpolator_loaded
 
-    def derive_model(self, find_kw=None, fit_peaks_kw=None, should_fit=True, name=None):
-        if find_kw is None:
-            find_kw = {}
-        if fit_peaks_kw is None:
-            fit_peaks_kw = {}
+    def to_dict(self):
+        # Save the current x and y data to a dictionary
+        return {
+            "x": self.x.tolist(),  # Convert numpy arrays to lists for JSON serialization
+            "y": self.y.tolist(),
+        }
 
-        cand = self.spe.find_peak_multipeak(**find_kw)
-        logger.debug(self.name, cand)
-        self.fit_res = self.spe.fit_peak_multimodel(
-            profile=self.profile, candidates=cand, **fit_peaks_kw
+    def save_coefficients(self, filename):
+        """Save the x and y coefficients to a JSON file."""
+        coeffs = self.to_dict()
+        with open(filename, 'w') as f:
+            json.dump(coeffs, f)
+
+    @classmethod
+    def load_coefficients(cls, filename):
+        """Load the coefficients from a JSON file."""
+        with open(filename, 'r') as f:
+            coeffs = json.load(f)
+        return cls.from_dict(coeffs)
+
+    def plot(self, ax):
+        """Plot the interpolation curve and the original points."""
+        ax.scatter(self.x, self.y, marker="+", color="blue", label="Data Points")
+
+        x_range = np.linspace(self.x.min(), self.x.max(), 100)
+        predicted_y = self(x_range)
+
+        ax.plot(x_range, predicted_y, color="red", linestyle='-',  label="Calibration curve")
+        ax.set_xlabel("Peaks, nm")
+        ax.set_ylabel("Reference peaks, nm")
+        ax.grid(which='both', linestyle='--', linewidth=0.5, color='gray')
+        ax.legend()
+
+    def __str__(self):
+        return f"Calibration curve {len(self.y)} points) (PchipInterpolator)"
+   
+
+class CustomCubicSplineInterpolator(CubicSpline):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def from_dict(spline_dict=None):
+        if spline_dict is None:
+            spline_dict = {}
+        interpolator_loaded = CustomCubicSplineInterpolator(
+            spline_dict["x"],
+            spline_dict["y"],
+            bc_type=spline_dict.get("bc_type", 'clamped'),
+            extrapolate=spline_dict.get("extrapolate", True)
         )
-        # df = self.fit_res.to_dataframe_peaks()
-        df = self.fitres2df(self.spe)
-        # highest peak first
-        df = df.sort_values(by="height", ascending=False)
-        # df = df.sort_values(by='amplitude', ascending=False)
-        if df.empty:
-            raise Exception("No peaks found")
-        else:
-            if "position" in df.columns:
-                zero_peak_nm = df.iloc[0]["position"]
-            elif "center" in df.columns:
-                zero_peak_nm = df.iloc[0]["center"]
-            # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-            zero_peak_cm1 = self.zero_nm_to_shift_cm_1(zero_peak_nm, zero_peak_nm, list(self.ref.keys())[0])
-            self.set_model(
-                zero_peak_nm, "nm", df, "Laser zeroing using {} nm {} cm-1 ({}) ".
-                format(zero_peak_nm, zero_peak_cm1, self.profile
-                       )
-            )
-            logger.info(self.name, f"peak {self.profile} at {zero_peak_nm} nm")
-        # laser_wl should be calculated  based on the peak position and set instead of the nominal
+        return interpolator_loaded
 
-    def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
-        return 1e7 * (1 / zero_pos_nm - 1 / wl) + zero_ref_cm_1
+    def to_dict(self):
+        return {
+            "x": self.x,
+            "y": self.y,
+            "bc_type": self.bc_type,
+            "extrapolate": self.extrapolate,
+        }
 
-    # we do not do shift (as initially implemented)
-    # just convert the spectrum nm->cm-1 using the Si measured peak in nm and reference in cm-1
-    # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
-    def process(self, old_spe: Spectrum, spe_units="nm", convert_back=False):
-        wl_si_ref = list(self.ref.keys())[0]
-        logger.debug(self.name, "process", self.model, wl_si_ref)
-        new_x = self.zero_nm_to_shift_cm_1(old_spe.x, self.model, wl_si_ref)
-        new_spe = Spectrum(x=new_x, y=old_spe.y, metadata=old_spe.meta)
-        # new_spe = old_spe.lazer_zero_nm_to_shift_cm_1(self.model, wl_si_ref)
-        # print("old si", old_spe.x)
-        # print("new si", new_spe.x)
-        return new_spe
+    def plot(self, ax):
+        ax.scatter(self.x, self.y, marker="+", color="blue", label="Data points")
+        x_range = np.linspace(self.x.min(), self.x.max(), 100)
+        predicted_y = self(x_range)
 
-    def _plot(self, ax, **kwargs):
-        # spe_sil.plot(label="{} original".format(si_tag),ax=ax)
-        # spe_sil_calib.plot(ax = ax,label="{} laser zeroed".format(si_tag),fmt=":")
-        # ax.set_xlim(520.45-50,520.45+50)
-        # ax.set_xlabel("cm-1")
-        pass
+        ax.plot(x_range, predicted_y, color="red", linestyle='-', label="Cubic spline curve")
+        ax.set_xlabel("X values")
+        ax.set_ylabel("Y values")
+        ax.grid(which='both', linestyle='--', linewidth=0.5, color='gray')
+        ax.legend()
+
+    def __str__(self):
+        return f"Cubic Spline Interpolator with {len(self.x)} points."

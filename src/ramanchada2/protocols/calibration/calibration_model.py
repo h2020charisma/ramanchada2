@@ -1,8 +1,7 @@
 import pickle
 import warnings
 
-from typing import Dict
-
+from typing import Dict, Literal
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 
@@ -100,7 +99,9 @@ class CalibrationModel(ProcessingModel, Plottable):
         find_kw={"wlen": 200, "width": 1},
         fit_kw={},
         should_fit=False,
-        match_method="cluster"
+        match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        extrapolate=True
     ):
         """
         Derives x-calibration models using Neon and Silicon spectra.
@@ -120,7 +121,9 @@ class CalibrationModel(ProcessingModel, Plottable):
             fit_peaks_kw=fit_kw,
             should_fit=should_fit,
             name="Neon calibration",
-            match_method=match_method
+            match_method=match_method,
+            interpolator_method=interpolator_method,
+            extrapolate=extrapolate
         )
         spe_sil_ne_calib = model_neon.process(
             spe_sil, spe_units=spe_sil_units, convert_back=False
@@ -149,7 +152,9 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
-        match_method="cluster"
+        match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        extrapolate=True
     ):
         if find_kw is None:
             find_kw = {}
@@ -162,7 +167,9 @@ class CalibrationModel(ProcessingModel, Plottable):
             spe_units=spe_units,
             ref=reference_peaks,
             ref_units=ref_units,
-            match_method=match_method
+            match_method=match_method,
+            interpolator_method=interpolator_method,
+            extrapolate=extrapolate
         )
         calibration_x.derive_model(
             find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name
@@ -180,7 +187,9 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw={},
         should_fit=False,
         name="X calibration",
-        match_method="cluster"
+        match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        extrapolate=True
     ):
         warnings.warn(
             message="Do not use directly. Use derive_model_x instead.",
@@ -195,7 +204,9 @@ class CalibrationModel(ProcessingModel, Plottable):
             fit_peaks_kw=fit_peaks_kw,
             should_fit=should_fit,
             name=name,
-            match_method=match_method
+            match_method=match_method,
+            interpolator_method=interpolator_method,
+            extrapolate=True
         )
 
     def _derive_model_zero(
@@ -299,8 +310,10 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw=None,
         should_fit=False,
         prominence_coeff=3,
-        match_method="cluster",
-        si_profile="Pearson4"
+        si_profile="Pearson4",
+        match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        extrapolate=True
 
     ):
         if neon_wl is None:
@@ -312,7 +325,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         calmodel = CalibrationModel(laser_wl)
         calmodel.prominence_coeff = prominence_coeff
         find_kw["prominence"] = spe_neon.y_noise_MAD() * calmodel.prominence_coeff
-        model_neon = calmodel.derive_model_curve(
+
+        model_neon = calmodel._derive_model_curve(
             spe=spe_neon,
             ref=neon_wl,
             spe_units="cm-1",
@@ -321,7 +335,9 @@ class CalibrationModel(ProcessingModel, Plottable):
             fit_peaks_kw=fit_peaks_kw,
             should_fit=should_fit,
             name="Neon calibration",
-            match_method=match_method
+            match_method=match_method,
+            interpolator_method=interpolator_method,
+            extrapolate=extrapolate
         )
         spe_sil_ne_calib = model_neon.process(
             spe_sil, spe_units="cm-1", convert_back=False

@@ -2,7 +2,6 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from . import argmin2d, find_closest_pairs
 
 
 def match_peaks_cluster(spe_pos_dict, ref, _filter_range=True, cost_intensity=0.25):
@@ -68,7 +67,6 @@ def match_peaks_cluster(spe_pos_dict, ref, _filter_range=True, cost_intensity=0.
         # Get the unique sources within the group
         unique_sources = group['Source'].unique()
         if 'reference' in unique_sources and 'spe' in unique_sources:
-            print(group)
             x = None
             r = None
             e_min = None
