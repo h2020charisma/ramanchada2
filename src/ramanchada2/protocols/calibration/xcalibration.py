@@ -21,7 +21,7 @@ class XCalibrationComponent(CalibrationComponent):
     def __init__(self, laser_wl, spe: Spectrum, ref: Dict[float, float],
                  spe_units: Literal["cm-1", "nm"] = "cm-1",
                  ref_units: Literal["cm-1", "nm"] = "nm", sample="Neon",
-                 match_method: Literal["cluster", "armin2d", "assignment"] = "cluster",
+                 match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
                  interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
                  extrapolate=True
                  ):
