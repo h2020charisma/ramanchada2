@@ -13,6 +13,8 @@ from .xcalibration import LazerZeroingComponent, XCalibrationComponent
 
 
 class CalibrationModel(ProcessingModel, Plottable):
+    nonmonotonic: Literal["ignore", "nan", "error"] = "nan"
+
     """
     A class representing a calibration model for Raman spectrum.
     """
@@ -125,6 +127,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             interpolator_method=interpolator_method,
             extrapolate=extrapolate
         )
+        model_neon.nonmonotonic = self.nonmonotonic
         spe_sil_ne_calib = model_neon.process(
             spe_sil, spe_units=spe_sil_units, convert_back=False
         )
@@ -171,6 +174,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             interpolator_method=interpolator_method,
             extrapolate=extrapolate
         )
+        calibration_x.nonmonotonic = self.nonmonotonic
         calibration_x.derive_model(
             find_kw=find_kw, fit_peaks_kw=fit_peaks_kw, should_fit=should_fit, name=name
         )

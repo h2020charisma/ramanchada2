@@ -40,8 +40,7 @@ class XCalibrationComponent(CalibrationComponent):
     #    calibration_x.model = rbf_intrpolator
     #    return calibration_x
 
-    def process(self, old_spe: Spectrum, spe_units: Literal["cm-1", "nm"] = "cm-1", convert_back=False,
-                nonmonotonic: Literal["ignore", "nan", "error"] = "nan"):
+    def process(self, old_spe: Spectrum, spe_units: Literal["cm-1", "nm"] = "cm-1", convert_back=False):
         logger.debug(
             "convert spe_units {} --> model units {}".format(
                 spe_units, self.model_units
@@ -67,10 +66,10 @@ class XCalibrationComponent(CalibrationComponent):
                 elif isinstance(self.model, CustomCubicSplineInterpolator):
                     new_spe.x = self.model(new_spe.x)
                 if not np.all(np.diff(new_spe.x) > 0):
-                    if nonmonotonic == "nan":
+                    if self.nonmonotonic == "nan":
                         new_spe.x = np.where(np.diff(new_spe.x, prepend=new_spe.x[0]) < 0, np.nan, new_spe.x)
-                    elif nonmonotonic == "error":
-                        assert nonmonotonic
+                    elif self.nonmonotonic == "error":
+                        assert self.nonmonotonic
                     else:
                         pass
         if convert_back:

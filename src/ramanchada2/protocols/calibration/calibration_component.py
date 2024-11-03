@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
+from typing import Literal
 
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
@@ -18,6 +19,8 @@ class ProcessingModel:
 
 
 class CalibrationComponent(Plottable):
+    nonmonotonic: Literal["ignore", "nan", "error"] = "nan"
+
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample=None):
         super(CalibrationComponent, self).__init__()
         self.laser_wl = laser_wl
