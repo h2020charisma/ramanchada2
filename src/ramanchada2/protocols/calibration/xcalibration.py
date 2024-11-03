@@ -45,6 +45,7 @@ class XCalibrationComponent(CalibrationComponent):
         elif self.enabled:
             if isinstance(self.model, RBFInterpolator):
                 new_spe.x = self.model(new_spe.x.reshape(-1, 1))
+                assert np.all(np.diff(new_spe.x) > 0)
             elif isinstance(self.model, float):
                 new_spe.x = new_spe.x + self.model
         else:

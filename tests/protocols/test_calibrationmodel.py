@@ -193,6 +193,8 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
     _max = 2000
     spe_calibrated = []
     for index, spe in enumerate(spectra):
+        # check if x is monotonically increasing
+        assert np.all(np.diff(spe.x) > 0)
         spe_norm = spe.normalize(strategy="unity_area")
         # resample with spline
         spe_norm = resample_spline(spe_norm, _min, _max, _max - _min)
