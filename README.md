@@ -10,7 +10,7 @@
 | src/ramanchada2/auxiliary/spectra/\_\_init\_\_.py                          |        1 |        0 |    100% |           |
 | src/ramanchada2/auxiliary/spectra/datasets2/\_\_init\_\_.py                |       19 |        2 |     89% | 1395-1396 |
 | src/ramanchada2/auxiliary/spectra/simulated/\_\_init\_\_.py                |        5 |        0 |    100% |           |
-| src/ramanchada2/io/HSDS.py                                                 |       89 |       58 |     35% |20-64, 83-85, 95, 103-106, 110-122 |
+| src/ramanchada2/io/HSDS.py                                                 |       92 |       58 |     37% |20-64, 89-91, 101, 109-112, 116-128 |
 | src/ramanchada2/io/\_\_init\_\_.py                                         |        0 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/\_\_init\_\_.py                            |        3 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/bw\_format.py                              |       16 |        0 |    100% |           |
@@ -38,26 +38,31 @@
 | src/ramanchada2/misc/base\_class.py                                        |       20 |       11 |     45% |3, 6, 12, 16, 20-26 |
 | src/ramanchada2/misc/constants.py                                          |       21 |        0 |    100% |           |
 | src/ramanchada2/misc/exceptions.py                                         |        6 |        0 |    100% |           |
-| src/ramanchada2/misc/plottable.py                                          |       14 |        1 |     93% |        17 |
+| src/ramanchada2/misc/plottable.py                                          |       14 |        2 |     86% |    10, 17 |
 | src/ramanchada2/misc/spectrum\_deco/\_\_init\_\_.py                        |        5 |        0 |    100% |           |
 | src/ramanchada2/misc/spectrum\_deco/dynamically\_added.py                  |        3 |        0 |    100% |           |
 | src/ramanchada2/misc/spectrum\_deco/spectrum\_constructor.py               |       21 |        1 |     95% |        23 |
 | src/ramanchada2/misc/spectrum\_deco/spectrum\_filter.py                    |       20 |        1 |     95% |        23 |
 | src/ramanchada2/misc/spectrum\_deco/spectrum\_method.py                    |       11 |        1 |     91% |        13 |
 | src/ramanchada2/misc/types/\_\_init\_\_.py                                 |        3 |        0 |    100% |           |
-| src/ramanchada2/misc/types/fit\_peaks\_result.py                           |      104 |       31 |     70% |16-19, 44, 54, 64, 68, 100-108, 111, 133, 136-148 |
-| src/ramanchada2/misc/types/peak\_candidates.py                             |       90 |       28 |     69% |27, 34, 37, 47-48, 51-56, 64, 68, 72, 76, 80, 88, 94, 101, 104-105, 108, 115, 121-122, 125, 131, 134 |
+| src/ramanchada2/misc/types/fit\_peaks\_result.py                           |      104 |       30 |     71% |16-19, 54, 64, 68, 100-108, 111, 133, 136-148 |
+| src/ramanchada2/misc/types/peak\_candidates.py                             |       90 |       31 |     66% |27, 34, 37, 47-48, 51-56, 64, 68, 72, 76, 80, 84, 88, 91, 94, 101, 104-105, 108, 115, 118, 121-122, 125, 131, 134 |
 | src/ramanchada2/misc/types/positive\_not\_multiple.py                      |        2 |        0 |    100% |           |
 | src/ramanchada2/misc/types/pydantic\_base\_model.py                        |       12 |        2 |     83% |    13, 23 |
 | src/ramanchada2/misc/types/spectrum/\_\_init\_\_.py                        |        2 |        0 |    100% |           |
 | src/ramanchada2/misc/types/spectrum/applied\_processings.py                |       50 |        2 |     96% |    29, 65 |
 | src/ramanchada2/misc/types/spectrum/metadata.py                            |       51 |       10 |     80% |31-36, 46, 50, 58, 79 |
-| src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        3 |        0 |    100% |           |
-| src/ramanchada2/misc/utils/argmin2d.py                                     |      105 |       23 |     78% |27-28, 44, 59-60, 68-83, 93, 103 |
+| src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        4 |        0 |    100% |           |
+| src/ramanchada2/misc/utils/argmin2d.py                                     |       58 |       21 |     64% |24-25, 41, 56-57, 65-80 |
+| src/ramanchada2/misc/utils/matchsets.py                                    |      143 |       77 |     46% |27, 38, 59-60, 118-119, 133-137, 141-145, 154-185, 230-304 |
 | src/ramanchada2/misc/utils/ramanshift\_to\_wavelength.py                   |       17 |        2 |     88% |    17, 27 |
 | src/ramanchada2/misc/utils/svd.py                                          |       13 |       10 |     23% |8-13, 17-20 |
 | src/ramanchada2/protocols/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
-| src/ramanchada2/protocols/calibration.py                                   |      386 |       92 |     76% |25, 51, 65, 73-77, 82, 85, 88-97, 100, 104-106, 109-110, 164, 168-171, 175, 196, 204, 227-237, 255-265, 273-274, 307, 310, 341, 395, 408, 452-453, 457, 506, 509-528, 543, 565-566, 630-631, 638-639, 658-689, 703, 705, 759, 761, 763, 774-775, 824, 845, 847, 849, 888-899, 902 |
+| src/ramanchada2/protocols/calibration/\_\_init\_\_.py                      |        0 |        0 |    100% |           |
+| src/ramanchada2/protocols/calibration/calibration\_component.py            |       72 |       20 |     72% |18, 46, 60, 68-72, 77, 82, 85-94, 97, 101-103, 106-107 |
+| src/ramanchada2/protocols/calibration/calibration\_model.py                |      116 |       37 |     68% |80-81, 88-89, 111-146, 163, 165, 198-202, 229, 231, 233, 244-245, 265, 267, 297-300, 303-305, 323, 325, 327 |
+| src/ramanchada2/protocols/calibration/xcalibration.py                      |      235 |      108 |     54% |63, 66, 69, 73-80, 82-91, 93, 98-118, 122, 131, 133, 161-171, 176, 178-179, 190-192, 204-229, 254, 270, 278, 280, 293, 296, 340, 349-362, 365, 381-398, 401, 406-408, 412-419, 423, 430-432, 437-439, 443-454, 457, 462, 466-474, 477, 485-495, 498 |
+| src/ramanchada2/protocols/calibration/ycalibration.py                      |      113 |       23 |     80% |63-73, 77, 121-122, 126, 175, 178-197, 212, 234-235 |
 | src/ramanchada2/protocols/metadata\_helper.py                              |       22 |       10 |     55% |3, 8, 11, 16, 21, 26, 29-32 |
 | src/ramanchada2/protocols/spectraframe.py                                  |       87 |       12 |     86% |50-51, 54-57, 75, 84-88, 94 |
 | src/ramanchada2/protocols/twinning.py                                      |      106 |        6 |     94% |101, 126-127, 134-136 |
@@ -135,7 +140,7 @@
 | tests/io/simulated/vasp/test\_vasp\_simulation\_dat.py                     |        7 |        0 |    100% |           |
 | tests/misc/test\_argmin2d\_align.py                                        |       12 |        0 |    100% |           |
 | tests/peak/pearson4\_test.py                                               |       50 |        0 |    100% |           |
-| tests/protocols/test\_calibrationmodel.py                                  |      125 |        9 |     93% |77-79, 99, 108-114 |
+| tests/protocols/test\_calibrationmodel.py                                  |      172 |       55 |     68% |125-128, 137-147, 172-198, 205-211, 224-225, 247-253, 258-259, 309-315, 337-338 |
 | tests/protocols/test\_metadataextractor.py                                 |       16 |        1 |     94% |        19 |
 | tests/protocols/test\_twinning.py                                          |       50 |        0 |    100% |           |
 | tests/spectrum/creators/test\_from\_local\_file.py                         |       14 |        0 |    100% |           |
@@ -148,7 +153,7 @@
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4199** | **1103** | **74%** |           |
+|                                                                  **TOTAL** | **4496** | **1323** | **71%** |           |
 
 
 ## Setup coverage badge
