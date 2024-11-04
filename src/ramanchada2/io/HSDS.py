@@ -68,17 +68,23 @@ class DatasetExistsError(Exception):
     pass
 
 
+def sanitize_key(key: str) -> str:
+    return ''.join(c if ord(c) < 128 else '_' for c in key)
+
+
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def write_cha(filename: str,
               dataset: str,
               x: npt.NDArray, y: npt.NDArray, meta: Dict, h5module=None):
     data = np.stack([x, y])
+    sanitized_meta = {sanitize_key(k): v for k, v in meta.items()}
     try:
         _h5 = h5module or h5py
         with _h5.File(filename, mode='a') as h5:
             if h5.get(dataset) is None:
                 ds = h5.create_dataset(dataset, data=data)
-                ds.attrs.update(meta)
+                ds.attrs.update(sanitized_meta)
+
             else:
                 raise DatasetExistsError(f'dataset `{dataset}` already exists in file `{filename}`')
     except ValueError as e:

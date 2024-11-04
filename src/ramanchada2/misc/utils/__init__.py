@@ -14,6 +14,10 @@ from .svd import (svd_inverse,
 from .argmin2d import (argmin2d,
                        find_closest_pairs,
                        find_closest_pairs_idx,
-                       align, align_shift,
-                       match_peaks
+                       align, align_shift
+                       )
+
+from .matchsets import (
+                       match_peaks,
+                       match_peaks_cluster
                        )
