@@ -58,7 +58,7 @@ class XCalibrationComponent(CalibrationComponent):
             )
         )
         new_spe = self.convert_units(old_spe, spe_units, self.model_units)
-        logger.debug("process", self)
+
         if self.model is None:
             return new_spe
         elif self.enabled:
@@ -160,13 +160,12 @@ class XCalibrationComponent(CalibrationComponent):
         if len(x_reference) == 1:
             _offset = x_reference[0] - x_spe[0]
             logger.debug(
-                "ref",
-                x_reference[0],
-                "sample",
-                x_spe[0],
-                "offset",
-                _offset,
-                self.ref_units,
+                "ref {} sample {} offset {} {}".format(
+                    x_reference[0],
+                    x_spe[0],
+                    _offset,
+                    self.ref_units
+                )
             )
             self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
@@ -230,7 +229,7 @@ class XCalibrationComponent(CalibrationComponent):
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
-        logger.debug("max x", max(spe_to_process.x), self.ref_units)
+        logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
 
         peaks_df = None
         self.fit_res = None
@@ -280,7 +279,6 @@ class LazerZeroingComponent(CalibrationComponent):
             fit_peaks_kw = {}
 
         cand = self.spe.find_peak_multipeak(**find_kw)
-        logger.debug(self.name, cand)
         self.fit_res = self.spe.fit_peak_multimodel(
             profile=self.profile, candidates=cand, **fit_peaks_kw
         )
@@ -308,7 +306,7 @@ class LazerZeroingComponent(CalibrationComponent):
                     zero_peak_nm, zero_peak_cm1, self.profile
                 ),
             )
-            logger.info(self.name, f"peak {self.profile} at {zero_peak_nm} nm")
+            logger.info(f"{self.name} peak {self.profile} at {zero_peak_nm} nm")
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
     def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
@@ -324,7 +322,7 @@ class LazerZeroingComponent(CalibrationComponent):
         convert_back=False,
     ):
         wl_si_ref = list(self.ref.keys())[0]
-        logger.debug(self.name, "process", self.model, wl_si_ref)
+        logger.debug(f"{self.name}, process, {self.model}, {wl_si_ref}")
         new_x = self.zero_nm_to_shift_cm_1(old_spe.x, self.model, wl_si_ref)
         new_spe = Spectrum(x=new_x, y=old_spe.y, metadata=old_spe.meta)
         # new_spe = old_spe.lazer_zero_nm_to_shift_cm_1(self.model, wl_si_ref)
