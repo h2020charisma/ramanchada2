@@ -35,22 +35,25 @@ class Spectrum(Plottable):
             if isinstance(x, int):
                 self.x = np.arange(x) * 1.
             else:
-                self.x = x * 1.
+                if x.dtype != float:
+                    self.x = x.astype(float)
+                else:
+                    self.x = x
         if y is not None:
-            self.y = y * 1.
+            if y.dtype != float:
+                self.y = y.astype(float)
+            else:
+                self.y = y
 
         self._x_err: Union[npt.NDArray, None] = None
         self._y_err: Union[npt.NDArray, None] = None
 
-        sort_idx = np.argsort(self.x)
-        if (np.diff(sort_idx) != 1).any():
-            self.x = self.x[sort_idx]
-            if self.y is not None:
-                self.y = self.y[sort_idx]
-
         self._cachefile = cachefile
         self._metadata = deepcopy(metadata or SpeMetadataModel(root={}))
         self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(root=[]))
+        if self.x is not None and self.y is not None:
+            if len(self.x) != len(self.y):
+                raise ValueError(f'x and y shold have same dimentions len(x)={len(self.x)} len(y)={len(self.y)}')
 
     def __copy__(self):
         return Spectrum(
@@ -117,8 +120,9 @@ class Spectrum(Plottable):
 
     def _sort_x(self):
         idx = np.argsort(self.x)
-        self.x = self.x[idx]
-        self.y = self.y[idx]
+        if (np.diff(idx) != 1).any():
+            self.x = self.x[idx]
+            self.y = self.y[idx]
 
     @property
     def x(self): return np.array(self._xdata)

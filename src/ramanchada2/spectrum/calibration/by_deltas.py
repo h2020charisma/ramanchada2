@@ -1,10 +1,11 @@
-from typing import Dict, List, Literal, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import lmfit
 import numpy as np
 import numpy.typing as npt
-from pydantic import NonNegativeInt, validate_call
+from pydantic import BaseModel, NonNegativeInt, validate_call
 from scipy import interpolate
+from scipy import fft, signal
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
@@ -46,10 +47,23 @@ class DeltaSpeModel:
             ax.plot(spe_conv.x, fit_res.eval(x=spe_conv.x), 'r')
 
 
+class ParamBounds(BaseModel):
+    min: float = -np.inf
+    max: float = np.inf
+
+
+class FitBounds(BaseModel):
+    shift: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+    scale: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+    scale2: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+    scale3: ParamBounds = ParamBounds(min=-np.inf, max=np.inf)
+
+
 @add_spectrum_method
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def calibrate_by_deltas_model(spe: Spectrum, /,
                               deltas: Dict[float, float],
+                              bounds: Optional[FitBounds] = None,
                               convolution_steps: Union[None, List[float]] = [15, 1],
                               scale2=True, scale3=False,
                               init_guess: Literal[None, 'cumulative'] = None,
@@ -96,8 +110,12 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
         scale = 1
         shift = 0
     gain = np.sum(spe.y)/np.sum(list(deltas.values()))
-    mod.params['scale'].set(value=scale)
-    mod.params['shift'].set(value=shift)
+    if bounds is not None:
+        mod.params['scale'].set(value=scale, min=bounds.scale.min, max=bounds.scale.max)
+        mod.params['shift'].set(value=shift, min=bounds.shift.min, max=bounds.shift.max)
+    else:
+        mod.params['scale'].set(value=scale)
+        mod.params['shift'].set(value=shift)
     mod.params['gain'].set(value=gain)
     mod.params['sigma'].set(value=2.5)
 
@@ -109,14 +127,19 @@ def calibrate_by_deltas_model(spe: Spectrum, /,
             mod.fit(spe=spe_padded, sigma=sig, ax=ax, **kwargs)
 
     if scale2:
-        mod.params['scale2'].set(vary=True, value=0)
-        # mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
-        mod.fit(spe_padded, sigma=0, ax=ax, **kwargs)
+        if bounds is not None:
+            mod.params['scale2'].set(vary=True, value=0, min=bounds.scale2.min, max=bounds.scale2.max)
+        else:
+            mod.params['scale2'].set(vary=True, value=0)
+        mod.fit(spe_padded, sigma=0.05, ax=ax, **kwargs)
     if scale3:
-        mod.params['scale2'].set(vary=True, value=0)
-        mod.params['scale3'].set(vary=True, value=0)
-        # mod.fit(spe_padded, sigma=1, ax=ax, **kwargs)
-        mod.fit(spe_padded, sigma=0, ax=ax, **kwargs)
+        if bounds is not None:
+            mod.params['scale2'].set(vary=True, value=0, min=bounds.scale2.min, max=bounds.scale2.max)
+            mod.params['scale3'].set(vary=True, value=0, min=bounds.scale3.min, max=bounds.scale3.max)
+        else:
+            mod.params['scale2'].set(vary=True, value=0)
+            mod.params['scale3'].set(vary=True, value=0)
+        mod.fit(spe_padded, sigma=0.05, ax=ax, **kwargs)
     return mod.model, mod.params
 
 
@@ -229,3 +252,43 @@ def xcal_fine_RBF(old_spe: Spectrum,
         kwargs["kernel"] = kernel
         interp = interpolate.RBFInterpolator(spe_cent[spe_idx].reshape(-1, 1), ref_pos[ref_idx], **kwargs)
         new_spe.x = interp(old_spe.x.reshape(-1, 1))
+
+
+@add_spectrum_filter
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
+                               new_spe: Spectrum, /, *,
+                               ref: Dict[float, float],
+                               low_pass_nfreqs: List[int] = [100, 500]):
+    def semi_spe_from_dict(deltas: dict, xaxis):
+        y = np.zeros_like(xaxis)
+        for pos, ampl in deltas.items():
+            idx = np.argmin(np.abs(xaxis - pos))
+            y[idx] += ampl
+        # remove overflows and underflows
+        y[0] = 0
+        y[-1] = 0
+        return y
+
+    def low_pass(x, nbin, window=signal.windows.blackmanharris):
+        h = window(nbin*2-1)[nbin-1:]
+        X = fft.rfft(x)
+        X[:nbin] *= h  # apply the window
+        X[nbin:] = 0  # clear upper frequencies
+        return fft.irfft(X, n=len(x))
+
+    spe = old_spe.__copy__()
+    for low_pass_i in low_pass_nfreqs:
+        xaxis = spe.x
+        y_ref_semi_spe = semi_spe_from_dict(ref, spe.x)
+        y_ref_semi_spe = low_pass(y_ref_semi_spe, low_pass_i)
+
+        r = xaxis[signal.find_peaks(y_ref_semi_spe)[0]]
+
+        spe_low = spe.__copy__()
+        spe_low.y = low_pass(spe.y, low_pass_i)
+
+        spe_cal = spe_low.xcal_fine(ref=r, should_fit=False, poly_order=2)
+        spe.x = spe_cal.x
+    spe_cal_fin = spe.xcal_fine(ref=ref, should_fit=False, poly_order=2)
+    new_spe.x = spe_cal_fin.x
