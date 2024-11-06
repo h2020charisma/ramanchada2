@@ -58,7 +58,7 @@
 | src/ramanchada2/misc/utils/ramanshift\_to\_wavelength.py                   |       17 |        2 |     88% |    17, 27 |
 | src/ramanchada2/misc/utils/svd.py                                          |       13 |       10 |     23% |8-13, 17-20 |
 | src/ramanchada2/protocols/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
-| src/ramanchada2/protocols/calib\_ne\_si\_argmin2d\_iter\_gg.py             |       29 |       29 |      0% |      1-44 |
+| src/ramanchada2/protocols/calib\_ne\_si\_argmin2d\_iter\_gg.py             |       38 |       38 |      0% |      1-83 |
 | src/ramanchada2/protocols/calibration/\_\_init\_\_.py                      |        0 |        0 |    100% |           |
 | src/ramanchada2/protocols/calibration/calibration\_component.py            |       72 |       20 |     72% |18, 46, 60, 68-72, 77, 82, 85-94, 97, 101-103, 106-107 |
 | src/ramanchada2/protocols/calibration/calibration\_model.py                |      116 |       37 |     68% |80-81, 88-89, 111-146, 163, 165, 198-202, 229, 231, 233, 244-245, 265, 267, 297-300, 303-305, 323, 325, 327 |
@@ -154,7 +154,7 @@
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4585** | **1389** | **70%** |           |
+|                                                                  **TOTAL** | **4594** | **1398** | **70%** |           |
 
 
 ## Setup coverage badge
