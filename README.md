@@ -126,7 +126,7 @@
 | src/ramanchada2/spectrum/peaks/\_\_init\_\_.py                             |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       35 |     70% |84-86, 110-135, 139-161 |
 | src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     42-50 |
-| src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       91 |       12 |     87% |53-56, 65-68, 121-122, 135-136 |
+| src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       95 |       15 |     84% |53-56, 65-68, 125-126, 131-133, 143-144 |
 | src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       18 |        9 |     50% |     45-56 |
 | src/ramanchada2/spectrum/spectrum.py                                       |      169 |       36 |     79% |36, 56, 68, 74, 77-80, 86, 95-97, 161-167, 189, 193-197, 204, 208-212, 221-224, 242, 247-249 |
 | src/ramanchada2/theoretical\_lines/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
@@ -154,7 +154,7 @@
 | tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4594** | **1398** | **70%** |           |
+|                                                                  **TOTAL** | **4598** | **1401** | **70%** |           |
 
 
 ## Setup coverage badge
