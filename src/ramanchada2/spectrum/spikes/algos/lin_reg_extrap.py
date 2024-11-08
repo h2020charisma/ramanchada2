@@ -1,9 +1,11 @@
 from typing import Union
 
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 
+# lr_n3o1 equivalent
+# Remove?
 def metric(y):
     le = [(4*y[i-1] + y[i-2] - 2*y[i-3])/3 for i in range(3, len(y)-3)]
     ri = [(4*y[i+1] + y[i+2] - 2*y[i+3])/3 for i in range(3, len(y)-3)]
@@ -17,7 +19,7 @@ def metric(y):
     return metric
 
 
-@validate_arguments()
+@validate_call()
 def indices(s, threshold: Union[None, float] = None):
     if threshold is None:
         threshold = 100

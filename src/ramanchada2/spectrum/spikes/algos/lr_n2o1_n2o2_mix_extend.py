@@ -1,13 +1,13 @@
 from typing import Union
 
 import numpy as np
-from pydantic import validate_arguments
+from pydantic import validate_call
 
 from .lr_n2o1_n2o2_mix import metric as n2o1_n2o2_metric
 from .lr_n2o2 import metric as n2o2_metric
 
 
-@validate_arguments()
+@validate_call()
 def indices(s, threshold: Union[None, float] = None):
     if threshold is None:
         threshold = 100
