@@ -14,7 +14,7 @@ SpeMetadataFieldTyping = Union[
     StrictInt, float,
     datetime.datetime,
     List[Any], Dict[str, Any],
-    StrictStr]
+    StrictStr, None]
 
 
 class SpeMetadataFieldModel(PydRootModel):
@@ -53,6 +53,14 @@ class SpeMetadataFieldModel(PydRootModel):
 
 class SpeMetadataModel(PydRootModel):
     root: Dict[str, SpeMetadataFieldModel]
+
+    @field_validator('root', mode='before')
+    def pre_validate(cls, val):
+        if val is None or val == '':
+            val = {}
+        elif isinstance(val, list):
+            val = {'%d' % k: v for k, v in enumerate(val)}
+        return val
 
     def __str__(self):
         return str(self.serialize())
