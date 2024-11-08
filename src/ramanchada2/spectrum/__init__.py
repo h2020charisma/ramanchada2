@@ -16,4 +16,4 @@ from .creators.hdr_from_multi_exposure import hdr_from_multi_exposure
 from .filters import *  # noqa
 from .peaks import *  # noqa
 from .spectrum import Spectrum  # noqa
-from .spikes import spikes
+from .spikes import *  # noqa

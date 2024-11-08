@@ -10,7 +10,7 @@ from ..spectrum import Spectrum
 
 @add_spectrum_method
 @validate_call(config=dict(arbitrary_types_allowed=True))
-def spike_indices(spe: Spectrum, /, n_sigma: PositiveFloat) -> NDArray:
+def spike_indices_old(spe: Spectrum, /, n_sigma: PositiveFloat) -> NDArray:
     """
     Find spikes in spectrum
 
@@ -36,9 +36,9 @@ def spike_indices(spe: Spectrum, /, n_sigma: PositiveFloat) -> NDArray:
 
 @add_spectrum_filter
 @validate_call(config=dict(arbitrary_types_allowed=True))
-def drop_spikes(old_spe: Spectrum,
-                new_spe: Spectrum, /,
-                n_sigma: PositiveFloat = 10):
+def drop_spikes_old(old_spe: Spectrum,
+                    new_spe: Spectrum, /,
+                    n_sigma: PositiveFloat = 10):
     """
     Removes single-bin spikes.
 
@@ -53,16 +53,16 @@ def drop_spikes(old_spe: Spectrum,
 
     Returns: modified Spectrum
     """
-    use_idx = ~spike_indices(old_spe, n_sigma=n_sigma)
+    use_idx = ~spike_indices_old(old_spe, n_sigma=n_sigma)
     new_spe.x = old_spe.x[use_idx]
     new_spe.y = old_spe.y[use_idx]
 
 
 @add_spectrum_filter
 @validate_call(config=dict(arbitrary_types_allowed=True))
-def recover_spikes(old_spe: Spectrum,
-                   new_spe: Spectrum, /,
-                   n_sigma: PositiveFloat = 10):
+def recover_spikes_old(old_spe: Spectrum,
+                       new_spe: Spectrum, /,
+                       n_sigma: PositiveFloat = 10):
     """
     Recover single-bin spikes.
 
@@ -78,15 +78,15 @@ def recover_spikes(old_spe: Spectrum,
 
     Returns: modified Spectrum
     """
-    use_idx = ~spike_indices(old_spe, n_sigma=n_sigma)
+    use_idx = ~spike_indices_old(old_spe, n_sigma=n_sigma)
     new_spe.y = np.interp(old_spe.x, old_spe.x[use_idx], old_spe.y[use_idx])
 
 
 @add_spectrum_filter
 @validate_call(config=dict(arbitrary_types_allowed=True))
-def get_spikes(old_spe: Spectrum,
-               new_spe: Spectrum, /,
-               n_sigma: PositiveFloat = 10):
+def get_spikes_old(old_spe: Spectrum,
+                   new_spe: Spectrum, /,
+                   n_sigma: PositiveFloat = 10):
     """
     Get single-bin spikes only.
 
@@ -102,6 +102,6 @@ def get_spikes(old_spe: Spectrum,
 
     Returns: modified Spectrum
     """
-    spike_idx = spike_indices(old_spe, n_sigma=n_sigma)
+    spike_idx = spike_indices_old(old_spe, n_sigma=n_sigma)
     new_spe.x = old_spe.x[spike_idx]
     new_spe.y = old_spe.y[spike_idx]
