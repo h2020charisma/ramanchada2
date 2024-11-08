@@ -102,7 +102,7 @@
 | src/ramanchada2/spectrum/creators/from\_cache\_or\_calc.py                 |       42 |        2 |     95% |    43, 62 |
 | src/ramanchada2/spectrum/creators/from\_chada.py                           |        9 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_delta\_lines.py                    |       28 |        2 |     93% |    45, 47 |
-| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       51 |        5 |     90% |46, 51-52, 57, 78 |
+| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       54 |        6 |     89% |47, 49, 54-55, 60, 81 |
 | src/ramanchada2/spectrum/creators/from\_simulation.py                      |       25 |       14 |     44% |     45-61 |
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
 | src/ramanchada2/spectrum/creators/from\_stream.py                          |       75 |        6 |     92% |35-39, 46, 62 |
@@ -154,7 +154,7 @@
 | tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4613** | **1401** | **70%** |           |
+|                                                                  **TOTAL** | **4616** | **1402** | **70%** |           |
 
 
 ## Setup coverage badge
