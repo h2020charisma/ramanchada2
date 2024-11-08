@@ -51,7 +51,7 @@
 | src/ramanchada2/misc/types/pydantic\_base\_model.py                        |       12 |        2 |     83% |    13, 23 |
 | src/ramanchada2/misc/types/spectrum/\_\_init\_\_.py                        |        2 |        0 |    100% |           |
 | src/ramanchada2/misc/types/spectrum/applied\_processings.py                |       50 |        2 |     96% |    29, 65 |
-| src/ramanchada2/misc/types/spectrum/metadata.py                            |       51 |       10 |     80% |31-36, 46, 50, 58, 79 |
+| src/ramanchada2/misc/types/spectrum/metadata.py                            |       58 |       10 |     83% |31-36, 46, 50, 66, 87 |
 | src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        4 |        0 |    100% |           |
 | src/ramanchada2/misc/utils/argmin2d.py                                     |       64 |       21 |     67% |30-31, 48, 63-64, 73-88 |
 | src/ramanchada2/misc/utils/matchsets.py                                    |      143 |       77 |     46% |27, 38, 59-60, 118-119, 133-137, 141-145, 154-185, 230-304 |
@@ -132,7 +132,7 @@
 | src/ramanchada2/theoretical\_lines/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/ramanchada2/theoretical\_lines/model\_from\_lines.py                   |       57 |       57 |      0% |      1-84 |
 | tests/conftest.py                                                          |       29 |        1 |     97% |        35 |
-| tests/end\_to\_end/test\_from\_cache\_or\_calc.py                          |       32 |        0 |    100% |           |
+| tests/end\_to\_end/test\_from\_cache\_or\_calc.py                          |       33 |        0 |    100% |           |
 | tests/end\_to\_end/test\_generate\_and\_fit.py                             |       17 |        0 |    100% |           |
 | tests/hierarchy\_test.py                                                   |        7 |        0 |    100% |           |
 | tests/io/experimental/test\_input.py                                       |       10 |        1 |     90% |        10 |
@@ -151,10 +151,10 @@
 | tests/spectrum/filters/test\_resample\_spline.py                           |       16 |        0 |    100% |           |
 | tests/spectrum/test\_calibration.py                                        |       11 |        0 |    100% |           |
 | tests/spectrum/test\_filters.py                                            |       16 |        0 |    100% |           |
-| tests/spectrum/test\_metadata.py                                           |       31 |        0 |    100% |           |
+| tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4598** | **1401** | **70%** |           |
+|                                                                  **TOTAL** | **4613** | **1401** | **70%** |           |
 
 
 ## Setup coverage badge
