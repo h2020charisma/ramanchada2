@@ -73,6 +73,7 @@ CLASSIFIERS = [
 
 CONSOLE_SCRIPTS = [
         'spg2csv = ramanchada2.standalone.spg2csv:spg2csv',
+        'ssl_csv_converter = ramanchada2.standalone.ssl_csv_converter:ssl_csv_converter',
 ]
 
 

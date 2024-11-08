@@ -12,6 +12,7 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 from ramanchada2.misc.types import SpeMetadataModel
 
 from ..spectrum import Spectrum
+from .from_chada import from_chada
 
 
 @add_spectrum_constructor()
@@ -20,7 +21,7 @@ def from_local_file(
         in_file_name: str,
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                       'wdf', 'ngs', 'jdx', 'dx',
-                                      'txt', 'txtr', 'csv', 'prn', 'rruf', 'spe']] = None,
+                                      'txt', 'txtr', 'csv', 'prn', 'rruf', 'spe', 'cha']] = None,
         backend: Union[None, Literal['native', 'rc1_parser']] = None):
     """
     Read experimental spectrum from a local file.
@@ -44,7 +45,9 @@ def from_local_file(
             ft = os.path.splitext(in_file_name)[1][1:]
         else:
             ft = filetype
-        if ft in {'txt', 'txtr', 'prn', 'rruf'}:
+        if ft in {'cha'}:
+            return from_chada(filename=in_file_name)
+        elif ft in {'txt', 'txtr', 'prn', 'rruf'}:
             with open(in_file_name) as fp:
                 x, y, meta = read_txt(fp)
         elif ft in {'csv'}:
