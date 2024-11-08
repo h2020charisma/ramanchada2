@@ -90,6 +90,7 @@ def fit_peak_multimodel(spe, /, *,
                         should_break=[False],
                         kwargs_fit={},
                         vary_baseline: bool = False,
+                        bound_centers_to_group: bool = False
                         ) -> FitPeaksResult:
     """
     Fit a model based on candidates to the spectrum.
@@ -110,6 +111,9 @@ def fit_peak_multimodel(spe, /, *,
         vary_baseline: optional. Defaults to False.
             If False baseline will not be a free parameter and its amplitude
             will be taken from the peak candidates.
+        bound_centers_to_group: optional. Defaults to False.
+            Perform a bounded fit. Request all peak centers to be within the group
+            interval.
 
     Returns:
         FitPeaksResult: groups of fitted peaks
@@ -123,6 +127,10 @@ def fit_peak_multimodel(spe, /, *,
     fit_res = FitPeaksResult()
     for group in candidates.root:
         mod, par = build_multipeak_model_params(profile=profile, candidates=group)
+        if bound_centers_to_group:
+            for p in par:
+                if p.endswith('_center'):
+                    par[p].set(min=group.boundaries[0], max=group.boundaries[1])
         idx = (group.boundaries[0] < spe.x) & (spe.x < group.boundaries[1])
         x = spe.x[idx]
         y = spe.y[idx]
