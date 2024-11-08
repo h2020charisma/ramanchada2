@@ -51,3 +51,25 @@ def test_spectrum_metadata():
     s._flush()
     assert s.serialize() == {}
     assert len(s.root) == 0
+
+
+def test_metadata2():
+    assert (SpeMetadataModel.validate(['a0', 'b1', 'c2'])
+            == SpeMetadataModel.validate({'0': 'a0', '1': 'b1', '2': 'c2'}))
+    assert SpeMetadataModel.validate(None) == SpeMetadataModel.validate({})
+    assert SpeMetadataModel.validate('') == SpeMetadataModel.validate({})
+
+    meta0 = {'array1': np.array([1, 2, 3, 4, 5, 6]),
+             'array2': np.array([1, 2, 3, 4, 5, 6.]),
+             'list1': [1, 2, 3, '5', 'asdfasdf'],
+             'dict1': {'1': 123,
+                       '2': '234',
+                       '': 2,
+                       '3': None,
+                       '4': [1, 2, 3, 4, 99],
+                       '5': {'a': 'a', '5': 5, '[]': [], '{}': {}},
+                       },
+             b'asdf': 'asdf'
+             }
+    meta_ser = SpeMetadataModel(meta0).serialize()
+    assert SpeMetadataModel(meta0) == SpeMetadataModel(meta_ser)

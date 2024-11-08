@@ -61,5 +61,5 @@ def cleanMeta(meta):
             meta = meta.decode('utf-8')
             meta = cleanMeta(meta)
         except Exception:
-            meta = []
+            meta = {}
     return meta

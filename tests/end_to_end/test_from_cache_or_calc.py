@@ -47,6 +47,7 @@ def test_from_cache_or_calc():
         spe_fit_cache = rc2.spectrum.from_cache_or_calc(cachefile=cachefile, required_steps=steps)
 
         assert np.allclose(spe_fit.y, spe_fit_cache.y)  # make sure spe_fit_cache is coming from cache
+        assert spe_fit.meta == spe_fit_cache.meta
 
         assert FitPeaksResult.loads(spe_fit.result).to_dataframe_peaks().equals(
             FitPeaksResult.loads(spe_fit_cache.result).to_dataframe_peaks())
