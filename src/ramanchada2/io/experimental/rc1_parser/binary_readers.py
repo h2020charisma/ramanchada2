@@ -199,4 +199,4 @@ def read_ngs_meta(f):
         # add units to par names
         par = [name + f' [{unit}]' for name, unit in zip(par_names, par_units)]
         meta = dict(zip(par, par_values))
-        return meta
+    return meta

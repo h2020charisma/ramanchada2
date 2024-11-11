@@ -34,6 +34,8 @@ def parse(source_path, file_type=None):
         )
 
     x_data, y_data, metadata = reader(source_path)
+    if metadata is None:
+        metadata = {}
     # Get rid of bytes that are found in some of the formats
     metadata = cleanMeta(metadata)
     # Flatten metadata
