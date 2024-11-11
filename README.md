@@ -17,7 +17,7 @@
 | src/ramanchada2/io/experimental/neegala\_format.py                         |       12 |        1 |     92% |        12 |
 | src/ramanchada2/io/experimental/rc1\_parser/\_\_init\_\_.py                |        1 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/rc1\_parser/binary\_readers.py             |      143 |      136 |      5% |16-37, 41-116, 120-125, 130-134, 138-202 |
-| src/ramanchada2/io/experimental/rc1\_parser/io.py                          |       48 |       10 |     79% |20, 22, 26, 28, 32, 60-64 |
+| src/ramanchada2/io/experimental/rc1\_parser/io.py                          |       50 |       11 |     78% |20, 22, 26, 28, 32, 38, 62-66 |
 | src/ramanchada2/io/experimental/rc1\_parser/third\_party\_readers.py       |       35 |        1 |     97% |        29 |
 | src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |       37 |     70% |11-43, 84, 99-100, 110-115, 129, 131, 170-171 |
 | src/ramanchada2/io/experimental/read\_csv.py                               |       11 |        7 |     36% |     10-19 |
@@ -154,7 +154,7 @@
 | tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4616** | **1402** | **70%** |           |
+|                                                                  **TOTAL** | **4618** | **1403** | **70%** |           |
 
 
 ## Setup coverage badge
