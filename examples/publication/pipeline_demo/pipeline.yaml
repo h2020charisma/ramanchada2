@@ -1,0 +1,8 @@
+tasks:
+
+  - source: read_preprocess.py
+    product: 
+      nb: "products/read_preprocess.ipynb"
+      cha: "products/spectrum.cha"
+    params:
+      input_file: "{{file}}"
