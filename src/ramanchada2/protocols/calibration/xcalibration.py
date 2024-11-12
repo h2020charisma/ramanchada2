@@ -242,7 +242,8 @@ class XCalibrationComponent(CalibrationComponent):
         # print(cand.get_ampl_pos_fwhm())
 
         self.fit_res = spe_to_process.fit_peak_multimodel(
-            profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit
+            profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
+            bound_centers_to_group=True
         )
         peaks_df = self.fitres2df(spe_to_process)
         # self.fit_res.to_dataframe_peaks()
@@ -280,8 +281,10 @@ class LazerZeroingComponent(CalibrationComponent):
 
         cand = self.spe.find_peak_multipeak(**find_kw)
         self.fit_res = self.spe.fit_peak_multimodel(
-            profile=self.profile, candidates=cand, **fit_peaks_kw
+            profile=self.profile, candidates=cand, **fit_peaks_kw,
+            bound_centers_to_group=True
         )
+
         # df = self.fit_res.to_dataframe_peaks()
         df = self.fitres2df(self.spe)
         # highest peak first
