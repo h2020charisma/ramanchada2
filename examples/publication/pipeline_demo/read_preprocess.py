@@ -1,12 +1,11 @@
+import os.path
+import ramanchada2 as rc2
+
 # + tags=["parameters"]
 upstream = []
 product = None
 input_file = None
 # -
-
-import os.path
-import ramanchada2 as rc2
-
 
 file = os.path.abspath(input_file)
 
