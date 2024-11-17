@@ -14,8 +14,10 @@ from ramanchada2.misc.types.peak_candidates import (
 from ..spectrum import Spectrum
 
 logger = logging.getLogger(__name__)
-available_models = ['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
-available_models_type = Literal['Gaussian', 'Lorentzian', 'Moffat', 'Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
+available_models = ['Gaussian', 'Skewed Gaussian', 'Lorentzian', 'Moffat',
+                    'Voigt', 'Skewed Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
+available_models_type = Literal['Gaussian', 'Skewed Gaussian', 'Lorentzian', 'Moffat',
+                                'Voigt', 'Skewed Voigt', 'PseudoVoigt', 'Pearson4', 'Pearson7']
 
 
 @validate_call(config=dict(arbitrary_types_allowed=True))
@@ -41,6 +43,7 @@ def build_multipeak_model_params(profile: Union[available_models_type, List[avai
             fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
             fit_params[f'p{peak_i}_beta'].set(value=1, min=1e-4, max=10)
             fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+            fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
 
         elif profile == 'Voigt':
             fwhm_factor = 3.6013
@@ -48,6 +51,22 @@ def build_multipeak_model_params(profile: Union[available_models_type, List[avai
             fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
             fit_params[f'p{peak_i}_gamma'].set(value=peak.sigma/fwhm_factor, vary=True)
             fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+            fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
+
+        elif profile == 'Skewed Voigt':
+            fwhm_factor = 3.6013
+            height_factor = 1/peak.sigma/2
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_gamma'].set(value=peak.sigma/fwhm_factor, vary=True)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
+            fit_params[f'p{peak_i}_skew'].set(value=0)
+
+        elif profile == 'Skewed Gaussian':
+            fwhm_factor = lmfit_models['Gaussian'].fwhm_factor
+            height_factor = lmfit_models['Gaussian'].height_factor/peak.sigma
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
+            fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+            fit_params[f'p{peak_i}_gamma'].set(value=peak.sigma)
 
         elif profile == 'PseudoVoigt':
             fwhm_factor = lmfit_models[profile].fwhm_factor
@@ -57,8 +76,9 @@ def build_multipeak_model_params(profile: Union[available_models_type, List[avai
 
         elif profile == 'Pearson4':
             fwhm_factor = 1
+            height_factor = 1/peak.sigma/3
             # p{peak_i}_amplitude or p{peak_i}_height
-            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude)
+            fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
             fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma/fwhm_factor)
 
         elif profile == 'Pearson7':
@@ -69,13 +89,13 @@ def build_multipeak_model_params(profile: Union[available_models_type, List[avai
 
         else:
             fwhm_factor = lmfit_models[profile].fwhm_factor
-            height_factor = lmfit_models[profile].height_factor/peak.sigma/2
+            height_factor = lmfit_models[profile].height_factor/peak.sigma
             fit_params[f'p{peak_i}_amplitude'].set(value=peak.amplitude/height_factor)
             fit_params[f'p{peak_i}_sigma'].set(value=peak.sigma)
+            fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
+            fit_params[f'p{peak_i}_height'].set(min=peak.amplitude*.1, max=peak.amplitude*20)
 
         fit_params[f'p{peak_i}_amplitude'].set(min=0)
-        fit_params[f'p{peak_i}_fwhm'].set(min=peak.fwhm*.4, max=peak.fwhm*2)
-        fit_params[f'p{peak_i}_height'].set(min=peak.amplitude*.1, max=peak.amplitude*20)
         fit_params[f'p{peak_i}_center'].set(value=peak.position)
 
     return fit_model, fit_params
