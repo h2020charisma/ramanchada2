@@ -117,6 +117,7 @@ class SetupModule:
                 should_fit=fit_peaks,
                 match_method="cluster",
                 si_profile=self.si_profile,
+                interpolator_method="pchip"
             )
             assert len(self.calmodel.components) == 2
             # print(self.calmodel.components[0])
@@ -143,8 +144,8 @@ def fit_si(spe_sil):
         profile="Pearson4", candidates=cand, no_fit=False, vary_baseline=False
     )
     df = fitres.to_dataframe_peaks().sort_values(by="height", ascending=False)
-    difference = abs(df.iloc[0]["center"] - si_peak)
-    assert difference < 1e-2, f"Si peak found at {df.iloc[0]['center']}"
+    difference = abs(df.iloc[0]["position"] - si_peak)
+    assert difference < 1e-2, f"Si peak found at {df.iloc[0]['position']}"
 
 
 def test_laser_zeroing(setup_module):
@@ -152,9 +153,9 @@ def test_laser_zeroing(setup_module):
     spe_sil_calib = setup_module.calmodel.apply_calibration_x(
         setup_module.spe_sil, spe_units="cm-1"
     )
-    spe_test = (
-        spe_sil_calib  # .trim_axes(method='x-axis',boundaries=(si_peak-50,si_peak+50))
-    )
+    spe_test = spe_sil_calib.trim_axes(
+        method='x-axis',
+        boundaries=(si_peak-50, si_peak+50))
     find_kw = {"wlen": 200, "width": 1, "sharpening": None}
     find_kw["prominence"] = (
         spe_test.y_noise_MAD() * setup_module.calmodel.prominence_coeff
@@ -177,6 +178,7 @@ def test_laser_zeroing(setup_module):
         if _units == "cm-1":
             _units = r"$\mathrm{{[cm^{-1}]}}$"
         ax.set_xlabel(_units)
+        ax.grid()
         fitres.plot(ax=axpeak, label="fit res")
         spe_test.plot(ax=axpeak, label="Si laser zeroed", fmt=":")
         axpeak.set_xlim(si_peak - 50, si_peak + 50)
@@ -191,14 +193,16 @@ def test_laser_zeroing(setup_module):
         spe_test_necalibrated_only.plot(
             ax=axsifit, label="Si (Ne calibrated only)", fmt=":"
         )
-
+        axsifit.axvline(x=si_peak_nm, color='black', linestyle=':', linewidth=2,
+                        label="Si peak {:.3f} nm".format(si_peak_nm))
+        axsifit.grid()
         print(df.sort_values(by="amplitude", ascending=False).head())
         plt.grid()
         plt.tight_layout()
         plt.savefig("test_calmodel_{}.png".format("laser_zeroing"))
 
-    difference = abs(df.iloc[0]["center"] - si_peak)
-    assert difference < 1e-2, f"Si peak found at {df.iloc[0]['center']}"
+    difference = abs(df.iloc[0]["position"] - si_peak)
+    assert difference < 1e-2, f"Si peak found at {df.iloc[0]['position']}"
 
 
 def resample(spe, xmin, xmax, npoints):
@@ -211,9 +215,9 @@ def resample(spe, xmin, xmax, npoints):
     return y_values * scale
 
 
-def resample_spline(spe, xmin, xmax, npoints):
+def resample_spline(spe, xmin, xmax, npoints=1000):
     spe_resampled = spe.resample_spline_filter(
-        (xmin, xmax), xnew_bins=1000, spline="akima", cumulative=False
+        (xmin, xmax), xnew_bins=npoints, spline="pchip", cumulative=False
     )
     # spe_resampled = spe.resample_NUDFT_filter(x_range=(xmin,xmax), xnew_bins=npoints)
     return spe_resampled
@@ -229,17 +233,16 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
     _max = 2000
     spe_calibrated = []
     for index, spe in enumerate(spectra):
+        _spe = spe.trim_axes(method="x-axis", boundaries=(_min, _max))
         # check if x is monotonically increasing
-        assert np.all(np.diff(spe.x) > 0)
-        spe_norm = spe.normalize(strategy="unity_area")
-        # resample with spline
-        spe_norm = resample_spline(spe_norm, _min, _max, _max - _min)
-        # resample with histogram
-        # spe_y_original.append(resample(spe_norm,_min,_max,_max-_min))
+        # assert np.all(np.diff(spe.x) > 0)
+        assert not np.any(np.isnan(spe.x)), "Array contains NaN values!"
+        spe_norm = resample_spline(_spe.normalize(strategy="unity_area"), _min, _max, 1000)
         spe_y_original.append(spe_norm.y)
-        spe_c = setup_module.calmodel.apply_calibration_x(spe, spe_units="cm-1")
+        spe_c = setup_module.calmodel.apply_calibration_x(_spe, spe_units="cm-1")
+        assert not np.any(np.isnan(spe_c.x)), "Array contains NaN values!"
         spe_c_norm = spe_c.normalize(strategy="unity_area")
-        spe_c_norm = resample_spline(spe_c_norm, _min, _max, _max - _min)
+        spe_c_norm = resample_spline(spe_c_norm, _min, _max, 1000)
         spe_calibrated.append(spe_c_norm.y)
         _units = "cm^{-1}"
         _units = rf"$\mathrm{{[{_units}]}}$"
@@ -251,6 +254,7 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
                 ax=ax[index + 1], label=f"calibrated {index}", color=crl[index][1]
             )
             ax[index + 1].set_xlabel(_units)
+            ax[index + 1].grid()
     cos_sim_matrix_original = cosine_similarity(spe_y_original)
     cos_sim_matrix = cosine_similarity(spe_calibrated)
 

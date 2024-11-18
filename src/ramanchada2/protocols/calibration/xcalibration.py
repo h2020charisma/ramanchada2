@@ -80,15 +80,12 @@ class XCalibrationComponent(CalibrationComponent):
                     new_spe.x = self.model(new_spe.x)
                 if not np.all(np.diff(new_spe.x) > 0):
                     if self.nonmonotonic == "nan":
-                        new_spe.x = np.where(
-                            np.diff(new_spe.x, prepend=new_spe.x[0]) < 0,
-                            np.nan,
-                            new_spe.x,
-                        )
+                        new_spe.x = np.asarray(new_spe.x, dtype=float)
+                        is_nonmonotonic = np.diff(new_spe.x, prepend=new_spe.x[0]) < 0
+                        new_spe.x[is_nonmonotonic] = np.nan
                     elif self.nonmonotonic == "error":
-                        assert self.nonmonotonic
-                    else:
-                        pass
+                        raise ValueError("Non-monotonic values detected")
+
         if convert_back:
             return self.convert_units(new_spe, self.model_units, spe_units)
         else:
@@ -245,8 +242,7 @@ class XCalibrationComponent(CalibrationComponent):
             profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
             bound_centers_to_group=True
         )
-        peaks_df = self.fitres2df(spe_to_process)
-        # self.fit_res.to_dataframe_peaks()
+        peaks_df = self.fit_res.to_dataframe_peaks()
         if should_fit:
             pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
             self.spe_pos_dict = dict(zip(pos, amp))
@@ -285,8 +281,8 @@ class LazerZeroingComponent(CalibrationComponent):
             bound_centers_to_group=True
         )
 
-        # df = self.fit_res.to_dataframe_peaks()
-        df = self.fitres2df(self.spe)
+        df = self.fit_res.to_dataframe_peaks()
+        # df = self.fitres2df(self.spe)
         # highest peak first
         df = df.sort_values(by="height", ascending=False)
         # df = df.sort_values(by='amplitude', ascending=False)
