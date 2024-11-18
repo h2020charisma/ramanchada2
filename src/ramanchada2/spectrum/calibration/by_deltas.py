@@ -182,6 +182,25 @@ def xcal_fine(old_spe: Spectrum,
               poly_order: NonNegativeInt,
               find_peaks_kw={},
               ):
+    """
+    Iterative calibration with provided reference based on :func:`~ramanchada2.misc.utils.argmin2d.align`
+
+    Iteratively apply polynomial of `poly_order` degree to match
+    the found peaks to the reference locations. The pairs are created
+    using :func:`~ramanchada2.misc.utils.argmin2d.align` algorithm.
+
+    Args:
+        old_spe (Spectrum): internal use only
+        new_spe (Spectrum): internal use only
+        ref (Union[Dict[float, float], List[float]]): _description_
+        ref (Dict[float, float]):
+            If a dict is provided - wavenumber - amplitude pairs.
+            If a list is provided - wavenumbers only.
+        poly_order (NonNegativeInt): polynomial degree to be used usualy 2 or 3
+        should_fit (bool, optional): Whether the peaks should be fit or to
+            associate the positions with the maxima. Defaults to False.
+        find_peaks_kw (dict, optional): kwargs to be used in find_peaks. Defaults to {}.
+    """
 
     if isinstance(ref, dict):
         ref_pos = np.array(list(ref.keys()))
@@ -260,6 +279,24 @@ def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
                                new_spe: Spectrum, /, *,
                                ref: Dict[float, float],
                                low_pass_nfreqs: List[int] = [100, 500]):
+    """
+    Calibrate spectrum
+
+    The calibration is done in multiple steps. Both the spectrum and the reference
+    are passed through a low-pass filter to preserve only general structure of the
+    spectrum. `low_pass_nfreqs` defines the number of frequencies to be preserved in
+    each step. Once all steps with low-pass filter a final step without a low-pass
+    filter is performed. Each calibration step is performed using
+    :func:`~ramanchada2.spectrum.calibration.by_deltas.xcal_fine` algorithm.
+
+    Args:
+        old_spe (Spectrum): internal use only
+        new_spe (Spectrum): internal use only
+        ref (Dict[float, float]): wavenumber - amplitude pairs
+        low_pass_nfreqs (List[int], optional): The number of elements defines the
+            number of low-pass steps and their values define the amount of frequencies
+            to keep. Defaults to [100, 500].
+    """
     def semi_spe_from_dict(deltas: dict, xaxis):
         y = np.zeros_like(xaxis)
         for pos, ampl in deltas.items():

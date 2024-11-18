@@ -39,9 +39,24 @@ def align(x, y,
           **kw_args):
     """
     Iteratively finds best match between x and y and evaluates the x scaling parameters.
-    min((lambda(x, *p)-y)**2 | *p)
+
     Finds best parameters *p that minimise L2 distance between scaled x and original y
+    min((lambda(x, *p)-y)**2 | *p)
+
+    Args:
+        x (ArrayLike[float]): values that need to match the reference
+        y (ArrayLike[float]): reference values
+        p0 (Union[List[float], npt.NDArray], optional): initial values for the parameters `p`.
+            Defaults to [0, 1, 0, 0].
+        func (Callable, optional): Objective function to minimize. Returns list penalties
+            calculated for each `p`. The total objective function is sum of the elements.
+            Defaults to polynomial of 3-th degree.
+        max_iter (PositiveInt, optional): max number of iterations. Defaults to 1000.
+
+    Returns:
+        ArrayLike[float]: array of parameters `p` that minimize the objective funciton
     """
+
     if isinstance(p0, list):
         p = np.array(p0)
     else:
