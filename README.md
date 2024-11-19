@@ -107,7 +107,7 @@
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
 | src/ramanchada2/spectrum/creators/from\_stream.py                          |       75 |        6 |     92% |35-39, 46, 62 |
 | src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       12 |        0 |    100% |           |
-| src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        8 |     56% |     30-37 |
+| src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/hdr\_from\_multi\_exposure.py            |       17 |        9 |     47% |     24-32 |
 | src/ramanchada2/spectrum/filters/\_\_init\_\_.py                           |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/filters/add\_gaussian\_noise.py                   |       17 |        0 |    100% |           |
@@ -128,14 +128,14 @@
 | src/ramanchada2/spectrum/peaks/\_\_init\_\_.py                             |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       35 |     70% |84-86, 110-135, 139-161 |
 | src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     42-50 |
-| src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       95 |       15 |     84% |53-56, 65-68, 125-126, 131-133, 143-144 |
+| src/ramanchada2/spectrum/peaks/fit\_peaks.py                               |       95 |       13 |     86% |53-56, 65-68, 125-126, 131-133 |
 | src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       18 |        9 |     50% |     45-56 |
-| src/ramanchada2/spectrum/spectrum.py                                       |      169 |       36 |     79% |36, 56, 68, 74, 77-80, 86, 95-97, 161-167, 189, 193-197, 204, 208-212, 221-224, 242, 247-249 |
+| src/ramanchada2/spectrum/spectrum.py                                       |      180 |       40 |     78% |38, 71, 77, 80-83, 89, 98-100, 133, 169-175, 197, 201-207, 214, 218-224, 233-236, 254, 259-261 |
 | src/ramanchada2/theoretical\_lines/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
 | src/ramanchada2/theoretical\_lines/model\_from\_lines.py                   |       57 |       57 |      0% |      1-84 |
 | tests/conftest.py                                                          |       29 |        1 |     97% |        35 |
 | tests/end\_to\_end/test\_from\_cache\_or\_calc.py                          |       33 |        0 |    100% |           |
-| tests/end\_to\_end/test\_generate\_and\_fit.py                             |       17 |        0 |    100% |           |
+| tests/end\_to\_end/test\_generate\_and\_fit.py                             |       33 |        0 |    100% |           |
 | tests/hierarchy\_test.py                                                   |        7 |        0 |    100% |           |
 | tests/io/experimental/test\_input.py                                       |       10 |        1 |     90% |        10 |
 | tests/io/simulated/crystal/test\_discrete\_lines\_dat.py                   |       12 |        0 |    100% |           |
@@ -148,6 +148,7 @@
 | tests/protocols/test\_twinning.py                                          |       50 |        0 |    100% |           |
 | tests/spectrum/creators/test\_from\_local\_file.py                         |       14 |        0 |    100% |           |
 | tests/spectrum/creators/test\_from\_stream.py                              |       23 |        0 |    100% |           |
+| tests/spectrum/creators/test\_spectrum\_init.py                            |       20 |        0 |    100% |           |
 | tests/spectrum/filters/test\_dropna.py                                     |       11 |        0 |    100% |           |
 | tests/spectrum/filters/test\_resample\_NUDFT.py                            |       22 |        0 |    100% |           |
 | tests/spectrum/filters/test\_resample\_spline.py                           |       16 |        0 |    100% |           |
@@ -156,7 +157,7 @@
 | tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4636** | **1412** | **70%** |           |
+|                                                                  **TOTAL** | **4683** | **1406** | **70%** |           |
 
 
 ## Setup coverage badge
