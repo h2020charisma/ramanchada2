@@ -78,21 +78,18 @@ class XCalibrationComponent(CalibrationComponent):
 
                 elif isinstance(self.model, CustomCubicSplineInterpolator):
                     new_spe.x = self.model(new_spe.x)
-                    
-                if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):                    
+
+                if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):
                     if self.nonmonotonic == "error":
-                        raise ValueError("Non-monotonic values detected (mode={})",self.nonmonotonic)
+                        raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
                     elif self.nonmonotonic == "nan":
-                        # this is a patch, mostly intended at extrapolation 
+                        # this is a patch, mostly intended at extrapolation
                         new_spe.x = np.asarray(new_spe.x, dtype=float)
                         is_nonmonotonic = np.diff(new_spe.x, prepend=new_spe.x[0]) <= 0
                         new_spe.x[is_nonmonotonic] = np.nan
                         # we don't necessary ensure monotonicity by setting nans
                         if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):
-                            raise ValueError("Non-monotonic values detected (mode={})",self.nonmonotonic)
-
-                    # else ignore
-
+                            raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
         if convert_back:
             return self.convert_units(new_spe, self.model_units, spe_units)
         else:
