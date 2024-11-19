@@ -9,6 +9,22 @@ from ..spectrum.spectrum import Spectrum
 
 def neon_calibration(ne_cm_1: Spectrum,
                      wl: Literal[514, 532, 633, 785]):
+    """
+    Neon calibration
+
+    The approximate laser wavelengt `wl` is used to translate the neon spectrum to [nm].
+    Then using :func:`~ramanchada2.spectrum.calibration.by_deltas.xcal_argmin2d_iter_lowpass`
+    the approximate neon spectrum in [nm] is scaled to match the reference lines.
+    This way it is calibrated to absolute wavelengths. A Makima spline is calculated so that
+    it takes wavenumbers [1/cm] and return wavelength-calibrated x-axis in wavelengths [nm].
+
+    Args:
+        ne_cm_1 (Spectrum): neon spectrum used for the calibration. Should be in [1/cm]
+        wl (Literal[514, 532, 633, 785]): Approximate laser wavelength in [nm]
+
+    Returns:
+        Callable(ArrayLike[float]): callable (spline) that applies the calibration
+    """
     ref = rc2const.neon_wl_dict[wl]
     ne_nm = ne_cm_1.subtract_moving_minimum(200).shift_cm_1_to_abs_nm_filter(wl).normalize()  # type: ignore
 
@@ -24,11 +40,16 @@ def silicon_calibration(si_nm: Spectrum,
     """
     Calculate calibration function for lazer zeroing
 
+    Takes wavelength-calibrated Silicon spectrum in wavelengths [nm] and using
+    the Silicon peak position it calculates the real laser wavelength and a Makima
+    spline that translates the wavelengt-calibrated x-axis wavelength [nm] values to
+    lazer-zeroed Raman shift in wavenumbers [1/cm].
+
     Args:
         si_nm: Spectrum
-            Silicon spectrum
+            Wavelength-calibrated Silicon spectrum in wavelengths [nm]
         wl: Literal[514, 532, 633, 785]
-            Laser wavelength
+            Approximate Laser wavelength
         find_peaks_kw: dict, optional
             keywords for find_peak. Default values are
             `{'prominence': min(.8, si_nm.y_noise_MAD()*50), 'width': 2, 'wlen': 100}`
@@ -72,6 +93,24 @@ def neon_silicon_calibration(ne_cm_1: Spectrum,
                              sil_fit_kw={},
                              sil_find_kw={}
                              ):
+    """
+    Perform neon and silicon calibration together
+
+    Combines :func:`~ramanchada2.protocols.calib_ne_si_argmin2d_iter_gg.neon_calibration`
+    and :func:`~ramanchada2.protocols.calib_ne_si_argmin2d_iter_gg.silicon_calibration`.
+    Returned spline is calculated using the wavlength-calibrated x-axis values translated
+    to Raman shift wavenumbers using the calculated laser wavelength in `silicon_calibration`
+
+    Args:
+        ne_cm_1 (Spectrum): neon spectrum used for the calibration. Should be in [1/cm]
+        si_cm_1 (Spectrum): silicon spectrum to estimate laser wavelength. Should be in [1/cm].
+        wl (Literal[514, 532, 633, 785]): Approximate laser wavelength in [nm]
+        sil_fit_kw (dict, optional): kwargs sent as `find_peaks_kw` in `silicon_calibration`. Defaults to {}.
+        sil_find_kw (dict, optional): kwargs sent as `fit_peaks_kw` in `silicon_calibration`. Defaults to {}.
+
+    Returns:
+        Callable(ArrayLike[float]): callable (spline) that applies the calibration
+    """
     ne_spline = neon_calibration(ne_cm_1, wl)
     si_nm = si_cm_1.scale_xaxis_fun(ne_spline)  # type: ignore
     si_spline, wl = silicon_calibration(si_nm, wl,
