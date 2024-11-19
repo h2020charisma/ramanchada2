@@ -31,6 +31,8 @@ class Spectrum(Plottable):
                  metadata: Union[SpeMetadataModel, None] = None,
                  applied_processings: Union[SpeProcessingListModel, None] = None):
         super(Plottable, self).__init__()
+        self._xdata = None
+        self._ydata = None
         if x is not None:
             if isinstance(x, int):
                 self.x = np.arange(x) * 1.
@@ -51,14 +53,15 @@ class Spectrum(Plottable):
         self._cachefile = cachefile
         self._metadata = deepcopy(metadata or SpeMetadataModel(root={}))
         self._applied_processings = deepcopy(applied_processings or SpeProcessingListModel(root=[]))
-        if self.x is not None and self.y is not None:
-            if len(self.x) != len(self.y):
-                raise ValueError(f'x and y shold have same dimentions len(x)={len(self.x)} len(y)={len(self.y)}')
+        if self._xdata is not None and self._ydata is not None:
+            if len(self._xdata) != len(self._ydata):
+                raise ValueError(
+                    f'x and y shold have same dimentions len(x)={len(self._xdata)} len(y)={len(self._ydata)}')
 
     def __copy__(self):
         return Spectrum(
-            x=self.x,
-            y=self.y,
+            x=self._xdata,
+            y=self._ydata,
             cachefile=self._cachefile,
             metadata=self._metadata,
             applied_processings=self._applied_processings,
@@ -125,7 +128,10 @@ class Spectrum(Plottable):
             self.y = self.y[idx]
 
     @property
-    def x(self): return np.array(self._xdata)
+    def x(self):
+        if self._xdata is None:
+            raise ValueError('x of the spectrum is not set. self._xdata is None')
+        return np.array(self._xdata)
 
     @x.setter
     def x(self, val: npt.NDArray[np.float64]):
@@ -142,6 +148,8 @@ class Spectrum(Plottable):
 
     @property
     def y(self) -> npt.NDArray[np.float64]:
+        if self._ydata is None:
+            raise ValueError('y of the spectrum is not set. self._ydata is None')
         return np.array(self._ydata)
 
     @y.setter
