@@ -198,6 +198,8 @@ class Spectrum(Plottable):
 
     @x_err.setter
     def x_err(self, val: Union[npt.NDArray, None]):
+        if self._xdata is None:
+            raise ValueError('x of the spectrum is not set. self._xdata is None')
         if val is not None:
             if val.shape != self._xdata.shape:
                 raise ValueError(
@@ -213,6 +215,8 @@ class Spectrum(Plottable):
 
     @y_err.setter
     def y_err(self, val: Union[npt.NDArray, None]):
+        if self._ydata is None:
+            raise ValueError('y of the spectrum is not set. self._ydata is None')
         if val is not None:
             if val.shape != self._ydata.shape:
                 raise ValueError(
