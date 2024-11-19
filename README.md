@@ -53,12 +53,12 @@
 | src/ramanchada2/misc/types/spectrum/applied\_processings.py                |       50 |        2 |     96% |    29, 65 |
 | src/ramanchada2/misc/types/spectrum/metadata.py                            |       58 |       10 |     83% |31-36, 46, 50, 66, 87 |
 | src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        4 |        0 |    100% |           |
-| src/ramanchada2/misc/utils/argmin2d.py                                     |       64 |       21 |     67% |30-31, 48, 63-64, 73-88 |
+| src/ramanchada2/misc/utils/argmin2d.py                                     |       64 |       21 |     67% |30-31, 63, 78-79, 88-103 |
 | src/ramanchada2/misc/utils/matchsets.py                                    |      143 |       77 |     46% |27, 38, 59-60, 118-119, 133-137, 141-145, 154-185, 230-304 |
 | src/ramanchada2/misc/utils/ramanshift\_to\_wavelength.py                   |       17 |        2 |     88% |    17, 27 |
 | src/ramanchada2/misc/utils/svd.py                                          |       13 |       10 |     23% |8-13, 17-20 |
 | src/ramanchada2/protocols/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
-| src/ramanchada2/protocols/calib\_ne\_si\_argmin2d\_iter\_gg.py             |       38 |       38 |      0% |      1-83 |
+| src/ramanchada2/protocols/calib\_ne\_si\_argmin2d\_iter\_gg.py             |       38 |       38 |      0% |     1-122 |
 | src/ramanchada2/protocols/calibration/\_\_init\_\_.py                      |        0 |        0 |    100% |           |
 | src/ramanchada2/protocols/calibration/calibration\_component.py            |       72 |       20 |     72% |18, 46, 60, 68-72, 77, 82, 85-94, 97, 101-103, 106-107 |
 | src/ramanchada2/protocols/calibration/calibration\_model.py                |      116 |       37 |     68% |80-81, 88-89, 111-146, 163, 165, 198-202, 229, 231, 233, 244-245, 265, 267, 297-300, 303-305, 323, 325, 327 |
@@ -92,7 +92,7 @@
 | src/ramanchada2/spectrum/calc/\_\_init\_\_.py                              |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/calc/central\_moments.py                          |       22 |       15 |     32% |     14-28 |
 | src/ramanchada2/spectrum/calibration/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
-| src/ramanchada2/spectrum/calibration/by\_deltas.py                         |      179 |      143 |     20% |19-35, 38-47, 86-143, 155-173, 186-210, 234-254, 263-294 |
+| src/ramanchada2/spectrum/calibration/by\_deltas.py                         |      179 |      143 |     20% |19-35, 38-47, 86-143, 155-173, 205-229, 253-273, 300-331 |
 | src/ramanchada2/spectrum/calibration/change\_x\_units.py                   |       21 |        3 |     86% |26, 42, 59 |
 | src/ramanchada2/spectrum/calibration/normalize.py                          |       32 |        0 |    100% |           |
 | src/ramanchada2/spectrum/calibration/scale\_xaxis.py                       |       18 |        3 |     83% |     31-33 |
