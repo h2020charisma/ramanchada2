@@ -464,8 +464,8 @@ class CustomPChipInterpolator(PchipInterpolator):
 class CustomCubicSplineInterpolator(CubicSpline):
     def __init__(self, x, y,  **kwargs):
         super().__init__(x, y, **kwargs)
-        self.x = x  
-        self.y = y  
+        self.x = x
+        self.y = y
 
     @staticmethod
     def from_dict(spline_dict=None):
