@@ -79,7 +79,7 @@
 | src/ramanchada2/spectral\_components/spectral\_component.py                |        8 |        3 |     62% |     11-13 |
 | src/ramanchada2/spectral\_components/spectral\_component\_collection.py    |       49 |       34 |     31% |14-18, 21, 26-27, 30-31, 34, 38-39, 42-43, 46-65 |
 | src/ramanchada2/spectral\_components/spectral\_peak.py                     |       27 |       13 |     52% | 14, 17-30 |
-| src/ramanchada2/spectrum/\_\_init\_\_.py                                   |       17 |        0 |    100% |           |
+| src/ramanchada2/spectrum/\_\_init\_\_.py                                   |       18 |        0 |    100% |           |
 | src/ramanchada2/spectrum/arithmetics/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/arithmetics/add.py                                |       20 |        8 |     60% | 20, 22-29 |
 | src/ramanchada2/spectrum/arithmetics/mul.py                                |       20 |        7 |     65% |19-21, 23-25, 29 |
@@ -123,6 +123,8 @@
 | src/ramanchada2/spectrum/filters/sharpen\_lines.py                         |       49 |       33 |     33% |38-51, 73-88, 112-115 |
 | src/ramanchada2/spectrum/filters/smoothing.py                              |       30 |       16 |     47% |     42-57 |
 | src/ramanchada2/spectrum/filters/trim\_axes.py                             |       16 |        2 |     88% |     32-33 |
+| src/ramanchada2/spectrum/multimap/\_\_init\_\_.py                          |        1 |        0 |    100% |           |
+| src/ramanchada2/spectrum/multimap/spc.py                                   |       16 |        9 |     44% |     13-24 |
 | src/ramanchada2/spectrum/peaks/\_\_init\_\_.py                             |        3 |        0 |    100% |           |
 | src/ramanchada2/spectrum/peaks/find\_peaks.py                              |      118 |       35 |     70% |84-86, 110-135, 139-161 |
 | src/ramanchada2/spectrum/peaks/find\_peaks\_BayesianGaussianMixture.py     |       14 |        6 |     57% |     42-50 |
@@ -154,7 +156,7 @@
 | tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4618** | **1403** | **70%** |           |
+|                                                                  **TOTAL** | **4636** | **1412** | **70%** |           |
 
 
 ## Setup coverage badge
