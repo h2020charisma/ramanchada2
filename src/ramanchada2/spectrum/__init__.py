@@ -14,5 +14,6 @@ from .creators.from_test_spe import from_test_spe
 from .creators.from_theoretical_lines import from_theoretical_lines
 from .creators.hdr_from_multi_exposure import hdr_from_multi_exposure
 from .filters import *  # noqa
+from .multimap import *  # noqa
 from .peaks import *  # noqa
 from .spectrum import Spectrum  # noqa
