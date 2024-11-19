@@ -13,7 +13,7 @@ from .xcalibration import LazerZeroingComponent, XCalibrationComponent
 
 
 class CalibrationModel(ProcessingModel, Plottable):
-    nonmonotonic: Literal["ignore", "nan", "error"] = "nan"
+    nonmonotonic: Literal["ignore", "nan", "error", "drop"] = "nan"
 
     """
     A class representing a calibration model for Raman spectrum.

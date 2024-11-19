@@ -82,12 +82,14 @@ class XCalibrationComponent(CalibrationComponent):
                 if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):
                     if self.nonmonotonic == "error":
                         raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
-                    elif self.nonmonotonic == "nan":
+                    elif (self.nonmonotonic == "nan") or (self.nonmonotonic == "drop"):
                         # this is a patch, mostly intended at extrapolation
                         _newx = np.asarray(new_spe.x, dtype=float)
                         is_nonmonotonic = np.diff(_newx, prepend=_newx[0]) <= 0
                         _newx[is_nonmonotonic] = np.nan
                         new_spe.x = _newx
+                        if self.nonmonotonic == "drop":
+                            new_spe = new_spe.dropna()
                         # we don't necessary ensure monotonicity by setting nans
                         if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):
                             raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
