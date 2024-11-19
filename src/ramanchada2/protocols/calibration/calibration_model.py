@@ -210,7 +210,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             name=name,
             match_method=match_method,
             interpolator_method=interpolator_method,
-            extrapolate=True,
+            extrapolate=extrapolate,
         )
 
     def _derive_model_zero(
@@ -315,8 +315,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         should_fit=False,
         prominence_coeff=3,
         si_profile="Pearson4",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: Literal["cluster", "argmin2d", "assignment"] = "argmin2d",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
         extrapolate=True,
     ):
         if neon_wl is None:
