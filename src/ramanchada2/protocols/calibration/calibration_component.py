@@ -19,7 +19,7 @@ class ProcessingModel:
 
 
 class CalibrationComponent(Plottable):
-    nonmonotonic: Literal["ignore", "nan", "error"] = "nan"
+    nonmonotonic: Literal["ignore", "nan", "error"] = "error"
 
     def __init__(self, laser_wl, spe, spe_units, ref, ref_units, sample=None):
         super(CalibrationComponent, self).__init__()
