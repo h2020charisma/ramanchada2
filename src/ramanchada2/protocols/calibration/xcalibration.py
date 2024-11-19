@@ -176,7 +176,7 @@ class XCalibrationComponent(CalibrationComponent):
                     interp = CustomPChipInterpolator(x_spe, x_reference)
                 elif self.interpolator_method == "cubic_spline":
                     kwargs = {"bc_type": "clamped"}
-                    interp = CustomPChipInterpolator(x_spe, x_reference)
+                    interp = CustomCubicSplineInterpolator(x_spe, x_reference, **kwargs)
                 elif self.interpolator_method == "rbf":
                     kwargs = {
                         "kernel": "thin_plate_spline",
@@ -403,8 +403,8 @@ class CustomRBFInterpolator(RBFInterpolator):
 
 
 class CustomPChipInterpolator(PchipInterpolator):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y,  **kwargs):
+        super().__init__(x, y,  **kwargs)
         self.x = x  # Store x values
         self.y = y  # Store y values
 
@@ -459,8 +459,10 @@ class CustomPChipInterpolator(PchipInterpolator):
 
 
 class CustomCubicSplineInterpolator(CubicSpline):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, x, y,  **kwargs):
+        super().__init__(x, y, **kwargs)
+        self.x = x  
+        self.y = y  
 
     @staticmethod
     def from_dict(spline_dict=None):
