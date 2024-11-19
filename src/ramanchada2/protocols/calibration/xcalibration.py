@@ -27,7 +27,7 @@ class XCalibrationComponent(CalibrationComponent):
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
         match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
         extrapolate=True,
     ):
         super(XCalibrationComponent, self).__init__(
