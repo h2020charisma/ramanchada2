@@ -36,7 +36,7 @@ def test_gaussian_fit_parameters():
     ]
     spe = rc2.spectrum.from_theoretical_lines(shapes=['gaussian']*len(params),
                                               params=params, x=x)
-    spe = spe.add_gaussian_noise_drift(sigma=.5, coef=.2)
+    spe = spe.add_gaussian_noise_drift(sigma=.5, coef=.2, rng_seed=1111)
     spe = spe.subtract_moving_minimum(100)
     params_df = pd.DataFrame.from_records(params)
 
