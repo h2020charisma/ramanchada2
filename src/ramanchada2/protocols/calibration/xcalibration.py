@@ -81,7 +81,7 @@ class XCalibrationComponent(CalibrationComponent):
                 if not np.all(np.diff(new_spe.x) > 0):
                     if self.nonmonotonic == "nan":
                         new_spe.x = np.asarray(new_spe.x, dtype=float)
-                        is_nonmonotonic = np.diff(new_spe.x, prepend=new_spe.x[0]) < 0
+                        is_nonmonotonic = np.diff(new_spe.x, prepend=new_spe.x[0]) <= 0
                         new_spe.x[is_nonmonotonic] = np.nan
                     elif self.nonmonotonic == "error":
                         raise ValueError("Non-monotonic values detected")
