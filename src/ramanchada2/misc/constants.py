@@ -692,6 +692,9 @@ neon_wl_D3_3 = [
 
 neon_wl_D3_3_dict = dict(zip(neon_wl_D3_3, [1]*len(neon_wl_D3_3)))
 
+calcite_cwa = [155.21, 281.26, 711.95, 1085.91, 1435.22, 1748.91]
+calcite_cwa_dict = dict(zip(calcite_cwa, [1]*len(calcite_cwa)))
+
 NEON_WL: Final = {
     785: neon_wl_785_nist_dict,
     633: neon_wl_633_nist_dict,
