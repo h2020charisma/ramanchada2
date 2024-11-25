@@ -1,0 +1,3 @@
+Run with 
+
+> ploomber build

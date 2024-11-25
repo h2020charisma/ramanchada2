@@ -1,0 +1,19 @@
+tasks:
+
+  - source: read_preprocess.py
+    product: 
+      nb: "products/read_preprocess.ipynb"
+      cha: "products/spectrum.cha"
+    params:
+      input_file: "{{file}}"
+
+  - source: nexusformat.py
+    product: 
+      nb: "products/nexusformat.ipynb"
+      nxs: "products/spectrum.nxs"
+    params:
+      sample: "PST"
+      laser_wl: 532
+      instrument_make: "BWTek"
+      instrument_model: "iRamanPlus"
+      data_provider: "ICV"

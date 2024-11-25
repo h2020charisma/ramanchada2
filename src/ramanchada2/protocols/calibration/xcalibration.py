@@ -27,7 +27,7 @@ class XCalibrationComponent(CalibrationComponent):
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
         match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
         extrapolate=True,
     ):
         super(XCalibrationComponent, self).__init__(
@@ -58,7 +58,7 @@ class XCalibrationComponent(CalibrationComponent):
             )
         )
         new_spe = self.convert_units(old_spe, spe_units, self.model_units)
-        logger.debug("process", self)
+
         if self.model is None:
             return new_spe
         elif self.enabled:
@@ -78,17 +78,21 @@ class XCalibrationComponent(CalibrationComponent):
 
                 elif isinstance(self.model, CustomCubicSplineInterpolator):
                     new_spe.x = self.model(new_spe.x)
-                if not np.all(np.diff(new_spe.x) > 0):
-                    if self.nonmonotonic == "nan":
-                        new_spe.x = np.where(
-                            np.diff(new_spe.x, prepend=new_spe.x[0]) < 0,
-                            np.nan,
-                            new_spe.x,
-                        )
-                    elif self.nonmonotonic == "error":
-                        assert self.nonmonotonic
-                    else:
-                        pass
+
+                if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):
+                    if self.nonmonotonic == "error":
+                        raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
+                    elif (self.nonmonotonic == "nan") or (self.nonmonotonic == "drop"):
+                        # this is a patch, mostly intended at extrapolation
+                        _newx = np.asarray(new_spe.x, dtype=float)
+                        is_nonmonotonic = np.diff(_newx, prepend=_newx[0]) <= 0
+                        _newx[is_nonmonotonic] = np.nan
+                        new_spe.x = _newx
+                        if self.nonmonotonic == "drop":
+                            new_spe = new_spe.dropna()
+                        # we don't necessary ensure monotonicity by setting nans
+                        if np.any(np.diff(new_spe.x[np.isfinite(new_spe.x)]) <= 0):
+                            raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
         if convert_back:
             return self.convert_units(new_spe, self.model_units, spe_units)
         else:
@@ -160,13 +164,12 @@ class XCalibrationComponent(CalibrationComponent):
         if len(x_reference) == 1:
             _offset = x_reference[0] - x_spe[0]
             logger.debug(
-                "ref",
-                x_reference[0],
-                "sample",
-                x_spe[0],
-                "offset",
-                _offset,
-                self.ref_units,
+                "ref {} sample {} offset {} {}".format(
+                    x_reference[0],
+                    x_spe[0],
+                    _offset,
+                    self.ref_units
+                )
             )
             self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
@@ -176,7 +179,7 @@ class XCalibrationComponent(CalibrationComponent):
                     interp = CustomPChipInterpolator(x_spe, x_reference)
                 elif self.interpolator_method == "cubic_spline":
                     kwargs = {"bc_type": "clamped"}
-                    interp = CustomPChipInterpolator(x_spe, x_reference)
+                    interp = CustomCubicSplineInterpolator(x_spe, x_reference, **kwargs)
                 elif self.interpolator_method == "rbf":
                     kwargs = {
                         "kernel": "thin_plate_spline",
@@ -230,7 +233,7 @@ class XCalibrationComponent(CalibrationComponent):
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
-        logger.debug("max x", max(spe_to_process.x), self.ref_units)
+        logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
 
         peaks_df = None
         self.fit_res = None
@@ -243,10 +246,10 @@ class XCalibrationComponent(CalibrationComponent):
         # print(cand.get_ampl_pos_fwhm())
 
         self.fit_res = spe_to_process.fit_peak_multimodel(
-            profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit
+            profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
+            bound_centers_to_group=True
         )
-        peaks_df = self.fitres2df(spe_to_process)
-        # self.fit_res.to_dataframe_peaks()
+        peaks_df = self.fit_res.to_dataframe_peaks()
         if should_fit:
             pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
             self.spe_pos_dict = dict(zip(pos, amp))
@@ -280,12 +283,13 @@ class LazerZeroingComponent(CalibrationComponent):
             fit_peaks_kw = {}
 
         cand = self.spe.find_peak_multipeak(**find_kw)
-        logger.debug(self.name, cand)
         self.fit_res = self.spe.fit_peak_multimodel(
-            profile=self.profile, candidates=cand, **fit_peaks_kw
+            profile=self.profile, candidates=cand, **fit_peaks_kw,
+            bound_centers_to_group=True
         )
-        # df = self.fit_res.to_dataframe_peaks()
-        df = self.fitres2df(self.spe)
+
+        df = self.fit_res.to_dataframe_peaks()
+        # df = self.fitres2df(self.spe)
         # highest peak first
         df = df.sort_values(by="height", ascending=False)
         # df = df.sort_values(by='amplitude', ascending=False)
@@ -308,7 +312,7 @@ class LazerZeroingComponent(CalibrationComponent):
                     zero_peak_nm, zero_peak_cm1, self.profile
                 ),
             )
-            logger.info(self.name, f"peak {self.profile} at {zero_peak_nm} nm")
+            logger.info(f"{self.name} peak {self.profile} at {zero_peak_nm} nm")
         # laser_wl should be calculated  based on the peak position and set instead of the nominal
 
     def zero_nm_to_shift_cm_1(self, wl, zero_pos_nm, zero_ref_cm_1=520.45):
@@ -324,7 +328,7 @@ class LazerZeroingComponent(CalibrationComponent):
         convert_back=False,
     ):
         wl_si_ref = list(self.ref.keys())[0]
-        logger.debug(self.name, "process", self.model, wl_si_ref)
+        logger.debug(f"{self.name}, process, {self.model}, {wl_si_ref}")
         new_x = self.zero_nm_to_shift_cm_1(old_spe.x, self.model, wl_si_ref)
         new_spe = Spectrum(x=new_x, y=old_spe.y, metadata=old_spe.meta)
         # new_spe = old_spe.lazer_zero_nm_to_shift_cm_1(self.model, wl_si_ref)
@@ -402,8 +406,8 @@ class CustomRBFInterpolator(RBFInterpolator):
 
 
 class CustomPChipInterpolator(PchipInterpolator):
-    def __init__(self, x, y):
-        super().__init__(x, y)
+    def __init__(self, x, y,  **kwargs):
+        super().__init__(x, y,  **kwargs)
         self.x = x  # Store x values
         self.y = y  # Store y values
 
@@ -458,8 +462,10 @@ class CustomPChipInterpolator(PchipInterpolator):
 
 
 class CustomCubicSplineInterpolator(CubicSpline):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, x, y,  **kwargs):
+        super().__init__(x, y, **kwargs)
+        self.x = x
+        self.y = y
 
     @staticmethod
     def from_dict(spline_dict=None):

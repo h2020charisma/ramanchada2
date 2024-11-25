@@ -7,5 +7,7 @@ dependencies:
   - pip
   - pip:
     - jupyter
+    - ploomber
+    - pytest
     - -e .
 
