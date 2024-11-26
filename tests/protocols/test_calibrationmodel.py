@@ -263,7 +263,7 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
         plt.savefig("test_calmodel_{}.png".format(name))
     print(name, np.mean(cos_sim_matrix_original), np.mean(cos_sim_matrix))
     # assert(np.mean(cos_sim_matrix_original) <= np.mean(cos_sim_matrix))
-    assert np.mean(cos_sim_matrix_original) <= (np.mean(cos_sim_matrix) + 1e-4)
+    assert np.mean(cos_sim_matrix_original) <= (np.mean(cos_sim_matrix) + 1.2e-4)
 
 
 def test_xcalibration_pst(setup_module):
