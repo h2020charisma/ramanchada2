@@ -77,7 +77,7 @@ def silicon_calibration(si_nm: Spectrum,
     fitres = si_nm.fit_peak_multimodel(candidates=peaks, **fp_kw)  # type: ignore
     si_wl = fitres.centers
     if len(si_wl) < 1:
-        raise ValueError('No peaks were found. Please refind find_peaks parameters.')
+        raise ValueError('No peaks were found. Please refine find_peaks parameters.')
     laser_wl = 1/(520.45/1e7 + 1/si_wl)
 
     laser_wl = laser_wl[np.argmin(np.abs(laser_wl-wl))]
@@ -113,10 +113,12 @@ def neon_silicon_calibration(ne_cm_1: Spectrum,
     """
     ne_spline = neon_calibration(ne_cm_1, wl)
     si_nm = si_cm_1.scale_xaxis_fun(ne_spline)  # type: ignore
+    si_nm = si_nm.dropna()
     si_spline, wl = silicon_calibration(si_nm, wl,
                                         find_peaks_kw=sil_find_kw,
                                         fit_peaks_kw=sil_fit_kw)
     ne_nm = ne_cm_1.scale_xaxis_fun(ne_spline)  # type: ignore
     ne_cal_cm_1 = ne_nm.abs_nm_to_shift_cm_1_filter(wl)
+    ne_cal_cm_1 = ne_cal_cm_1.dropna()
     spline = interpolate.Akima1DInterpolator(ne_cm_1.x, ne_cal_cm_1.x, method='makima')
     return spline
