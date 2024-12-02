@@ -4,8 +4,7 @@ import lmfit
 import numpy as np
 import numpy.typing as npt
 from pydantic import BaseModel, NonNegativeInt, validate_call
-from scipy import interpolate
-from scipy import fft, signal
+from scipy import fft, interpolate, signal
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
@@ -180,6 +179,7 @@ def xcal_fine(old_spe: Spectrum,
               ref: Union[Dict[float, float], List[float]],
               should_fit=False,
               poly_order: NonNegativeInt,
+              max_iter: NonNegativeInt = 1000,
               find_peaks_kw={},
               ):
     """
@@ -197,6 +197,8 @@ def xcal_fine(old_spe: Spectrum,
             If a dict is provided - wavenumber - amplitude pairs.
             If a list is provided - wavenumbers only.
         poly_order (NonNegativeInt): polynomial degree to be used usualy 2 or 3
+        max_iter (NonNegativeInt): max number of iterations for the iterative
+            polynomial alignment
         should_fit (bool, optional): Whether the peaks should be fit or to
             associate the positions with the maxima. Defaults to False.
         find_peaks_kw (dict, optional): kwargs to be used in find_peaks. Defaults to {}.
@@ -223,7 +225,7 @@ def xcal_fine(old_spe: Spectrum,
             return [par*(x/1000)**power for power, par in enumerate(a)]
 
         p0 = np.resize([0, 1000, 0], poly_order + 1)
-        p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func)
+        p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func, max_iter=max_iter)
         spe_cal = old_spe.scale_xaxis_fun(  # type: ignore
             (lambda x, *args: np.sum(cal_func(x, *args), axis=0)), args=p)
     new_spe.x = spe_cal.x
