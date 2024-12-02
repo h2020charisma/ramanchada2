@@ -273,6 +273,25 @@ def xcal_fine_RBF(old_spe: Spectrum,
         new_spe.x = interp(old_spe.x.reshape(-1, 1))
 
 
+def semi_spe_from_dict(deltas: dict, xaxis):
+    y = np.zeros_like(xaxis)
+    for pos, ampl in deltas.items():
+        idx = np.argmin(np.abs(xaxis - pos))
+        y[idx] += ampl
+    # remove overflows and underflows
+    y[0] = 0
+    y[-1] = 0
+    return y
+
+
+def low_pass(x, nbin, window=signal.windows.blackmanharris):
+    h = window(nbin*2-1)[nbin-1:]
+    X = fft.rfft(x)
+    X[:nbin] *= h  # apply the window
+    X[nbin:] = 0  # clear upper frequencies
+    return fft.irfft(X, n=len(x))
+
+
 @add_spectrum_filter
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
@@ -297,22 +316,6 @@ def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
             number of low-pass steps and their values define the amount of frequencies
             to keep. Defaults to [100, 500].
     """
-    def semi_spe_from_dict(deltas: dict, xaxis):
-        y = np.zeros_like(xaxis)
-        for pos, ampl in deltas.items():
-            idx = np.argmin(np.abs(xaxis - pos))
-            y[idx] += ampl
-        # remove overflows and underflows
-        y[0] = 0
-        y[-1] = 0
-        return y
-
-    def low_pass(x, nbin, window=signal.windows.blackmanharris):
-        h = window(nbin*2-1)[nbin-1:]
-        X = fft.rfft(x)
-        X[:nbin] *= h  # apply the window
-        X[nbin:] = 0  # clear upper frequencies
-        return fft.irfft(X, n=len(x))
 
     spe = old_spe.__copy__()
     for low_pass_i in low_pass_nfreqs:
@@ -320,12 +323,19 @@ def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
         y_ref_semi_spe = semi_spe_from_dict(ref, spe.x)
         y_ref_semi_spe = low_pass(y_ref_semi_spe, low_pass_i)
 
-        r = xaxis[signal.find_peaks(y_ref_semi_spe)[0]]
+        r = xaxis[signal.find_peaks(y_ref_semi_spe,
+                                    prominence=np.max(y_ref_semi_spe)*.001
+                                    )[0]]
 
         spe_low = spe.__copy__()
         spe_low.y = low_pass(spe.y, low_pass_i)
 
-        spe_cal = spe_low.xcal_fine(ref=r, should_fit=False, poly_order=2)
+        spe_cal = spe_low.xcal_fine(ref=r, should_fit=False, poly_order=2,
+                                    # disables wlen.
+                                    # low passed peaks are much broader and
+                                    # will be affected by `wlen` so disable.
+                                    find_peaks_kw={'wlen': int(xaxis[-1]-xaxis[0])},
+                                    )
         spe.x = spe_cal.x
     spe_cal_fin = spe.xcal_fine(ref=ref, should_fit=False, poly_order=2)
     new_spe.x = spe_cal_fin.x
