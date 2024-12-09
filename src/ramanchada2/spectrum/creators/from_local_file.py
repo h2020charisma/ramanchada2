@@ -1,7 +1,7 @@
 """Create spectrum from local files."""
 
 import os
-from typing import Literal, Union
+from typing import Literal, Union, Dict
 
 import spc_io
 from pydantic import validate_call
@@ -22,7 +22,8 @@ def from_local_file(
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                       'wdf', 'ngs', 'jdx', 'dx',
                                       'txt', 'txtr', 'csv', 'prn', 'rruf', 'spe', 'cha']] = None,
-        backend: Union[None, Literal['native', 'rc1_parser']] = None):
+        backend: Union[None, Literal['native', 'rc1_parser']] = None,
+        custom_meta: Dict = {}):
     """
     Read experimental spectrum from a local file.
 
@@ -35,6 +36,8 @@ def from_local_file(
             `None` used to determine by extension of the file.
         backend:
             `native`, `rc1_parser` or `None`. `None` means both.
+        custom_meta: Dict
+            Add custom metadata fields in the created spectrum
 
     Raises:
         ValueError:
@@ -63,10 +66,10 @@ def from_local_file(
                 meta = spc.log_book.text
         elif ft in {'spe'}:
             x, y, meta = read_spe(in_file_name)
-            spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
         else:
             raise ValueError(f'filetype {ft} not supported')
         meta["Original file"] = os.path.basename(in_file_name)
+        meta.update(custom_meta)
         spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
         return spe
 
