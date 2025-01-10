@@ -8,7 +8,9 @@ from ..spectrum.spectrum import Spectrum
 
 
 def neon_calibration(ne_cm_1: Spectrum,
-                     wl: Literal[514, 532, 633, 785]):
+                     wl: Literal[514, 532, 633, 785],
+                     neon_rough_kw={},
+                     neon_fine_kw={}):
     """
     Neon calibration
 
@@ -27,8 +29,10 @@ def neon_calibration(ne_cm_1: Spectrum,
     """
     ref = rc2const.neon_wl_dict[wl]
     ne_nm = ne_cm_1.subtract_moving_minimum(200).shift_cm_1_to_abs_nm_filter(wl).normalize()  # type: ignore
+    ne_nm.x = np.linspace(0, 1, len(ne_nm.x))
 
-    ne_cal = ne_nm.xcal_argmin2d_iter_lowpass(ref=ref)
+    ne_rcal = ne_nm.xcal_rough_poly2_all_pairs(ref=ref, **neon_rough_kw)
+    ne_cal = ne_rcal.xcal_fine(ref=ref, **neon_fine_kw)
     spline = interpolate.Akima1DInterpolator(ne_cm_1.x, ne_cal.x, method='makima')
     return spline
 

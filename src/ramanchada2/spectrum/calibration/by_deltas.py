@@ -3,13 +3,14 @@ from typing import Dict, List, Literal, Optional, Union
 import lmfit
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel, NonNegativeInt, validate_call
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, validate_call
 from scipy import fft, interpolate, signal
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
 
 from ...misc import utils as rc2utils
+from ...misc.utils.rough_poly2_calibration import rough_poly2_calibration
 from ..spectrum import Spectrum
 
 
@@ -178,7 +179,7 @@ def xcal_fine(old_spe: Spectrum,
               new_spe: Spectrum, /, *,
               ref: Union[Dict[float, float], List[float]],
               should_fit=False,
-              poly_order: NonNegativeInt,
+              poly_order: NonNegativeInt = 2,
               max_iter: NonNegativeInt = 1000,
               find_peaks_kw={},
               ):
@@ -341,3 +342,21 @@ def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
         spe.x = spe_cal.x
     spe_cal_fin = spe.xcal_fine(ref=ref, should_fit=False, poly_order=2)
     new_spe.x = spe_cal_fin.x
+
+
+@add_spectrum_filter
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def xcal_rough_poly2_all_pairs(old_spe: Spectrum,
+                               new_spe: Spectrum, /, *,
+                               ref: Dict[float, float],
+                               prominence: Optional[float] = None,
+                               npeaks: PositiveInt = 10,
+                               **kwargs,
+                               ):
+    if prominence is None:
+        prominence = old_spe.y_noise_MAD()*5
+    cand = old_spe.find_peak_multipeak(prominence=prominence)  # type: ignore
+    spe_dict = cand.get_pos_ampl_dict()
+
+    a, b, c = rough_poly2_calibration(spe_dict, ref, npeaks=npeaks, **kwargs)
+    new_spe.x = a*old_spe.x**2 + b*old_spe.x + c

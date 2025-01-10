@@ -14,7 +14,7 @@ def argmin2d(A, median_limit: Optional[float] = None):
     x_idx = np.unique(xmin_idx[xmin_idx[ymin_idx[xmin_idx]] == xmin_idx])
     y_idx = np.unique(ymin_idx[ymin_idx[xmin_idx[ymin_idx]] == ymin_idx])
     dist = A[y_idx, x_idx]
-    filt = dist < np.median(dist) * median_limit
+    filt = dist <= np.median(dist) * median_limit
     x_idx = x_idx[filt]
     y_idx = y_idx[filt]
     matches = np.stack([y_idx, x_idx]).T
