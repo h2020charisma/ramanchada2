@@ -40,7 +40,8 @@ def read_txt(data_in: TextIO) -> Tuple[NDArray, NDArray, Dict]:
         data, meta = lightnovo_tsv(lines)
         positions = data['Position'].to_numpy()
         intensities = data['Amplitude'].to_numpy()
-        meta['@signal'] = 'DarkSubtracted'
+        meta['@axes'] = ['']
+        meta['@signal'] = ''
     else:  # assume two column spectrum
         meta = dict()
         if lines[0].startswith('#'):
