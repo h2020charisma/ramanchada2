@@ -14,6 +14,7 @@
 | src/ramanchada2/io/\_\_init\_\_.py                                         |        0 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/\_\_init\_\_.py                            |        3 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/bw\_format.py                              |       16 |        0 |    100% |           |
+| src/ramanchada2/io/experimental/lightnovo\_tsv.py                          |       12 |        1 |     92% |        14 |
 | src/ramanchada2/io/experimental/neegala\_format.py                         |       12 |        1 |     92% |        12 |
 | src/ramanchada2/io/experimental/rc1\_parser/\_\_init\_\_.py                |        1 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/rc1\_parser/binary\_readers.py             |      143 |      136 |      5% |16-37, 41-116, 120-125, 130-134, 138-202 |
@@ -22,7 +23,7 @@
 | src/ramanchada2/io/experimental/rc1\_parser/txt\_format\_readers.py        |      122 |       37 |     70% |11-43, 84, 99-100, 110-115, 129, 131, 170-171 |
 | src/ramanchada2/io/experimental/read\_csv.py                               |       11 |        7 |     36% |     10-19 |
 | src/ramanchada2/io/experimental/read\_spe.py                               |       11 |        1 |     91% |         8 |
-| src/ramanchada2/io/experimental/read\_txt.py                               |       36 |        0 |    100% |           |
+| src/ramanchada2/io/experimental/read\_txt.py                               |       43 |        0 |    100% |           |
 | src/ramanchada2/io/experimental/rruf\_format.py                            |       16 |        0 |    100% |           |
 | src/ramanchada2/io/output/\_\_init\_\_.py                                  |        0 |        0 |    100% |           |
 | src/ramanchada2/io/output/write\_csv.py                                    |        3 |        1 |     67% |         5 |
@@ -102,10 +103,10 @@
 | src/ramanchada2/spectrum/creators/from\_cache\_or\_calc.py                 |       42 |        2 |     95% |    43, 62 |
 | src/ramanchada2/spectrum/creators/from\_chada.py                           |        9 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_delta\_lines.py                    |       28 |        2 |     93% |    45, 47 |
-| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       54 |        6 |     89% |50, 52, 57-58, 63, 84 |
+| src/ramanchada2/spectrum/creators/from\_local\_file.py                     |       54 |        6 |     89% |51, 53, 58-59, 64, 85 |
 | src/ramanchada2/spectrum/creators/from\_simulation.py                      |       25 |       14 |     44% |     45-61 |
 | src/ramanchada2/spectrum/creators/from\_spectral\_component\_collection.py |       10 |        3 |     70% |     25-27 |
-| src/ramanchada2/spectrum/creators/from\_stream.py                          |       75 |        6 |     92% |35-39, 46, 62 |
+| src/ramanchada2/spectrum/creators/from\_stream.py                          |       75 |        6 |     92% |36-40, 47, 63 |
 | src/ramanchada2/spectrum/creators/from\_test\_spe.py                       |       12 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/from\_theoretical\_lines.py              |       18 |        0 |    100% |           |
 | src/ramanchada2/spectrum/creators/hdr\_from\_multi\_exposure.py            |       17 |        9 |     47% |     35-43 |
@@ -157,7 +158,7 @@
 | tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4694** | **1423** | **70%** |           |
+|                                                                  **TOTAL** | **4713** | **1424** | **70%** |           |
 
 
 ## Setup coverage badge
