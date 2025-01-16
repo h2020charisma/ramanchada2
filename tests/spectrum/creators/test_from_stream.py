@@ -11,7 +11,7 @@ def test_from_stream(experimental_filename):
         print('skip', ft)
         return
     print(ft)
-    if ft not in {'spe'}:
+    if ft not in {'spe', 'tsv'}:
         with open(experimental_filename, 'rb') as fp:
             spe = rc2.spectrum.from_stream(fp, filetype=ft, backend='rc1_parser')
             assert len(spe.x) > 10

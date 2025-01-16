@@ -5,6 +5,7 @@ from numpy.typing import NDArray
 
 from .bw_format import bw_format
 from .neegala_format import neegala_format
+from .lightnovo_tsv import lightnovo_tsv
 from .rruf_format import rruf_format
 
 """ There are 4 types of TXT data files that can be distinguished by their first line:
@@ -35,6 +36,11 @@ def read_txt(data_in: TextIO) -> Tuple[NDArray, NDArray, Dict]:
         intensities = data['Processed_Data'].to_numpy()
         meta['@axes'] = ['Raman_Shift']
         meta['@signal'] = 'Processed_Data'
+    elif lines[0].startswith('DeviceSN\t'):
+        data, meta = lightnovo_tsv(lines)
+        positions = data['Position'].to_numpy()
+        intensities = data['Amplitude'].to_numpy()
+        meta['@signal'] = 'DarkSubtracted'
     else:  # assume two column spectrum
         meta = dict()
         if lines[0].startswith('#'):
