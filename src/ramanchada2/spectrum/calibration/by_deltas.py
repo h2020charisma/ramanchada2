@@ -3,14 +3,14 @@ from typing import Dict, List, Literal, Optional, Union
 import lmfit
 import numpy as np
 import numpy.typing as npt
-from pydantic import BaseModel, NonNegativeInt, validate_call
-from scipy import interpolate
-from scipy import fft, signal
+from pydantic import BaseModel, NonNegativeInt, PositiveInt, validate_call
+from scipy import fft, interpolate, signal
 
 from ramanchada2.misc.spectrum_deco import (add_spectrum_filter,
                                             add_spectrum_method)
 
 from ...misc import utils as rc2utils
+from ...misc.utils.rough_poly2_calibration import rough_poly2_calibration
 from ..spectrum import Spectrum
 
 
@@ -179,7 +179,8 @@ def xcal_fine(old_spe: Spectrum,
               new_spe: Spectrum, /, *,
               ref: Union[Dict[float, float], List[float]],
               should_fit=False,
-              poly_order: NonNegativeInt,
+              poly_order: NonNegativeInt = 2,
+              max_iter: NonNegativeInt = 1000,
               find_peaks_kw={},
               ):
     """
@@ -197,6 +198,8 @@ def xcal_fine(old_spe: Spectrum,
             If a dict is provided - wavenumber - amplitude pairs.
             If a list is provided - wavenumbers only.
         poly_order (NonNegativeInt): polynomial degree to be used usualy 2 or 3
+        max_iter (NonNegativeInt): max number of iterations for the iterative
+            polynomial alignment
         should_fit (bool, optional): Whether the peaks should be fit or to
             associate the positions with the maxima. Defaults to False.
         find_peaks_kw (dict, optional): kwargs to be used in find_peaks. Defaults to {}.
@@ -223,7 +226,7 @@ def xcal_fine(old_spe: Spectrum,
             return [par*(x/1000)**power for power, par in enumerate(a)]
 
         p0 = np.resize([0, 1000, 0], poly_order + 1)
-        p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func)
+        p = rc2utils.align(spe_cent, ref_pos, p0=p0, func=cal_func, max_iter=max_iter)
         spe_cal = old_spe.scale_xaxis_fun(  # type: ignore
             (lambda x, *args: np.sum(cal_func(x, *args), axis=0)), args=p)
     new_spe.x = spe_cal.x
@@ -273,6 +276,25 @@ def xcal_fine_RBF(old_spe: Spectrum,
         new_spe.x = interp(old_spe.x.reshape(-1, 1))
 
 
+def semi_spe_from_dict(deltas: dict, xaxis):
+    y = np.zeros_like(xaxis)
+    for pos, ampl in deltas.items():
+        idx = np.argmin(np.abs(xaxis - pos))
+        y[idx] += ampl
+    # remove overflows and underflows
+    y[0] = 0
+    y[-1] = 0
+    return y
+
+
+def low_pass(x, nbin, window=signal.windows.blackmanharris):
+    h = window(nbin*2-1)[nbin-1:]
+    X = fft.rfft(x)
+    X[:nbin] *= h  # apply the window
+    X[nbin:] = 0  # clear upper frequencies
+    return fft.irfft(X, n=len(x))
+
+
 @add_spectrum_filter
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
@@ -297,22 +319,6 @@ def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
             number of low-pass steps and their values define the amount of frequencies
             to keep. Defaults to [100, 500].
     """
-    def semi_spe_from_dict(deltas: dict, xaxis):
-        y = np.zeros_like(xaxis)
-        for pos, ampl in deltas.items():
-            idx = np.argmin(np.abs(xaxis - pos))
-            y[idx] += ampl
-        # remove overflows and underflows
-        y[0] = 0
-        y[-1] = 0
-        return y
-
-    def low_pass(x, nbin, window=signal.windows.blackmanharris):
-        h = window(nbin*2-1)[nbin-1:]
-        X = fft.rfft(x)
-        X[:nbin] *= h  # apply the window
-        X[nbin:] = 0  # clear upper frequencies
-        return fft.irfft(X, n=len(x))
 
     spe = old_spe.__copy__()
     for low_pass_i in low_pass_nfreqs:
@@ -320,12 +326,37 @@ def xcal_argmin2d_iter_lowpass(old_spe: Spectrum,
         y_ref_semi_spe = semi_spe_from_dict(ref, spe.x)
         y_ref_semi_spe = low_pass(y_ref_semi_spe, low_pass_i)
 
-        r = xaxis[signal.find_peaks(y_ref_semi_spe)[0]]
+        r = xaxis[signal.find_peaks(y_ref_semi_spe,
+                                    prominence=np.max(y_ref_semi_spe)*.001
+                                    )[0]]
 
         spe_low = spe.__copy__()
         spe_low.y = low_pass(spe.y, low_pass_i)
 
-        spe_cal = spe_low.xcal_fine(ref=r, should_fit=False, poly_order=2)
+        spe_cal = spe_low.xcal_fine(ref=r, should_fit=False, poly_order=2,
+                                    # disables wlen.
+                                    # low passed peaks are much broader and
+                                    # will be affected by `wlen` so disable.
+                                    find_peaks_kw={'wlen': int(xaxis[-1]-xaxis[0])},
+                                    )
         spe.x = spe_cal.x
     spe_cal_fin = spe.xcal_fine(ref=ref, should_fit=False, poly_order=2)
     new_spe.x = spe_cal_fin.x
+
+
+@add_spectrum_filter
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def xcal_rough_poly2_all_pairs(old_spe: Spectrum,
+                               new_spe: Spectrum, /, *,
+                               ref: Dict[float, float],
+                               prominence: Optional[float] = None,
+                               npeaks: PositiveInt = 10,
+                               **kwargs,
+                               ):
+    if prominence is None:
+        prominence = old_spe.y_noise_MAD()*5
+    cand = old_spe.find_peak_multipeak(prominence=prominence)  # type: ignore
+    spe_dict = cand.get_pos_ampl_dict()
+
+    a, b, c = rough_poly2_calibration(spe_dict, ref, npeaks=npeaks, **kwargs)
+    new_spe.x = a*old_spe.x**2 + b*old_spe.x + c
