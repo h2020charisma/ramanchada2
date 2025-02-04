@@ -10,6 +10,18 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_constructor
 from ..spectrum import Spectrum
 
 
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def generate_theoretical_lines(*,
+                               shapes: List[Literal[lineshapes.functions]],  # type: ignore
+                               params: List[Dict],
+                               x: npt.NDArray[np.float64]):
+    y = np.zeros_like(x, dtype=float)
+    for shape_name, pars in zip(shapes, params):
+        shape = getattr(lineshapes, shape_name)
+        y += shape(x=x, **pars)
+    return y
+
+
 @add_spectrum_constructor()
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def from_theoretical_lines(
@@ -28,10 +40,5 @@ def from_theoretical_lines(
             Array with `x` values, by default `np.array(2000)`.
     """
     spe = Spectrum(x=x)
-    x = spe.x
-    y = np.zeros_like(x, dtype=float)
-    for shape_name, pars in zip(shapes, params):
-        shape = getattr(lineshapes, shape_name)
-        y += shape(x=x, **pars)
-    spe.y = y
+    spe.y = generate_theoretical_lines(shapes=shapes, params=params, x=spe.x)
     return spe

@@ -6,6 +6,25 @@ from ramanchada2.misc.spectrum_deco import add_spectrum_filter
 from ..spectrum import Spectrum
 
 
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def generate_add_gaussian_noise(y, /,
+                                sigma: PositiveFloat,
+                                # validation for rng_seed is removed because
+                                # it makes in-place modification impossible
+                                rng_seed=None):
+    if isinstance(rng_seed, dict):
+        rng = np.random.default_rng()
+        rng.bit_generator.state = rng_seed
+    else:
+        rng = np.random.default_rng(rng_seed)
+    dat = y + rng.normal(0., sigma, size=len(y))
+    if any(dat < 0):
+        dat += abs(dat.min())
+    if isinstance(rng_seed, dict):
+        rng_seed.update(rng.bit_generator.state)
+    return np.array(dat)
+
+
 @add_spectrum_filter
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def add_gaussian_noise(
@@ -31,14 +50,6 @@ def add_gaussian_noise(
 
     Returns: modified Spectrum
     """
-    if isinstance(rng_seed, dict):
-        rng = np.random.default_rng()
-        rng.bit_generator.state = rng_seed
-    else:
-        rng = np.random.default_rng(rng_seed)
-    dat = old_spe.y + rng.normal(0., sigma, size=len(old_spe.y))
-    if any(dat < 0):
-        dat += abs(dat.min())
-    if isinstance(rng_seed, dict):
-        rng_seed.update(rng.bit_generator.state)
-    new_spe.y = np.array(dat)
+    new_spe.y = generate_add_gaussian_noise(old_spe.y,
+                                            sigma=sigma,
+                                            rng_seed=rng_seed)
