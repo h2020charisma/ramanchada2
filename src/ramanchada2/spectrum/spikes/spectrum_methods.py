@@ -51,9 +51,9 @@ def spikes_only(old_spe: Spectrum,
 def add_spike(old_spe: Spectrum,
               new_spe: Spectrum, /,
               location: float,
-              amplitudes: list[float],
+              amplitude: float,
               ):
-    new_spe.y = fn_add_spike(old_spe.x, old_spe.y, location=location, amplitudes=amplitudes)
+    new_spe.y = fn_add_spike(old_spe.x, old_spe.y, location=location, amplitude=amplitude)
 
 
 @add_spectrum_filter

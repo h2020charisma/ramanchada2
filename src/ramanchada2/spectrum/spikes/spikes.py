@@ -91,11 +91,19 @@ def spikes_only(x0, y0, /,
 @validate_call(config=dict(arbitrary_types_allowed=True))
 def add_spike(x, y0, /,
               location: float,
-              amplitudes: list[float]
+              amplitude: float,
               ):
-    idx = np.argmin(np.abs(location - x))
+    idx1 = np.argmin(np.abs(x - location))
+    idx2 = idx1 + int(np.sign(location - x[idx1]))
+    if idx1 == idx2:
+        amp1 = amplitude
+        amp2 = 0
+    else:
+        amp1 = amplitude * np.abs((location - x[idx2])/(x[idx1]-x[idx2]))
+        amp2 = amplitude * np.abs((location - x[idx1])/(x[idx1]-x[idx2]))
     y = y0.copy()
-    y[idx+(-len(amplitudes))//2:idx+(len(amplitudes))//2] += amplitudes
+    y[idx1] += amp1
+    y[idx2] += amp2
     return y
 
 
