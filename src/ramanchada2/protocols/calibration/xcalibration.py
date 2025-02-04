@@ -308,7 +308,7 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm,
                 "nm",
                 df,
-                "Laser zeroing using {} nm {} cm-1 ({}) ".format(
+                "Laser zeroing using {} nm {} cm¯¹ ({}) ".format(
                     zero_peak_nm, zero_peak_cm1, self.profile
                 ),
             )
@@ -444,16 +444,16 @@ class CustomPChipInterpolator(PchipInterpolator):
 
     def plot(self, ax):
         """Plot the interpolation curve and the original points."""
-        ax.scatter(self.x, self.y, marker="+", color="blue", label="Data Points")
+        ax.scatter(self.x, self.y, marker="+", color="blue", label="Ne original data")
 
         x_range = np.linspace(self.x.min(), self.x.max(), 100)
         predicted_y = self(x_range)
 
         ax.plot(
-            x_range, predicted_y, color="red", linestyle="-", label="Calibration curve"
+            x_range, predicted_y, color="red", linestyle="-", label="Ne calibration curve"
         )
-        ax.set_xlabel("Peaks, nm")
-        ax.set_ylabel("Reference peaks, nm")
+        ax.set_xlabel("Ne peak original/nm")
+        ax.set_ylabel("Ne peak NIST/nm")
         ax.grid(which="both", linestyle="--", linewidth=0.5, color="gray")
         ax.legend()
 
