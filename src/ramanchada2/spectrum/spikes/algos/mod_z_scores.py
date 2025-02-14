@@ -1,9 +1,14 @@
+from typing import Union
+
 import numpy as np
+from pydantic import validate_call
+from scipy.stats import median_abs_deviation
 
 
 def metric(ys):
     # two ways to calculate the derivative: Like this, and with np.diff. I saw before that the np.diff gave trouble
     # when working with spectra (matrix)
+    ys = ys/median_abs_deviation(np.diff(ys))
     dist = 0
     ys_diff = []
     for i in np.arange(len(ys)-1):
@@ -25,7 +30,15 @@ def metric(ys):
     return y_merit
 
 
-def indices(ys, threshold=3.5):
+@validate_call()
+def bool_hot(ys, threshold: Union[None, float] = None):
+    if threshold is None:
+        threshold = 14.46
+    return metric(ys) > threshold
+
+
+@validate_call()
+def indices_(ys, threshold: Union[None, float] = None):
     """
     This approach is based in the publication by
     Whitaker, Darren A., and Kevin Hayes: "A simple algorithm for despiking Raman spectra."
@@ -44,6 +57,8 @@ def indices(ys, threshold=3.5):
     array: An array of indices where posible spikes are present (or where the second derivative of the intensity
     exceeds the threshold).
     """
+    if threshold is None:
+        threshold = 14.46
 
     # Alternatively and much more elegant:
     # median_y = np.median(ys_diff)

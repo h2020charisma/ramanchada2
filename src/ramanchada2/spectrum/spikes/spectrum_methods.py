@@ -8,6 +8,7 @@ from .spikes import add_spike as fn_add_spike
 from .spikes import spikes_drop as fn_spikes_drop
 from .spikes import spikes_fix_interp as fn_spikes_fix_interp
 from .spikes import spikes_indices as fn_spikes_indices
+from .spikes import spikes_bool_hot as fn_spikes_bool_hot
 from .spikes import spikes_metric as fn_spikes_metric
 from .spikes import spikes_only as fn_spikes_only
 
@@ -18,6 +19,14 @@ def spikes_metric(spe: Spectrum, /,
                   method: str,
                   ):
     return fn_spikes_metric(spe.y, method=method)
+
+
+@add_spectrum_method
+@validate_call(config=dict(arbitrary_types_allowed=True))
+def spikes_bool_hot(spe: Spectrum, /,
+                    method: str,
+                    **kwargs):
+    return fn_spikes_bool_hot(spe.y, method=method, **kwargs)
 
 
 @add_spectrum_method

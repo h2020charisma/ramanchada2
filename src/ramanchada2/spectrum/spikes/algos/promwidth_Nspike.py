@@ -17,7 +17,7 @@ def metric(y, prominence_threshold=None):
     return 1/y_merit  # First approaximation, maybe log(prominence)/width
 
 
-def indices(y, width_threshold=None, prominence_threshold=None, width_param_rel=None):
+def indices_(y, width_threshold=None, prominence_threshold=None, width_param_rel=None):
     """
     https://doi.org/10.1016/j.aca.2024.342312
     """
