@@ -27,7 +27,7 @@ KEYWORDS = [
     'spectroscopy',
 ]
 
-PYTHON_REQUIRES = '>=3.9,<3.13'
+PYTHON_REQUIRES = '>=3.9,<3.14'
 
 PACKAGES = find_packages(where='src')
 
