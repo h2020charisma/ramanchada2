@@ -59,6 +59,9 @@ class YCalibrationCertificate(BaseModel, Plottable):
     def Y(self, x_value):
         return self.response_function(x_value)
 
+    def trim_axes(self, spe):
+        return spe.trim_axes(method="x-axis", boundaries=self.raman_shift)
+
     def _plot(self, ax, **kwargs):
         if self.raman_shift is None:
             x = np.linspace(100, 4000)
@@ -69,8 +72,8 @@ class YCalibrationCertificate(BaseModel, Plottable):
             x, self.Y(x), label="{} ({}nm)".format(self.id, self.wavelength), **kwargs
         )
         _units = "cm^{-1}"
-        ax.set_xlabel(rf"Raman shift $\mathrm{{[{_units}]}}$")
-        ax.set_ylabel("Intensity")
+        ax.set_xlabel(rf"Wavenumber/$\mathrm{{{_units}}}$")
+        ax.set_ylabel("Raman intensity/Arbitr.Units")
 
     @staticmethod
     def load(wavelength=785, key="NIST785_SRM2241"):
