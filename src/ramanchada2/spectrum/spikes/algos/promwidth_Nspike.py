@@ -1,20 +1,27 @@
+from typing import Union
+
 import numpy as np
+from pydantic import validate_call
 from scipy.signal import find_peaks, peak_widths
 from scipy.stats import median_abs_deviation
 
 
-def metric(y, prominence_threshold=None):
+def metric(y):
     """
     https://doi.org/10.1016/j.aca.2024.342312
     """
-    if prominence_threshold is None:
-        prominence_threshold = prominence_threshold = 5*median_abs_deviation((np.diff(y, prepend=[0])))
-    peaks, _ = find_peaks(y, prominence=prominence_threshold)
-    widths = peak_widths(y, peaks, rel_height=0.5)[0]
+    peaks_idx, peaks_dict = find_peaks(y, width=0)
     y_merit = np.zeros_like(y)
-    for peak, width in zip(peaks, widths):
-        y_merit[peak] = width
-    return 1/y_merit  # First approaximation, maybe log(prominence)/width
+    y_merit[peaks_idx] = 100/peaks_dict['widths']
+    return y_merit
+
+
+@validate_call()
+def bool_hot(y, threshold: Union[None, float] = None):
+    if threshold is None:
+        #threshold = 100/2
+        threshold = 188.72703552246094
+    return metric(y) > threshold
 
 
 def indices_(y, width_threshold=None, prominence_threshold=None, width_param_rel=None):

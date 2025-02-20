@@ -31,7 +31,7 @@ METHODS = {
     'laplacian': laplacian,
     'mod_z_scores': mod_z_scores,
     'test_mix': test_mix,
-    #'promwidth_Nspike': promwidth_Nspike,
+    'promwidth_Nspike': promwidth_Nspike,
 }
 
 METHODS_WITH_METRIC = {
@@ -46,7 +46,7 @@ METHODS_WITH_METRIC = {
     'lr_n3o2': lr_n3o2,
     'laplacian': laplacian,
     'mod_z_scores': mod_z_scores,
-    #'promwidth_Nspike': promwidth_Nspike,
+    'promwidth_Nspike': promwidth_Nspike,
 }
 
 
