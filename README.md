@@ -67,7 +67,7 @@
 | src/ramanchada2/protocols/calibration/calibration\_component.py            |       72 |       22 |     69% |18, 46, 60, 68-72, 77, 82, 85-94, 97, 101-103, 106-107, 110-135 |
 | src/ramanchada2/protocols/calibration/calibration\_model.py                |      116 |       37 |     68% |80-81, 88-89, 111-146, 163, 165, 198-202, 229, 231, 233, 244-245, 265, 267, 297-300, 303-305, 323, 325, 327 |
 | src/ramanchada2/protocols/calibration/xcalibration.py                      |      241 |      120 |     50% |63, 66, 70-80, 83-95, 97, 102-122, 126, 135, 137, 165-174, 180-189, 193-195, 207-232, 257, 273, 281, 283, 297, 301-302, 344, 349, 353-366, 369, 385-402, 405, 416-423, 427, 434-436, 441-443, 447-458, 461, 466-468, 472-480, 483, 491-501, 504 |
-| src/ramanchada2/protocols/calibration/ycalibration.py                      |      113 |       23 |     80% |63-73, 77, 121-122, 126, 175, 178-197, 212, 234-235 |
+| src/ramanchada2/protocols/calibration/ycalibration.py                      |      115 |       24 |     79% |63, 66-76, 80, 124-125, 129, 178, 181-200, 215, 237-238 |
 | src/ramanchada2/protocols/metadata\_helper.py                              |       22 |       10 |     55% |3, 8, 11, 16, 21, 26, 29-32 |
 | src/ramanchada2/protocols/spectraframe.py                                  |       87 |       12 |     86% |50-51, 54-57, 75, 84-88, 94 |
 | src/ramanchada2/protocols/twinning.py                                      |      106 |        6 |     94% |101, 126-127, 134-136 |
@@ -162,7 +162,7 @@
 | tests/spectrum/test\_metadata.py                                           |       38 |        0 |    100% |           |
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
-|                                                                  **TOTAL** | **4834** | **1505** | **69%** |           |
+|                                                                  **TOTAL** | **4836** | **1506** | **69%** |           |
 
 
 ## Setup coverage badge
