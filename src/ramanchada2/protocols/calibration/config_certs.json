@@ -9,18 +9,23 @@
             "raman_shift" : [200,3500]
         },
         "NIR785_EL0-9002" : {
-            "certificate" : {"id" : "NIR785_EL0-9002" , "description" : "NIR intensity calibration LED source" ,"url" : ""},
+            "certificate" : {"id" : "NIR785_EL0-9002" , "description" : "THEYA-LED Calibration Light Source for 785nm" ,"url" : "4Ba5Ab2_785_LED_CPV154_Cert", "model_number" : "EL0-9002", "serial_number" : "CPV-154", "date": "04/02/2025"},
             "wavelength" : 785,
-            "params": "A0 = 5.90134423e-1,A = 5.52032185e-1,B = 5.72123096e-7,x0 = 2.65628776e+3",
-            "equation" : "A0 + A * np.exp(-B * (x - x0)**2)",
-            "raman_shift" : [100,3000]
+            "params": "A0 = 0.456580666,A1 = 0.000789574302,A2 = -8.6567801e-07,A3 = 6.21687555e-10, A4=-2.08275588e-13, A5=2.41938216e-17",
+            "equation" : "A0 + A1*x + A2*x**2 + A3*x**3 + A4*x**4 + A5*x**5",
+            "raman_shift" : [200,3200],
+            "wavelength_range" : [797.5,1048.3],
+            "temperature_c" : [20,30]
+            
         },
         "NIR785_EL0-9002A" : {
-            "certificate" : {"id" : "NIR785_EL0-9002A" , "description" : "NIR intensity calibration LED source" ,"url" : "", "model_number" : "EL0-9002-A", "serial_number" : "CJY712", "date": "10/07/2024"},
+            "certificate" : {"id" : "NIR785_EL0-9002" , "description" : "THEYA-LED Calibration Light Source for 785nm" ,"url" : "4Ba5Ab2_785_LED_CPV154_Cert", "model_number" : "EL0-9002", "serial_number" : "CPV-154", "date": "04/02/2025"},
             "wavelength" : 785,
-            "params": "A0 = 2.94901162e-01,A1 = 1.44165865e-03,A2 = -1.79638791e-06,A3 = 1.21060045e-09, A4=-3.76840088e-13, A5=4.18914219e-17",
-            "equation" : "A0 + A1*x + A2*x + A3*x + A4*x + A5*x",
-            "raman_shift" : [200,3200]
+            "params": "A0 = 0.456580666,A1 = 0.000789574302,A2 = -8.6567801e-07,A3 = 6.21687555e-10, A4=-2.08275588e-13, A5=2.41938216e-17",
+            "equation" : "A0 + A1*x + A2*x**2 + A3*x**3 + A4*x**4 + A5*x**5",
+            "raman_shift" : [200,3200],
+            "wavelength_range" : [797.5,1048.3],
+            "temperature_c" : [20,30]
             
         }                    
     },
@@ -63,10 +68,12 @@
         },
         "LED532_EL0-9001" : {
             "wavelength" : 532,
-            "certificate" : {"id" : "LED532_EL0-9001" , "description" : "Visible LED light source" ,"url" : ""},
-            "params": "A = 8.30752731e-01,B = 2.54881472e-07,x0 = 1.42483359e+3",
-            "equation" : "A * np.exp(-B * (x - x0)**2)",
-            "raman_shift" : [100,4000]
+            "certificate" : {"id" : "LED532_EL0-9001" , "description" : "THEYA-LED Calibration Light Source for 532nm" ,"url" : "4Ba5Aa2_532_LED_IFS605_Cert", "model_number" : "EL0-9001", "serial_number" : "IFS-605", "date": "04/02/2025"},
+            "params": "A0 = 0.843810726,A1 = 5.20823553e-05,A2 = 2.24063716e-07,A3 = -1.69378672e-10, A4=3.18890727e-14, -1.63659717e-18",
+            "equation" : "A0 + A1*x + A2*x**2 + A3*x**3 + A4*x**4 + A5*x**5",
+            "wavelength_range" : [536,675],
+            "temperature_c" : [20,30],
+            "raman_shift" : [150,4000]
         }
     }    
 
