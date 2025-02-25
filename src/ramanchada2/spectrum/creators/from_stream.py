@@ -20,13 +20,13 @@ from ..spectrum import Spectrum
 def from_stream(in_stream: Union[io.TextIOBase, io.BytesIO, io.BufferedReader],
                 filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                               'wdf', 'ngs', 'jdx', 'dx',
-                                              'txt', 'txtr', 'tsv', 'csv', 'prn',
+                                              'txt', 'txtr', 'tsv', 'csv', 'prn', 'dpt',
                                               'rruf', 'spe']],
                 filename: Optional[str] = None,
                 backend: Union[None, Literal['native', 'rc1_parser']] = None,
                 ):
     def load_native():
-        if filetype in {'txt', 'txtr', 'tsv', 'prn', 'rruf'}:
+        if filetype in {'txt', 'txtr', 'tsv', 'prn', 'rruf', 'dpt'}:
             if isinstance(in_stream, io.TextIOBase):
                 fp = in_stream
             else:
