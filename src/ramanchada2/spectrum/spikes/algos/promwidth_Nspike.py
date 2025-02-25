@@ -10,19 +10,19 @@ def metric(y):
     """
     https://doi.org/10.1016/j.aca.2024.342312
     """
-    peaks_idx, peaks_dict = find_peaks(y, width=0)
+    prominence_threshold = 5*median_abs_deviation(np.diff(y))
+    peaks_idx, peaks_dict = find_peaks(y,
+                                       width=0,
+                                       prominence=prominence_threshold)
     y_merit = np.zeros_like(y)
     y_merit[peaks_idx] = 100/peaks_dict['widths']
-    prominence_threshold = 5*median_abs_deviation((np.diff(y)))
-    y_merit[y_merit < prominence_threshold] = 0
     return y_merit
 
 
 @validate_call()
 def bool_hot(y, threshold: Union[None, float] = None):
     if threshold is None:
-        #threshold = 100/2
-        threshold = 188.72703552246094
+        threshold = 100/3
     return metric(y) > threshold
 
 
