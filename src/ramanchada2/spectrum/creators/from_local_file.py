@@ -21,7 +21,7 @@ def from_local_file(
         in_file_name: str,
         filetype: Union[None, Literal['spc', 'sp', 'spa', '0', '1', '2',
                                       'wdf', 'ngs', 'jdx', 'dx',
-                                      'txt', 'txtr', 'tsv', 'csv', 'prn',
+                                      'txt', 'txtr', 'tsv', 'csv', 'prn', 'dpt',
                                       'rruf', 'spe', 'cha']] = None,
         backend: Union[None, Literal['native', 'rc1_parser']] = None,
         custom_meta: Dict = {}):
@@ -33,7 +33,7 @@ def from_local_file(
             Path to a local file containing a spectrum.
         filetype:
             Specify the filetype. Filetype can be any of: `spc`, `sp`, `spa`, `0`, `1`, `2`, `wdf`, `ngs`, `jdx`, `dx`,
-            `txt`, `txtr`, `tsv`, `csv`, `prn`, `rruf`, `spe` (Princeton Instruments) or `None`.
+            `txt`, `txtr`, `tsv`, `csv`, `dpt`, `prn`, `rruf`, `spe` (Princeton Instruments) or `None`.
             `None` used to determine by extension of the file.
         backend:
             `native`, `rc1_parser` or `None`. `None` means both.
@@ -51,7 +51,7 @@ def from_local_file(
             ft = filetype
         if ft in {'cha'}:
             return from_chada(filename=in_file_name)
-        elif ft in {'txt', 'txtr', 'prn', 'rruf', 'tsv'}:
+        elif ft in {'txt', 'txtr', 'prn', 'rruf', 'tsv', 'dpt'}:
             with open(in_file_name) as fp:
                 x, y, meta = read_txt(fp)
         elif ft in {'csv'}:
