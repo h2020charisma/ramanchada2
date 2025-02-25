@@ -13,6 +13,8 @@ def metric(y):
     peaks_idx, peaks_dict = find_peaks(y, width=0)
     y_merit = np.zeros_like(y)
     y_merit[peaks_idx] = 100/peaks_dict['widths']
+    prominence_threshold = 5*median_abs_deviation((np.diff(y)))
+    y_merit[y_merit < prominence_threshold] = 0
     return y_merit
 
 
