@@ -9,6 +9,7 @@ Harmonising Raman spectroscopy: meant to fill the gap between the theoretical Ra
 - 📖 [Documentation](https://h2020charisma.github.io/ramanchada2/ramanchada2.html)
 - ⚗️ [Examples](https://github.com/h2020charisma/ramanchada2/tree/main/examples)
 
+If you find *ramanchada2* useful, please consider giving it a ⭐ on [GitHub](https://github.com/h2020charisma/ramanchada2)!
 
 ## Mini quick start with Conda
 
@@ -81,28 +82,22 @@ A web browser with jupyter should start automaticaly.
 
 ## Credits
 
-If you use *ramanchada2* in your research, please cite our paper:
+If you use *ramanchada2* in your research, please cite the following paper:
 
-> Georgiev, G., Coca-Lopez, N., Lellinger, D., Iliev, L., Marinov, E., Tsoneva, S., Kochev, N., Bañares, M. ., Portela, R. and Jeliazkova, N. (2025), Open Source for Raman Spectroscopy Data Harmonization. J Raman Spectrosc. https://doi.org/10.1002/jrs.6789
+> Georgiev, G., Coca-Lopez, N., Lellinger, D., Iliev, L., Marinov, E., Tsoneva, S., Kochev, N., Bañares, M. A., Portela, R. and Jeliazkova, N. (2025), Open Source for Raman Spectroscopy Data Harmonization. J Raman Spectrosc. https://doi.org/10.1002/jrs.6789
 
 ```bibtex
-@article{https://doi.org/10.1002/jrs.6789,
+@article{georgiev2025ramanchada2,
 author = {Georgiev, G. and Coca-Lopez, N. and Lellinger, D. and Iliev, L. and Marinov, E. and Tsoneva, S. and Kochev, N. and Bañares, M. A. and Portela, R. and Jeliazkova, N.},
 title = {Open Source for Raman Spectroscopy Data Harmonization},
 journal = {Journal of Raman Spectroscopy},
-volume = {n/a},
-number = {n/a},
-pages = {},
 keywords = {calibration, data processing, NeXus, Orange data mining, Python},
 doi = {https://doi.org/10.1002/jrs.6789},
 url = {https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/abs/10.1002/jrs.6789},
-eprint = {https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/pdf/10.1002/jrs.6789},
-abstract = {ABSTRACT Raman spectra from the same sample might differ between instruments and over time depending on the spectrometer, optical path, or sample environment, among others. There is a need to harmonize and standardize characterization by Raman spectroscopy, enabling end users to share and reuse digital spectroscopic data through FAIR databases. In this context, we present an open-source, MIT-licensed, Python package called ramanchada2 that collects existing and novel state-of-the-art algorithms, allowing the users to generate, read, visualize, and process Raman spectra, with special emphasis on instrument calibration. A number of input formats are supported, including those from DFT simulations. This package also offers a tool for the generation of synthetic spectra based on user specifications for data augmentation and algorithm benchmarking. NeXus is introduced as an input and output format, enabling the possibility to package into a single file data and metadata, including data processing information, from multiple and even from different types of experiments, for example, XRD, Raman, and biological assays, using a harmonized structure and terminology. To facilitate Raman spectra analysis by end users, we developed “Oranchada” add-on for data-mining open-source software Orange, a user-friendly wrapper of all ramanchada2 functionalities with predefined harmonization workflows, as well as an online application for calibration.}
+eprint = {https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/pdf/10.1002/jrs.6789}
 }
 ```
 
-And if you find *ramanchada2* useful, please consider starring the [repository](https://github.com/h2020charisma/ramanchada2).
-
 ## Acknowledgement
 
-🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under [grant agreement No. 952921](https://cordis.europa.eu/project/id/952921).
+🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under grant agreement [No. 952921](https://cordis.europa.eu/project/id/952921).
