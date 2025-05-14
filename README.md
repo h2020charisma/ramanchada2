@@ -9,6 +9,7 @@ Harmonising Raman spectroscopy: meant to fill the gap between the theoretical Ra
 - 📖 [Documentation](https://h2020charisma.github.io/ramanchada2/ramanchada2.html)
 - ⚗️ [Examples](https://github.com/h2020charisma/ramanchada2/tree/main/examples)
 
+If you find *ramanchada2* useful, please consider giving it a ⭐ on [GitHub](https://github.com/h2020charisma/ramanchada2)!
 
 ## Mini quick start with Conda
 
@@ -79,5 +80,24 @@ jupyter-lab
 
 A web browser with jupyter should start automaticaly.
 
----
-🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under [grant agreement No. 952921](https://cordis.europa.eu/project/id/952921).
+## Credits
+
+If you use *ramanchada2* in your research, please cite the following paper:
+
+> Georgiev, G., Coca-Lopez, N., Lellinger, D., Iliev, L., Marinov, E., Tsoneva, S., Kochev, N., Bañares, M. A., Portela, R. and Jeliazkova, N. (2025), Open Source for Raman Spectroscopy Data Harmonization. J Raman Spectrosc. https://doi.org/10.1002/jrs.6789
+
+```bibtex
+@article{georgiev2025ramanchada2,
+author = {Georgiev, G. and Coca-Lopez, N. and Lellinger, D. and Iliev, L. and Marinov, E. and Tsoneva, S. and Kochev, N. and Bañares, M. A. and Portela, R. and Jeliazkova, N.},
+title = {Open Source for Raman Spectroscopy Data Harmonization},
+journal = {Journal of Raman Spectroscopy},
+keywords = {calibration, data processing, NeXus, Orange data mining, Python},
+doi = {https://doi.org/10.1002/jrs.6789},
+url = {https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/abs/10.1002/jrs.6789},
+eprint = {https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/pdf/10.1002/jrs.6789}
+}
+```
+
+## Acknowledgement
+
+🇪🇺 This project has received funding from the European Union’s Horizon 2020 research and innovation program under grant agreement [No. 952921](https://cordis.europa.eu/project/id/952921).
