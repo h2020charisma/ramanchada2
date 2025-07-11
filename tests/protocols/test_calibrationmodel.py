@@ -117,7 +117,7 @@ class SetupModule:
                 should_fit=fit_peaks,
                 match_method="cluster",
                 si_profile=self.si_profile,
-                interpolator_method="pchip"
+                interpolator_method="pchip",
             )
             assert len(self.calmodel.components) == 2
             # print(self.calmodel.components[0])
@@ -154,8 +154,8 @@ def test_laser_zeroing(setup_module):
         setup_module.spe_sil, spe_units="cm-1"
     )
     spe_test = spe_sil_calib.trim_axes(
-        method='x-axis',
-        boundaries=(si_peak-50, si_peak+50))
+        method="x-axis", boundaries=(si_peak - 50, si_peak + 50)
+    )
     find_kw = {"wlen": 200, "width": 1, "sharpening": None}
     find_kw["prominence"] = (
         spe_test.y_noise_MAD() * setup_module.calmodel.prominence_coeff
@@ -193,8 +193,13 @@ def test_laser_zeroing(setup_module):
         spe_test_necalibrated_only.plot(
             ax=axsifit, label="Si (Ne calibrated only)", fmt=":"
         )
-        axsifit.axvline(x=si_peak_nm, color='black', linestyle=':', linewidth=2,
-                        label="Si peak {:.3f} nm".format(si_peak_nm))
+        axsifit.axvline(
+            x=si_peak_nm,
+            color="black",
+            linestyle=":",
+            linewidth=2,
+            label="Si peak {:.3f} nm".format(si_peak_nm),
+        )
         axsifit.grid()
         print(df.sort_values(by="amplitude", ascending=False).head())
         plt.grid()
@@ -237,7 +242,9 @@ def compare_calibrated_spe(setup_module, spectra, name="calibration"):
         # check if x is monotonically increasing
         # assert np.all(np.diff(spe.x) > 0)
         assert not np.any(np.isnan(spe.x)), "Array contains NaN values!"
-        spe_norm = resample_spline(_spe.normalize(strategy="unity_area"), _min, _max, 1000)
+        spe_norm = resample_spline(
+            _spe.normalize(strategy="unity_area"), _min, _max, 1000
+        )
         spe_y_original.append(spe_norm.y)
         spe_c = setup_module.calmodel.apply_calibration_x(_spe, spe_units="cm-1")
         assert not np.any(np.isnan(spe_c.x)), "Array contains NaN values!"
