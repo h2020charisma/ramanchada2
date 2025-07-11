@@ -65,8 +65,8 @@
 | src/ramanchada2/protocols/calib\_ne\_si\_argmin2d\_iter\_gg.py             |       42 |       42 |      0% |     1-128 |
 | src/ramanchada2/protocols/calibration/\_\_init\_\_.py                      |        0 |        0 |    100% |           |
 | src/ramanchada2/protocols/calibration/calibration\_component.py            |       72 |       22 |     69% |18, 46, 60, 68-72, 77, 82, 85-94, 97, 101-103, 106-107, 110-135 |
-| src/ramanchada2/protocols/calibration/calibration\_model.py                |      116 |       37 |     68% |80-81, 88-89, 111-146, 163, 165, 198-202, 229, 231, 233, 244-245, 265, 267, 297-300, 303-305, 323, 325, 327 |
-| src/ramanchada2/protocols/calibration/xcalibration.py                      |      241 |      120 |     50% |63, 66, 70-80, 83-95, 97, 102-122, 126, 135, 137, 165-174, 180-189, 193-195, 207-232, 257, 273, 281, 283, 297, 301-302, 344, 349, 353-366, 369, 385-402, 405, 416-423, 427, 434-436, 441-443, 447-458, 461, 466-468, 472-480, 483, 491-501, 504 |
+| src/ramanchada2/protocols/calibration/calibration\_model.py                |      116 |       37 |     68% |81-82, 89-90, 112-147, 164, 166, 199-203, 230, 232, 234, 245-246, 266, 268, 298-301, 304-306, 324, 326, 328 |
+| src/ramanchada2/protocols/calibration/xcalibration.py                      |      241 |      120 |     50% |65, 68, 72-82, 85-97, 99, 104-124, 128, 137, 139, 167-176, 182-191, 195-197, 209-234, 259, 275, 283, 285, 299, 303-304, 346, 351, 355-368, 371, 387-404, 407, 418-425, 429, 436-438, 443-445, 449-460, 463, 468-470, 474-482, 485, 493-503, 506 |
 | src/ramanchada2/protocols/calibration/ycalibration.py                      |      115 |       24 |     79% |63, 66-76, 80, 124-125, 129, 178, 181-200, 215, 237-238 |
 | src/ramanchada2/protocols/metadata\_helper.py                              |       22 |       10 |     55% |3, 8, 11, 16, 21, 26, 29-32 |
 | src/ramanchada2/protocols/spectraframe.py                                  |       87 |       12 |     86% |50-51, 54-57, 75, 84-88, 94 |
@@ -148,7 +148,7 @@
 | tests/misc/test\_argmin2d\_align.py                                        |       12 |        0 |    100% |           |
 | tests/peak/pearson4\_test.py                                               |       50 |        0 |    100% |           |
 | tests/peak/test\_find\_peaks.py                                            |        5 |        0 |    100% |           |
-| tests/protocols/test\_calibrationmodel.py                                  |      177 |       59 |     67% |126-129, 138-148, 173-202, 209-215, 228-229, 250-257, 262-263, 313-319, 341-342 |
+| tests/protocols/test\_calibrationmodel.py                                  |      177 |       59 |     67% |126-129, 138-148, 173-207, 214-220, 233-234, 257-264, 269-270, 320-326, 348-349 |
 | tests/protocols/test\_metadataextractor.py                                 |       16 |        1 |     94% |        19 |
 | tests/protocols/test\_twinning.py                                          |       50 |        0 |    100% |           |
 | tests/spectrum/creators/test\_from\_local\_file.py                         |       14 |        0 |    100% |           |
