@@ -350,9 +350,18 @@ def test_ycertificate():
 
 
 def test_ycerts_dict():
+    load_ycerts_dict(785, "NIST785_SRM2241")
+
+
+def test_ycert532_dict():
+    load_ycerts_dict(532, "LED532_EL0-9001")
+
+
+def load_ycerts_dict(wavelength=785, key="NIST785_SRM2241"):
     certificates = CertificatesDict()
-    print(type(certificates.get_certificates(785)))
+    print(type(certificates.get_certificates(wavelength)))
     assert certificates, "empty certificate"
-    assert certificates.get_certificates(785), "empty certificate"
-    cert = CertificatesDict.load(wavelength="785", key="NIST785_SRM2241")
-    assert "NIST785_SRM2241" == cert.id
+    assert certificates.get_certificates(wavelength), "empty certificate"
+    cert = CertificatesDict.load(wavelength=f"{wavelength}", key=key)
+    cert.plot()
+    assert key == cert.id
