@@ -69,7 +69,7 @@
         "LED532_EL0-9001" : {
             "wavelength" : 532,
             "certificate" : {"id" : "LED532_EL0-9001" , "description" : "THEYA-LED Calibration Light Source for 532nm" ,"url" : "4Ba5Aa2_532_LED_IFS605_Cert", "model_number" : "EL0-9001", "serial_number" : "IFS-605", "date": "04/02/2025"},
-            "params": "A0 = 0.843810726,A1 = 5.20823553e-05,A2 = 2.24063716e-07,A3 = -1.69378672e-10, A4=3.18890727e-14, -1.63659717e-18",
+            "params": "A0 = 0.843810726,A1 = 5.20823553e-05,A2 = 2.24063716e-07,A3 = -1.69378672e-10, A4=3.18890727e-14, A5=-1.63659717e-18",
             "equation" : "A0 + A1*x + A2*x**2 + A3*x**3 + A4*x**4 + A5*x**5",
             "wavelength_range" : [536,675],
             "temperature_c" : [20,30],
