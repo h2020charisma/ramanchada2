@@ -1,5 +1,5 @@
 ---
-name: Upload Python Package
+name: Publish Python package to PyPI
 
 on:  # yamllint disable-line rule:truthy
   release:
@@ -10,14 +10,9 @@ permissions:
 
 jobs:
 
-  deploy:
+  build:
 
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/ramanchada2
-    permissions:
-      id-token: write
 
     steps:
 
@@ -37,5 +32,33 @@ jobs:
       - name: Build package
         run: python -m build
 
-      - name: Publish package
+      - name: Store the package distributions
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          if-no-files-found: error
+          name: ramanchada2-dist
+          overwrite: true
+          path: dist
+          retention-days: 1
+
+  publish:
+
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ramanchada2
+    permissions:
+      id-token: write
+
+    steps:
+
+      - name: Retrieve the package distributions
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: ramanchada2-dist
+          path: dist
+
+      - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
