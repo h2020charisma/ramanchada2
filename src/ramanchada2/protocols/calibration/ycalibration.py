@@ -8,6 +8,7 @@ from pydantic import BaseModel, ValidationError
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
+from .xcalibration import CustomPChipInterpolator
 
 
 class YCalibrationCertificate(BaseModel, Plottable):
@@ -170,12 +171,15 @@ class YCalibrationComponent(CalibrationComponent):
         self.spe = reference_spe_xcalibrated
         self.ref = certificate
         self.name = "Y calibration"
-        self.model = self.spe.spe_distribution(trim_range=certificate.raman_shift)
+        # self.model = self.spe.spe_distribution(trim_range=certificate.raman_shift)
+        tmp = self.spe.trim_axes(method="x-axis", boundaries=self.ref.raman_shift)
+        self.model = CustomPChipInterpolator(tmp.x, tmp.y)
         self.model_units = "cm-1"
 
     def derive_model(self, find_kw=None, fit_peaks_kw=None, should_fit=True, name=None):
         # measured reference spectrum as distribution, so we can resample
-        self.model = self.spe.spe_distribution(trim_range=self.ref.raman_shift)
+        tmp = self.spe.trim_axes(method="x-axis", boundaries=self.ref.raman_shift)
+        self.model = CustomPChipInterpolator(tmp.x, tmp.y)
 
     def safe_divide(self, spe_to_correct, spe_reference_resampled):
         numerator = spe_to_correct.y
@@ -222,10 +226,7 @@ class YCalibrationComponent(CalibrationComponent):
 
     def process(self, old_spe: Spectrum, spe_units="nm", convert_back=False):
         # resample using probability density function
-        _tmp = self.model.pdf(old_spe.x)
-        _tmp = (
-            _tmp * max(self.spe.y) / max(_tmp)
-        )  # pdf sampling is normalized to area unity, scaling back
+        _tmp = self.model(old_spe.x)
         spe_reference_resampled = Spectrum(old_spe.x, _tmp)
         # new_spe = Spectrum(old_spe.x,self.safe_divide(old_spe,spe_reference_resampled))
         new_spe = Spectrum(
