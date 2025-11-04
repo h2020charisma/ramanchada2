@@ -27,7 +27,7 @@ class XCalibrationComponent(CalibrationComponent):
         spe_units: Literal["cm-1", "nm"] = "cm-1",
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
+        match_method: Literal["cluster", "argmin2d", "assignment", "monotonic"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
         extrapolate=True,
     ):
@@ -222,13 +222,13 @@ class XCalibrationComponent(CalibrationComponent):
             return x_spe, x_reference, x_spe - x_reference, None, df
         elif self.match_method == "monotonic":
             try:
-                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_monotonic(
+                x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
                     spe_pos_dict=self.spe_pos_dict,
                     ref=self.ref,
                     tolerance=None, relative=False, weight_intensity=0.5
                 )
            
-                return x_spe, x_reference, x_distance, cost_matrix, df
+                return x_spe, x_reference, x_distance, None, df
             except Exception as err:
                 raise err        
         else: # assignment
