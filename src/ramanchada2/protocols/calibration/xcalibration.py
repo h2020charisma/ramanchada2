@@ -238,10 +238,17 @@ class XCalibrationComponent(CalibrationComponent):
                     ref=self.ref,
                     tolerance=None, relative=False, weight_intensity=0.5
                 )
-           
                 return x_spe, x_reference, x_distance, cost_matrix, df
             except Exception as err:
-                raise err
+                print(err)
+                print("Reverting to monotonic match")
+                x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
+                    spe_pos_dict=self.spe_pos_dict,
+                    ref=self.ref,
+                    tolerance=None, relative=False, weight_intensity=0.5
+                )
+                return x_spe, x_reference, x_distance, None, df
+                
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
