@@ -9,8 +9,8 @@ from scipy.interpolate import CubicSpline, PchipInterpolator, RBFInterpolator
 from ramanchada2.misc.utils import find_closest_pairs_idx
 
 from ramanchada2.misc.utils.matchsets import (
-    match_peaks_optimized, match_peaks_monotonic,
-    match_peaks_cluster,
+    match_peaks_optimized, match_peaks_monotonic, 
+    match_peaks_cluster, match_peaks_cluster_robust
 )
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
@@ -144,7 +144,7 @@ class XCalibrationComponent(CalibrationComponent):
         )
         peaks_df = self.fit_peaks(find_kw, fit_peaks_kw, should_fit)
         x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(
-            threshold_max_distance=8, return_df=True
+            threshold_max_distance=None, return_df=True
         )
         print(list(zip(x_spe, x_reference)))
         self.cost_matrix = cost_matrix
@@ -220,23 +220,13 @@ class XCalibrationComponent(CalibrationComponent):
                 }
             )
             return x_spe, x_reference, x_spe - x_reference, None, df
-        elif self.match_method == "monotonic":
-            try:
-                x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
-                    spe_pos_dict=self.spe_pos_dict,
-                    ref=self.ref,
-                    tolerance=None, relative=False, weight_intensity=0.5
-                )
-           
-                return x_spe, x_reference, x_distance, None, df
-            except Exception as err:
-                raise err        
-        else: # assignment
+     
+        elif self.match_method == "assignment":
             try:
                 x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
                     spe_pos_dict=self.spe_pos_dict,
                     ref=self.ref,
-                    tolerance=None, relative=False, weight_intensity=0.5
+                    tolerance=None, relative=False, weight_intensity=0.9
                 )
                 return x_spe, x_reference, x_distance, cost_matrix, df
             except Exception as err:
@@ -245,10 +235,21 @@ class XCalibrationComponent(CalibrationComponent):
                 x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
                     spe_pos_dict=self.spe_pos_dict,
                     ref=self.ref,
-                    tolerance=None, relative=False, weight_intensity=0.5
+                    tolerance=None, relative=False, weight_intensity=0.25
                 )
                 return x_spe, x_reference, x_distance, None, df
-                
+        else:  # self.match_method == "monotonic":
+            try:
+                x_spe, x_reference, x_distance,  df = match_peaks_cluster_robust(
+                    spe_pos_dict=self.spe_pos_dict,
+                    ref=self.ref,
+                    cost_intensity=0.25,
+                    filter_outliers=True,
+                    outlier_threshold=3.0,  # in standard deviations
+                )
+                return x_spe, x_reference, x_distance, None, df
+            except Exception as err:
+                raise err                  
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
