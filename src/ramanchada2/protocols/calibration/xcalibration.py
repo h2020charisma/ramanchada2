@@ -9,8 +9,7 @@ from scipy.interpolate import CubicSpline, PchipInterpolator, RBFInterpolator
 from ramanchada2.misc.utils import find_closest_pairs_idx
 
 from ramanchada2.misc.utils.matchsets import (
-    cost_function_position,
-    match_peaks,
+    match_peaks_optimized, match_peaks_monotonic,
     match_peaks_cluster,
 )
 from ramanchada2.spectrum import Spectrum
@@ -37,7 +36,7 @@ class XCalibrationComponent(CalibrationComponent):
         )
         self.spe_pos_dict = None
         self.match_method = match_method
-        self.cost_function = cost_function_position
+        self.cost_function = None
         self.interpolator_method = interpolator_method
         self.extrapolate = extrapolate
 
@@ -147,7 +146,7 @@ class XCalibrationComponent(CalibrationComponent):
         x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(
             threshold_max_distance=8, return_df=True
         )
-
+        print(list(zip(x_spe, x_reference)))
         self.cost_matrix = cost_matrix
         self.matched_peaks = df
         # if df is None:
@@ -197,6 +196,7 @@ class XCalibrationComponent(CalibrationComponent):
                 raise err
 
     def match_peaks(self, threshold_max_distance=9, return_df=False):
+        print(self.match_method)
         if self.match_method == "cluster":
             x_spe, x_reference, x_distance, _ = match_peaks_cluster(
                 self.spe_pos_dict, self.ref
@@ -220,15 +220,25 @@ class XCalibrationComponent(CalibrationComponent):
                 }
             )
             return x_spe, x_reference, x_spe - x_reference, None, df
-        else:
+        elif self.match_method == "monotonic":
             try:
-                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks(
-                    self.spe_pos_dict,
-                    self.ref,
-                    threshold_max_distance=threshold_max_distance,
-                    df=return_df,
-                    cost_func=self.cost_function,
+                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_monotonic(
+                    spe_pos_dict=self.spe_pos_dict,
+                    ref=self.ref,
+                    tolerance=None, relative=False, weight_intensity=0.5
                 )
+           
+                return x_spe, x_reference, x_distance, cost_matrix, df
+            except Exception as err:
+                raise err        
+        else: # assignment
+            try:
+                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
+                    spe_pos_dict=self.spe_pos_dict,
+                    ref=self.ref,
+                    tolerance=None, relative=False, weight_intensity=0.5
+                )
+           
                 return x_spe, x_reference, x_distance, cost_matrix, df
             except Exception as err:
                 raise err
@@ -504,3 +514,4 @@ class CustomCubicSplineInterpolator(CubicSpline):
 
     def __str__(self):
         return f"Cubic Spline Interpolator with {len(self.x)} points."
+

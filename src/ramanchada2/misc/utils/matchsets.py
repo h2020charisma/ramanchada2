@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 def match_peaks_cluster(
@@ -109,202 +109,178 @@ def match_peaks_cluster(
     )
 
 
-def cost_function_position(
-    p1: Dict[float, float],
-    p2: Dict[float, float],
-    order_weight=1.0,
-    priority_weight=1.0,
-):
-    order_penalty = order_weight * abs(p1[0] - p2[0])
-    return order_penalty
-
-
-def cost_function(
-    p1: Dict[float, float],
-    p2: Dict[float, float],
-    order_weight=1.0,
-    priority_weight=0.1,
-):
+def match_peaks_optimized(
+    spe_pos_dict: Dict[float, float],
+    ref: Dict[float, float],
+    tolerance: float = 2.0,   # e.g. pixels
+    relative: bool = False,
+    weight_intensity: float = 0.0,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, pd.DataFrame]:
     """
-    Modified cost function with an order preservation penalty and priority weighting.
-    - `order_weight` increases penalty for large differences in the x-axis values.
-    - `priority_weight` decreases the cost for higher values in the y-axis for set_b points.
+    Match found peaks (spe_pos_dict) to reference peaks (ref) using the Hungarian algorithm.
+    Ensures one-to-one matching, tolerance filtering, and strictly increasing results.
     """
-    order_penalty = order_weight * abs(p1[0] - p2[0])
-    priority_bonus = (
-        priority_weight * p2[1]
-    )  # Rewards points in set_b with higher second dimension values
-    return order_penalty - priority_bonus
+    if tolerance is None:
+        #tolerance = 0.01 * np.mean(np.diff(sorted(ref.keys())))
+        tolerance = np.min(np.diff(sorted(ref.keys())))
+
+    # Sort peaks by position
+    ref_peaks = np.asarray(sorted(ref.keys()), dtype=float)
+    found_peaks = np.asarray(sorted(spe_pos_dict.keys()), dtype=float)
+    ref_intensities = np.asarray([ref[k] for k in sorted(ref.keys())], dtype=float)
+    found_intensities = np.asarray([spe_pos_dict[k] for k in sorted(spe_pos_dict.keys())], dtype=float)
+
+    # Normalize intensities
+    if ref_intensities.max() > 0:
+        ref_intensities /= ref_intensities.max()
+    if found_intensities.max() > 0:
+        found_intensities /= found_intensities.max()
+
+    n_ref, n_found = len(ref_peaks), len(found_peaks)
+
+    # Build cost matrix
+    cost_matrix = np.full((n_found, n_ref), np.inf)
+    for i, f in enumerate(found_peaks):
+        for j, r in enumerate(ref_peaks):
+            dist = abs(f - r)
+            if relative:
+                dist /= r
+            if dist <= tolerance:
+                inten_diff = abs(found_intensities[i] - ref_intensities[j])
+                cost_matrix[i, j] = dist + weight_intensity * inten_diff
+
+    # --- Handle infeasible matrix ---
+    valid_rows = np.any(np.isfinite(cost_matrix), axis=1)
+    valid_cols = np.any(np.isfinite(cost_matrix), axis=0)
+
+    if not np.any(valid_rows) or not np.any(valid_cols):
+        raise ValueError("No valid matches found within tolerance!")
+
+    cost_sub = cost_matrix[np.ix_(valid_rows, valid_cols)]
+
+    # Solve assignment
+    row_ind_sub, col_ind_sub = linear_sum_assignment(cost_sub)
+
+    # Map back to original indices
+    row_ind = np.where(valid_rows)[0][row_ind_sub]
+    col_ind = np.where(valid_cols)[0][col_ind_sub]
+
+    # Filter valid
+    valid_mask = np.isfinite(cost_matrix[row_ind, col_ind])
+    row_ind, col_ind = row_ind[valid_mask], col_ind[valid_mask]
+
+    matched_spe = found_peaks[row_ind]
+    matched_ref = ref_peaks[col_ind]
+    distances = matched_ref - matched_spe
+
+    # --- Enforce strict monotonicity ---
+    order = np.argsort(matched_ref)
+    matched_spe = matched_spe[order]
+    matched_ref = matched_ref[order]
+    distances = distances[order]
+
+    # Remove non-increasing pairs
+    inc_mask = np.r_[True, np.diff(matched_spe) > 0]
+    matched_spe = matched_spe[inc_mask]
+    matched_ref = matched_ref[inc_mask]
+    distances = distances[inc_mask]
+
+    df = pd.DataFrame({
+        "spe": matched_spe,
+        "reference": matched_ref,
+        "distance": distances
+    })
+
+    return matched_spe, matched_ref, distances, cost_matrix, df
 
 
-def normalize_tuples(tuples):
-    second_values = np.array([x[1] for x in tuples])
-    min_val, max_val = second_values.min(), second_values.max()
-    normalized_values = (second_values - min_val) / (max_val - min_val)
-    # Replace the original second dimension with the normalized values
-    return [(tuples[i][0], normalized_values[i]) for i in range(len(tuples))]
-
-
-def cost_matrix_peaks(
-    spectrum_a_dict: Dict[float, float],
-    spectrum_b_dict: Dict[float, float],
-    threshold_max_distance=9,
-    cost_func=None,
-):
-    if cost_func is None:
-        cost_func = cost_function_position
-    peaks_a = np.array(list(spectrum_a_dict.keys()))
-    intensities_a = np.array(list(spectrum_a_dict.values()))
-    peaks_b = np.array(list(spectrum_b_dict.keys()))
-    intensities_b = np.array(list(spectrum_b_dict.values()))
-
-    num_peaks_b = len(peaks_b)  # Number of reference peaks to match
-
-    # Normalize intensities using min-max normalization
-    def normalize_intensities(intensities):
-        min_intensity = np.min(intensities)
-        max_intensity = np.max(intensities)
-        return (intensities - min_intensity) / (max_intensity - min_intensity)
-
-    intensities_a_normalized = normalize_intensities(intensities_a)
-    intensities_b_normalized = normalize_intensities(intensities_b)
-
-    num_peaks_a = len(peaks_a)
-    cost_matrix = np.full(
-        (num_peaks_a, num_peaks_b), np.inf
-    )  # Initialize with infinity
-
-    for i in range(num_peaks_a):
-        for j in range(num_peaks_b):
-            cost = cost_func(
-                [peaks_a[i], intensities_a_normalized[i]],
-                [peaks_b[j], intensities_b_normalized[j]],
-                priority_weight=1,
-            )
-            cost_matrix[i, j] = cost
-    return cost_matrix
-
-
-def match_peaks(
-    spectrum_a_dict: Dict[float, float],
-    spectrum_b_dict: Dict[float, float],
-    threshold_max_distance=9,
-    df=False,
-    cost_func=None,
-):
+def match_peaks_monotonic(
+    spe_pos_dict: Dict[float, float],
+    ref: Dict[float, float],
+    tolerance: float = 2.0,   # in pixels or nm
+    relative: bool = False,
+    weight_intensity: float = 0.0,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame]:
     """
-    Match peaks between two spectra based on their positions and intensities.
+    Match peaks monotonically (order-preserving, one-to-one) ensuring
+    |ref - spe| < tolerance. Returns only valid monotonic matches.
 
-    Uses scipy linear_sum_assignment to match peaks based on cost function
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.linear_sum_assignment.html
-
-    Parameters:
+    Parameters
     ----------
-    spectrum_a_dict : dict
-        A dictionary representing the first spectrum, where keys are peak
-        positions (float) and values are peak intensities (float).
+    spe_pos_dict : Dict[float, float]
+        Found peaks {position: intensity}.
+    ref : Dict[float, float]
+        Reference peaks {position: intensity}.
+    tolerance : float
+        Absolute or relative tolerance for matching.
+    relative : bool
+        If True, interpret tolerance as fraction of reference position.
+    weight_intensity : float
+        Optional weighting for intensity difference.
 
-    spectrum_b_dict : dict
-        A dictionary representing the second spectrum, where keys are peak
-        positions (float) and values are peak intensities (float).
-
-    threshold_max_distance : float, optional
-        The maximum allowed distance for two peaks to be considered a match.
-        Default is 8.
-
-    df : bool, optional
-        If True, return a DataFrame with matched peaks and their respective
-        intensities; if False, return None
-
-    Returns:
+    Returns
     -------
-    matched_peaks : (matched_peaks_a,matched_peaks_b,matched_distances, df)
-
-    Examples:
-    ---------
-    >>> spectrum_a = {100: 10, 105: 20, 110: 15}
-    >>> spectrum_b = {102: 12, 106: 22, 111: 16}
-    >>> match_peaks(spectrum_a, spectrum_b)
-
+    matched_spe : np.ndarray
+    matched_ref : np.ndarray
+    distances : np.ndarray
+    df : pd.DataFrame
     """
-    cost_matrix = cost_matrix_peaks(
-        spectrum_a_dict,
-        spectrum_b_dict,
-        threshold_max_distance=threshold_max_distance,
-        cost_func=cost_function if cost_func is None else cost_func,
-    )
 
-    # Use the Hungarian algorithm to find the optimal assignment
-    try:
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    if tolerance is None:
+        #tolerance = 0.01 * np.mean(np.diff(sorted(ref.keys())))
+        tolerance = np.min(np.diff(sorted(ref.keys())))
+        
+    # Sort peaks
+    ref_peaks = np.asarray(sorted(ref.keys()), dtype=float)
+    found_peaks = np.asarray(sorted(spe_pos_dict.keys()), dtype=float)
+    ref_intensities = np.asarray([ref[k] for k in sorted(ref.keys())], dtype=float)
+    found_intensities = np.asarray([spe_pos_dict[k] for k in sorted(spe_pos_dict.keys())], dtype=float)
 
-    except Exception as err:
-        raise err
+    matched_ref = []
+    matched_spe = []
+    distances = []
 
-    # Prepare matched peaks and distances
-    # I am sure this could be done in a more efficient way
-    matched_peaks_a: List[float] = []
-    matched_peaks_b: List[float] = []
-    matched_distances: List[float] = []
-    intensity_a: List[float] = []
-    intensity_b: List[float] = []
+    i = j = 0
+    while i < len(ref_peaks) and j < len(found_peaks):
+        ref_val = ref_peaks[i]
+        spe_val = found_peaks[j]
 
-    peaks_a = np.array(list(spectrum_a_dict.keys()))
-    intensities_a = np.array(list(spectrum_a_dict.values()))
-    peaks_b = np.array(list(spectrum_b_dict.keys()))
-    intensities_b = np.array(list(spectrum_b_dict.values()))
+        # Compute allowed tolerance
+        tol = tolerance * ref_val if relative else tolerance
+        diff = spe_val - ref_val
 
-    last_matched_reference = -np.inf
-    last_matched_cost = np.inf
-    for i in range(len(row_ind)):
-        cost = cost_matrix[row_ind[i], col_ind[i]]
-        if abs(peaks_a[row_ind[i]] - peaks_b[col_ind[i]]) >= threshold_max_distance:
-            continue
-        if cost < np.inf:  # Only consider valid pairs
-            current_reference = peaks_b[col_ind[i]]
-            if current_reference >= last_matched_reference:
-                matched_peaks_a.append(peaks_a[row_ind[i]])
-                matched_peaks_b.append(current_reference)
-                matched_distances.append(cost)
-                last_matched_reference = current_reference
-                last_matched_cost = cost
-                intensity_a.append(intensities_a[row_ind[i]])
-                intensity_b.append(intensities_b[col_ind[i]])
-            elif last_matched_cost > cost:
-                matched_peaks_a[-1] = peaks_a[row_ind[i]]
-                matched_peaks_b[-1] = current_reference
-                matched_distances[-1] = cost
-                intensity_a[-1] = intensities_a[row_ind[i]]
-                intensity_b[-1] = intensities_b[col_ind[i]]
-                last_matched_cost = cost
+        # Within tolerance
+        if abs(diff) <= tol:
+            matched_ref.append(ref_val)
+            matched_spe.append(spe_val)
+            distances.append(diff)
+            i += 1
+            j += 1
+        elif spe_val < ref_val:
+            # found peak too low → advance found index
+            j += 1
+        else:
+            # reference too low → advance reference index
+            i += 1
 
-    matched_peaks_a_np = np.array(matched_peaks_a)
-    matched_peaks_b_np = np.array(matched_peaks_b)
-    matched_distances_np = np.array(matched_distances)
+    matched_ref = np.asarray(matched_ref)
+    matched_spe = np.asarray(matched_spe)
+    distances = np.asarray(distances)
 
-    # Sort matched peaks by peaks_a
-    # linear_sum_assignment shall give the row_ind sorted
-    # sorted_indices = np.argsort(matched_peaks_a)
-    # matched_peaks_a = matched_peaks_a[sorted_indices]
-    # matched_peaks_b = matched_peaks_b[sorted_indices]
-    # matched_distances = matched_distances[sorted_indices]
+    # Compute optional intensity difference (for info)
+    ref_int_dict = dict(zip(ref_peaks, ref_intensities))
+    spe_int_dict = dict(zip(found_peaks, found_intensities))
+    inten_diff = np.array([
+        abs(spe_int_dict[s] - ref_int_dict[r]) / (spe_int_dict[s] + ref_int_dict[r] + 1e-9)
+        if (s in spe_int_dict and r in ref_int_dict) else np.nan
+        for s, r in zip(matched_spe, matched_ref)
+    ])
 
-    if df:
-        df = pd.DataFrame(
-            {
-                "spe": matched_peaks_a,
-                "reference": matched_peaks_b,
-                "distances": matched_distances,
-                "intensity_a": intensity_a,
-                "intensity_b": intensity_b,
-            }
-        )
-    else:
-        df = None
-    return (
-        matched_peaks_a_np,
-        matched_peaks_b_np,
-        matched_distances_np,
-        cost_matrix,
-        df,
-    )
+    df = pd.DataFrame({
+        "spe": matched_spe,
+        "reference": matched_ref,
+        "distance": distances,
+        "intensity_diff": inten_diff
+    })
+
+    return matched_spe, matched_ref, distances, df
