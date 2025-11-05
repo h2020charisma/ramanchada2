@@ -10,7 +10,8 @@ from ramanchada2.misc.utils import find_closest_pairs_idx
 
 from ramanchada2.misc.utils.matchsets import (
     match_peaks_optimized, match_peaks_monotonic, 
-    match_peaks_cluster, match_peaks_cluster_robust
+    match_peaks_monotonic_simple,
+    match_peaks_cluster
 )
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
@@ -220,8 +221,7 @@ class XCalibrationComponent(CalibrationComponent):
                 }
             )
             return x_spe, x_reference, x_spe - x_reference, None, df
-     
-        elif self.match_method == "assignment":
+        elif self.match_method == "assignment":  # https://en.wikipedia.org/wiki/Hungarian_algorithm
             try:
                 x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
                     spe_pos_dict=self.spe_pos_dict,
@@ -240,16 +240,16 @@ class XCalibrationComponent(CalibrationComponent):
                 return x_spe, x_reference, x_distance, None, df
         else:  # self.match_method == "monotonic":
             try:
-                x_spe, x_reference, x_distance,  df = match_peaks_cluster_robust(
+                x_spe, x_reference, x_distance,  df = match_peaks_monotonic_simple(
                     spe_pos_dict=self.spe_pos_dict,
                     ref=self.ref,
-                    cost_intensity=0.25,
-                    filter_outliers=True,
-                    outlier_threshold=3.0,  # in standard deviations
+                    tolerance=None,
+                    relative=False,
+                    weight_intensity=.5
                 )
                 return x_spe, x_reference, x_distance, None, df
             except Exception as err:
-                raise err                  
+                raise err
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
