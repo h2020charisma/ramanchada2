@@ -2,7 +2,8 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from typing import Dict, Tuple, NDArray
+from typing import Dict, Tuple
+from numpy.typing import NDArray
 
 
 def match_peaks_cluster(
