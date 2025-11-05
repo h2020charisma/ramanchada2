@@ -308,9 +308,9 @@ def match_peaks_monotonic_simple(
             # reference too low → advance reference index
             i += 1
 
-    matched_ref = np.asarray(matched_ref, dtype=float)
-    matched_spe = np.asarray(matched_spe, dtype=float)
-    distances = np.asarray(distances, dtype=float)
+    matched_ref_array = np.asarray(matched_ref, dtype=float)
+    matched_spe_array = np.asarray(matched_spe, dtype=float)
+    distances_array = np.asarray(distances, dtype=float)
 
     # Compute optional intensity difference (for info)
     ref_int_dict = dict(zip(ref_peaks, ref_intensities))
@@ -318,17 +318,17 @@ def match_peaks_monotonic_simple(
     inten_diff = np.array([
         abs(spe_int_dict[s] - ref_int_dict[r]) / (spe_int_dict[s] + ref_int_dict[r] + 1e-9)
         if (s in spe_int_dict and r in ref_int_dict) else np.nan
-        for s, r in zip(matched_spe, matched_ref)
+        for s, r in zip(matched_spe_array, matched_ref_array)
     ])
 
     df = pd.DataFrame({
         "spe": matched_spe,
-        "reference": matched_ref,
-        "distance": distances,
+        "reference": matched_ref_array,
+        "distance": distances_array,
         "intensity_diff": inten_diff
     })
 
-    return matched_spe, matched_ref, distances, df
+    return matched_spe_array, matched_ref_array, distances_array, df
 
 
 def match_peaks_monotonic_dynamic_programming(
