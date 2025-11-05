@@ -280,9 +280,9 @@ def match_peaks_monotonic_simple(
     ref_intensities = np.asarray([ref[k] for k in sorted(ref.keys())], dtype=float)
     found_intensities = np.asarray([spe_pos_dict[k] for k in sorted(spe_pos_dict.keys())], dtype=float)
 
-    matched_ref = []
-    matched_spe = []
-    distances = []
+    matched_ref: list[float] = []
+    matched_spe: list[float] = []
+    distances: list[float] = []
 
     i = j = 0
     while i < len(ref_peaks) and j < len(found_peaks):
@@ -307,9 +307,9 @@ def match_peaks_monotonic_simple(
             # reference too low → advance reference index
             i += 1
 
-    matched_ref = np.asarray(matched_ref)
-    matched_spe = np.asarray(matched_spe)
-    distances = np.asarray(distances)
+    matched_ref = np.asarray(matched_ref, dtype=float)
+    matched_spe = np.asarray(matched_spe, dtype=float)
+    distances = np.asarray(distances, dtype=float)
 
     # Compute optional intensity difference (for info)
     ref_int_dict = dict(zip(ref_peaks, ref_intensities))
@@ -400,8 +400,8 @@ def match_peaks_monotonic_dynamic_programming(
                     back[i, j] = 3  # skip spe
 
     # Traceback to get matched pairs
-    matched_ref = []
-    matched_spe = []
+    matched_ref: list[float] = []
+    matched_spe: list[float] = []
 
     i, j = n_ref, n_spe
     while i > 0 and j > 0:
