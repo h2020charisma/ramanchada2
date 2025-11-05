@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple, NDArray
 
 
 def match_peaks_cluster(
@@ -435,8 +435,9 @@ def match_peaks_monotonic_dynamic_programming(
         "distance": distances,
         "intensity_diff": inten_diff
     })
-
-    return matched_spe, matched_ref, distances, df
+    matched_spe_array: NDArray[np.float64] = np.array(matched_spe[::-1], dtype=float)
+    matched_ref_array: NDArray[np.float64] = np.array(matched_ref[::-1], dtype=float)
+    return matched_spe_array, matched_ref_array, distances, df
 
 
 def match_peaks_monotonic(
