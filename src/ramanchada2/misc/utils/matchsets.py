@@ -69,10 +69,10 @@ def match_peaks_cluster(
     # Extract cluster labels, x values, and y values
     df["Cluster"] = labels
     grouped = df.groupby("Cluster")
-    x_spe = np.array([])
-    x_reference = np.array([])
-    x_distance = np.array([])
-    clusters = np.array([])
+    x_spe = np.array([], dtype=float)
+    x_reference = np.array([], dtype=float)
+    x_distance = np.array([], dtype=float)
+    clusters = np.array([], dtype=float)
 
     # Iterate through each group
     for cluster, group in grouped:
@@ -416,8 +416,8 @@ def match_peaks_monotonic_dynamic_programming(
             j -= 1
 
     # Reverse because traceback goes from end
-    matched_ref = np.array(matched_ref[::-1])
-    matched_spe = np.array(matched_spe[::-1])
+    matched_ref = np.array(matched_ref[::-1], dtype=float)
+    matched_spe = np.array(matched_spe[::-1], dtype=float)
     distances = matched_spe - matched_ref
 
     # Compute intensity differences
@@ -458,7 +458,7 @@ def match_peaks_monotonic(
     spe_int = np.array([spe_pos_dict[k] for k in sorted(spe_pos_dict.keys())], dtype=float)
 
     if len(ref_peaks) == 0 or len(spe_peaks) == 0:
-        return np.array([]), np.array([]), np.array([]), pd.DataFrame()
+        return np.array([], dtype=float), np.array([], dtype=float), np.array([], dtype=float), pd.DataFrame()
 
     # default tolerance
     if tolerance is None:
