@@ -442,7 +442,7 @@ def match_peaks_monotonic_dynamic_programming(
 def match_peaks_monotonic(
     spe_pos_dict: Dict[float, float],
     ref: Dict[float, float],
-    tolerance: float = None,
+    tolerance: float = 9,
     relative: bool = False,
     weight_intensity: float = 0.5,
     debug: bool = False,
