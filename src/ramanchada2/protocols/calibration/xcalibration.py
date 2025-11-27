@@ -10,8 +10,8 @@ from ramanchada2.misc.utils import find_closest_pairs_idx
 
 from ramanchada2.misc.utils.matchsets import (
     match_peaks_optimized, match_peaks_monotonic, 
-    match_peaks_monotonic_simple,
-    match_peaks_cluster
+    match_peaks_monotonic_simple, 
+    match_peaks_cluster, match_peaks_ready_wrapper
 )
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
@@ -25,10 +25,10 @@ class XCalibrationComponent(CalibrationComponent):
         laser_wl,
         spe: Spectrum,
         ref: Dict[float, float],
-        spe_units: Literal["cm-1", "nm"] = "cm-1",
+        spe_units: Literal["cm-1", "nm", "pixel"] = "cm-1",
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
-        match_method: Literal["cluster", "argmin2d", "assignment", "monotonic"] = "cluster",
+        match_method: Literal["cluster", "argmin2d", "assignment", "monotonic", "dynamicp"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
         extrapolate=True,
     ):
@@ -51,15 +51,18 @@ class XCalibrationComponent(CalibrationComponent):
     def process(
         self,
         old_spe: Spectrum,
-        spe_units: Literal["cm-1", "nm"] = "cm-1",
+        spe_units: Literal["cm-1", "nm", "pixel"] = "cm-1",
         convert_back=False,
     ):
-        logger.debug(
-            "convert spe_units {} --> model units {}".format(
-                spe_units, self.model_units
+        if spe_units == "pixel":
+            new_spe = old_spe.__copy__()
+        else:
+            logger.debug(
+                "convert spe_units {} --> model units {}".format(
+                    spe_units, self.model_units
+                )
             )
-        )
-        new_spe = self.convert_units(old_spe, spe_units, self.model_units)
+            new_spe = self.convert_units(old_spe, spe_units, self.model_units)
 
         if self.model is None:
             return new_spe
@@ -138,11 +141,15 @@ class XCalibrationComponent(CalibrationComponent):
         if fit_peaks_kw is None:
             fit_peaks_kw = {}
         # convert to ref_units
-        logger.debug(
-            "[{}]: convert spe_units {} to ref_units {}".format(
-                self.name, self.spe_units, self.ref_units
+        if self.spe_units == "pixel":
+            print(self.spe_units)
+            pass
+        else:
+            logger.debug(
+                "[{}]: convert spe_units {} to ref_units {}".format(
+                    self.name, self.spe_units, self.ref_units
+                )
             )
-        )
         peaks_df = self.fit_peaks(find_kw, fit_peaks_kw, should_fit)
         x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(
             threshold_max_distance=None, return_df=True
@@ -198,6 +205,7 @@ class XCalibrationComponent(CalibrationComponent):
 
     def match_peaks(self, threshold_max_distance=9, return_df=False):
         print(self.match_method)
+        print(self.spe_pos_dict)
         if self.match_method == "cluster":
             x_spe, x_reference, x_distance, _ = match_peaks_cluster(
                 self.spe_pos_dict, self.ref
@@ -207,6 +215,20 @@ class XCalibrationComponent(CalibrationComponent):
                 {"spe": x_spe, "reference": x_reference, "distances": x_distance}
             )
             return x_spe, x_reference, x_distance, cost_matrix, df
+        elif self.match_method == "dynamicp":
+            x_spe, x_reference, x_distance, _ = match_peaks_ready_wrapper(
+                self.spe_pos_dict, self.ref
+                #alpha=1.0,
+                #gamma=2.0,
+                #skip_baseline=0.02,
+                #tolerance=None,
+                #normalize=True, 
+            )
+            cost_matrix = None
+            df = pd.DataFrame(
+                {"spe": x_spe, "reference": x_reference, "distances": x_distance}
+            )
+            return x_spe, x_reference, x_distance, cost_matrix, df        
         elif self.match_method == "argmin2d":
             x = np.array(list(self.spe_pos_dict.keys()))
             y = np.array(list(self.ref.keys()))
@@ -226,7 +248,7 @@ class XCalibrationComponent(CalibrationComponent):
                 x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
                     spe_pos_dict=self.spe_pos_dict,
                     ref=self.ref,
-                    tolerance=None, relative=False, weight_intensity=0.9
+                    tolerance=100, relative=False, weight_intensity=0.9
                 )
                 return x_spe, x_reference, x_distance, cost_matrix, df
             except Exception as err:
@@ -243,7 +265,7 @@ class XCalibrationComponent(CalibrationComponent):
                 x_spe, x_reference, x_distance,  df = match_peaks_monotonic_simple(
                     spe_pos_dict=self.spe_pos_dict,
                     ref=self.ref,
-                    tolerance=None,
+                    tolerance=100,
                     relative=False,
                     weight_intensity=.5
                 )
@@ -252,7 +274,10 @@ class XCalibrationComponent(CalibrationComponent):
                 raise err
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
-        spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
+        if self.spe_units != "pixel":
+            spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
+        else:
+            spe_to_process = self.spe.__copy__()
         logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
 
         peaks_df = None
@@ -311,11 +336,13 @@ class LazerZeroingComponent(CalibrationComponent):
         df = self.fit_res.to_dataframe_peaks()
         # df = self.fitres2df(self.spe)
         # highest peak first
-        df = df.sort_values(by="height", ascending=False)
+        print(df.shape, df.columns)
+        
         # df = df.sort_values(by='amplitude', ascending=False)
         if df.empty:
             raise Exception("No peaks found")
         else:
+            df = df.sort_values(by="height", ascending=False)            
             if "position" in df.columns:
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:

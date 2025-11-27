@@ -542,3 +542,222 @@ def _dp_match_partial_core(ref_peaks, ref_int, spe_peaks, spe_int,
         print(f"[DP partial] Traceback complete. {len(matched_ref)} matches, mean distance {np.mean(distances) if len(distances)>0 else np.nan:.3f}")
 
     return matched_ref, matched_spe, distances
+
+
+def match_peaks_ready(measured_pixels, ref_wavelengths,
+                      measured_intensities=None,
+                      alpha=1.0, gamma=2.0,
+                      skip_baseline=0.02, tolerance=None,
+                      normalize=False):
+    """
+    Monotonic one-to-one peak alignment using dynamic programming.
+
+    Aligns measured peaks to reference peaks, allowing skips. 
+    Match cost is based on position differences and favors stronger measured peaks nonlinearly.
+    Skip cost depends on measured peak intensity plus an optional baseline. Positions can be optionally normalized.
+
+    Parameters
+    ----------
+    measured_pixels : array_like
+        Array of measured peak positions (e.g., pixel indices, wavelengths).
+    ref_wavelengths : array_like
+        Array of reference peak positions to align to.
+    measured_intensities : array_like, optional
+        Array of measured peak intensities. Stronger peaks are preferred in matching.
+        Defaults to None, in which case all peaks are treated equally.
+    alpha : float, optional
+        Linear weighting factor for measured peak intensity in match cost. Default is 1.0.
+        Set alpha=0 to ignore intensity.
+    gamma : float, optional
+        Exponent to nonlinearly amplify strong peaks in match cost. Default is 2.0.
+    skip_baseline : float, optional
+        Small constant added to skip cost for all measured peaks to prevent medium peaks
+        from being skipped too cheaply. Default is 0.02.
+    tolerance : float, optional
+        Maximum allowed normalized position difference for a match. Peaks beyond this
+        are penalized. If None, a default based on median reference spacing is used.
+    normalize : bool, optional
+        If True, positions are normalized to [0,1] for scale-independent computation. 
+        Default is False.
+
+    Returns
+    -------
+    mp_out : ndarray
+        Array of measured peaks that were matched to reference peaks.
+    rw_out : ndarray
+        Array of corresponding matched reference peaks.
+    pairs : list of tuples
+        List of matched pairs as (measured_peak, reference_peak).
+    DP : ndarray
+        Dynamic programming table of cumulative costs.
+    path : list of tuples
+        Backtracked path through the DP table showing the sequence of matches and skips.
+    k : float
+        Automatically computed skip weight based on reference spacing.
+
+    Notes
+    -----
+    - The algorithm is monotonic: peaks are matched in order and one-to-one.
+    - Match cost favors strong measured peaks via alpha and gamma.
+    - Skip cost depends only on measured intensity plus optional baseline.
+    - Using normalized positions makes the method scale-independent; set `normalize=True`.
+    - Strong measured peaks are more likely to be matched, while weak/noisy peaks can be skipped.
+    """
+    mp = np.array(measured_pixels, dtype=float)
+    rw = np.array(ref_wavelengths, dtype=float)
+    n, m = len(mp), len(rw)
+
+    # Normalize positions to [0,1]
+    if normalize:
+        mp_p = (mp - mp.min()) / (mp.max() - mp.min()) if n > 1 else np.zeros_like(mp)
+        rw_p = (rw - rw.min()) / (rw.max() - rw.min()) if m > 1 else np.zeros_like(rw)
+    else:
+        mp_p = mp
+        rw_p = rw
+    # Normalize measured intensity
+    if measured_intensities is not None:
+        mp_i = np.array(measured_intensities, dtype=float)
+        mp_i = mp_i / (mp_i.max() + 1e-12)
+    else:
+        mp_i = np.ones(n)
+
+    # Automatic skip weight based on reference median step
+    if m > 1:
+        delta_pos = np.median(np.diff(np.sort(rw_p)))
+    else:
+        delta_pos = 1.0
+    k = delta_pos / 0.5
+
+    # Set default tolerance if not provided
+    if tolerance is None and m > 1:
+        tolerance = delta_pos
+
+    # Large penalty for out-of-tolerance matches
+    large_penalty = 10 * delta_pos
+
+    # DP table
+    DP = np.full((n+1, m+1), np.inf)
+    DP[0,0] = 0.0
+
+    # Fill DP table
+    for i in range(n+1):
+        for j in range(m+1):
+            # Skip measured
+            if i > 0:
+                DP[i,j] = min(DP[i,j], DP[i-1,j] + k * mp_i[i-1] + skip_baseline)
+            # Skip reference (free)
+            if j > 0:
+                DP[i,j] = min(DP[i,j], DP[i,j-1])
+            # Match
+            if i > 0 and j > 0:
+                pos_diff = abs(mp_p[i-1] - rw_p[j-1])
+                if tolerance is None or pos_diff <= tolerance:
+                    cost = pos_diff / (1 + alpha * mp_i[i-1])**gamma
+                else:
+                    cost = large_penalty
+                DP[i,j] = min(DP[i,j], DP[i-1,j-1] + cost)
+
+    # Backtrack to get matched pairs
+    i, j = n, m
+    pairs = []
+    path = [(i,j)]
+    while i > 0 or j > 0:
+        if i > 0 and j > 0:
+            pos_diff = abs(mp_p[i-1] - rw_p[j-1])
+            if tolerance is None or pos_diff <= tolerance:
+                cost = pos_diff / (1 + alpha * mp_i[i-1])**gamma
+            else:
+                cost = large_penalty
+            if DP[i,j] == DP[i-1,j-1] + cost:
+                pairs.append((mp[i-1], rw[j-1]))
+                i -= 1
+                j -= 1
+                path.append((i,j))
+                continue
+        if i > 0 and DP[i,j] == DP[i-1,j] + k * mp_i[i-1] + skip_baseline:
+            i -= 1
+            path.append((i,j))
+            continue
+        if j > 0 and DP[i,j] == DP[i,j-1]:
+            j -= 1
+            path.append((i,j))
+            continue
+
+    pairs.reverse()
+    path = path[::-1]
+    mp_out, rw_out = zip(*pairs) if pairs else ([], [])
+    return np.array(mp_out), np.array(rw_out), pairs, DP, path, k
+
+
+def match_peaks_ready_wrapper(
+    spe_pos_dict: Dict[float, float],
+    ref: Dict[float, float],
+    alpha=1.0,
+    gamma=2.0,
+    skip_baseline=0.02,
+    tolerance=None,
+    normalize=True,
+):
+    """
+    Wrapper around match_peaks_ready that returns the same structure as
+    match_peaks_cluster but preserves DP behavior.
+    """
+
+    # ----------------------------------------------------------
+    # Convert inputs (NO filtering)
+    # ----------------------------------------------------------
+    spe_wl = np.array(list(spe_pos_dict.keys()), dtype=float)
+    spe_int = np.array(list(spe_pos_dict.values()), dtype=float)
+    ref_wl = np.array(list(ref.keys()), dtype=float)
+    ref_int = np.array(list(ref.values()), dtype=float)
+
+    # ----------------------------------------------------------
+    # Run DP exactly as-is
+    # ----------------------------------------------------------
+    mp_out, rw_out, pairs, DP, path, k = match_peaks_ready(
+        measured_pixels=spe_wl,
+        ref_wavelengths=ref_wl,
+        measured_intensities=spe_int,
+        alpha=alpha,
+        gamma=gamma,
+        skip_baseline=skip_baseline,
+        tolerance=tolerance,
+        normalize=normalize,
+    )
+
+    # ----------------------------------------------------------
+    # Sort by measured wavelength to match cluster output shape
+    # ----------------------------------------------------------
+    if len(mp_out) > 0:
+        sort_idx = np.argsort(mp_out)
+        x_spe_sorted = mp_out[sort_idx]
+        x_reference_sorted = rw_out[sort_idx]
+    else:
+        x_spe_sorted = np.array([])
+        x_reference_sorted = np.array([])
+
+    # ----------------------------------------------------------
+    # Build compatibility DataFrame (same structure as cluster version)
+    # ----------------------------------------------------------
+    wl_label = "Wavelength"
+    intensity_label = "Intensity"
+    source_label = "Source"
+
+    df_spe = pd.DataFrame({
+        wl_label: spe_wl,
+        intensity_label: spe_int,
+        source_label: "spe"
+    })
+    df_ref = pd.DataFrame({
+        wl_label: ref_wl,
+        intensity_label: ref_int,
+        source_label: "reference"
+    })
+
+    df = pd.concat([df_spe, df_ref], ignore_index=True)
+
+    # ----------------------------------------------------------
+    # Return DP matrix directly in place of "distance"
+    # ----------------------------------------------------------
+    return x_spe_sorted, x_reference_sorted, DP, df
+
