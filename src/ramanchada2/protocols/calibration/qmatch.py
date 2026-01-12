@@ -1,7 +1,9 @@
 from scipy.interpolate import PchipInterpolator
 from sklearn.isotonic import IsotonicRegression
-
+from ramanchada2.misc.utils import argmin2d
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def normalize(arr):
     arr = np.asarray(arr, dtype=float)
@@ -22,41 +24,6 @@ def quantile_map(x, y, q=(0.05,  0.5,  0.95)):
     return np.poly1d(a)
 
 
-def deduplicate_points(x, y, min_sep=1e-10):
-    """
-    When x values are too close, average their y values.
-    """
-    x = np.asarray(x)
-    y = np.asarray(y)
-    
-    # Sort
-    idx = np.argsort(x)
-    x = x[idx]
-    y = y[idx]
-    
-    # Group nearby points
-    groups = []
-    current_group_x = [x[0]]
-    current_group_y = [y[0]]
-    
-    for i in range(1, len(x)):
-        if x[i] - x[i-1] < min_sep:
-            # Same group
-            current_group_x.append(x[i])
-            current_group_y.append(y[i])
-        else:
-            # New group - save old one
-            groups.append((np.mean(current_group_x), np.mean(current_group_y)))
-            current_group_x = [x[i]]
-            current_group_y = [y[i]]
-    
-    # Don't forget last group
-    groups.append((np.mean(current_group_x), np.mean(current_group_y)))
-    
-    x_out, y_out = zip(*groups)
-    return np.array(x_out), np.array(y_out)
-
-
 def robust_pchip_fit(x, y, max_iter=5, sigma=0.02):
     """
     Iterative robust monotone fit.
@@ -68,10 +35,61 @@ def robust_pchip_fit(x, y, max_iter=5, sigma=0.02):
         resid = y - spline(x)
         mad = np.median(np.abs(resid))
         mask = np.abs(resid) < sigma * max(mad, 1e-6)
-        #print(mad)
+        print(mad, len(mask))
+    return x[mask], y[mask], mask
 
+
+def robust_pchip_fit_simple(x, y, n_sigma=3.0):
+    """
+    Single-pass robust fit.
+    """
+    # Initial fit on all points
+    spline = PchipInterpolator(x, y, extrapolate=False)
+    resid = y - spline(x)
+    
+    # Detect outliers
+    mad = np.median(np.abs(resid))
+    threshold = n_sigma * mad
+    mask = np.abs(resid) <= threshold
+    
+    print(f"  Outlier removal: {mask.sum()}/{len(x)} inliers, "
+          f"MAD={mad:.6f}, threshold={threshold:.6f}")
+    
+    # Refit without outliers
     return PchipInterpolator(x[mask], y[mask], extrapolate=False), mask
 
+
+def robust_pchip_fit_percentile(x, y, max_iter=3, percentile=90):
+    """
+    Iterative robust fit keeping best X% of points by residual.
+    """
+    mask = np.ones(len(x), dtype=bool)
+    
+    for iteration in range(max_iter):
+        x_fit = x[mask]
+        y_fit = y[mask]
+        
+        if len(x_fit) < 3:
+            break
+        
+        spline = PchipInterpolator(x_fit, y_fit, extrapolate=True)
+        resid = np.abs(y - spline(x))
+        
+        # Keep best percentile
+        threshold = np.percentile(resid, percentile)
+        new_mask = resid <= threshold
+        
+        n_inliers = new_mask.sum()
+        print(f"  Iteration {iteration}: {n_inliers}/{len(x)} inliers, "
+              f"{percentile}th percentile threshold={threshold:.6f}")
+        
+        if np.array_equal(mask, new_mask):
+            print(f"  Converged")
+            break
+        
+        mask = new_mask
+    
+    return x[mask], y[mask], mask
 
 def invert_monotone(x, y):
     """Build inverse, keeping only monotonic points."""
@@ -90,63 +108,39 @@ def invert_monotone(x, y):
     return PchipInterpolator(y[keep], x[keep])
 
 
-def collapse_candidates_pre_fit(x_n, y_n, f0):
+def estimate_median_limit_from_data(A, n_sigma=3.0):
     """
-    Enforce one-to-one mapping BEFORE PCHIP.
-    For each x, keep the y closest to the coarse model f0(x).
+    Estimate median_limit: multiplier such that threshold = median × median_limit
     """
-    best = {}
-
-    for xi, yi in zip(x_n, y_n):
-        err = abs(yi - f0(xi))
-        if xi not in best or err < best[xi][1]:
-            best[xi] = (yi, err)
-
-    x_out = np.array(list(best.keys()))
-    y_out = np.array([v[0] for v in best.values()])
-
-    # enforce sorted order (critical for PCHIP)
-    idx = np.argsort(x_out)
-    return x_out[idx], y_out[idx]
-
-def enforce_monotone_average(x, y, eps=1e-10):
-    x = np.asarray(x)
-    y = np.asarray(y)
-
-    x_out = [x[0]]
-    y_out = [y[0]]
-
-    for xi, yi in zip(x[1:], y[1:]):
-        if yi <= y_out[-1] + eps:
-            # collapse into previous
-            y_out[-1] = 0.5 * (y_out[-1] + yi)
-        else:
-            x_out.append(xi)
-            y_out.append(yi)
-
-    return np.array(x_out), np.array(y_out)
-
-
-def candidate_matches(x, y, f0, tol=0.03):
-    """
-    x: detected peaks (normalized)
-    y: reference lines (normalized)
-    f0: coarse mapping
-    tol: normalized tolerance
-    """
-    pairs = []
-    for xi in x:
-        yi_pred = f0(xi)
-        idx = np.where(np.abs(y - yi_pred) < tol)[0]
-        for j in idx:
-            pairs.append((xi, y[j]))
-    return np.array(pairs)
+    # Minimum distances
+    min_dist_per_ref = np.min(A, axis=1)
+    min_dist_per_peak = np.min(A, axis=0)
+    all_min_dist = np.concatenate([min_dist_per_ref, min_dist_per_peak])
+    
+    med = np.median(all_min_dist)
+    mad = np.median(np.abs(all_min_dist - med))
+    
+    print(f"\nAdaptive median_limit:")
+    print(f"  Median distance: {med:.6f}")
+    print(f"  MAD: {mad:.6f}")
+    
+    if med < 1e-10 or mad < 1e-10:
+        print(f"  Using default: 10.0")
+        return 10.0
+    
+    # median_limit = (med + n_sigma*mad) / med = 1 + n_sigma*(mad/med)
+    median_limit = 1.0 + n_sigma * (mad / med)
+    
+    print(f"  median_limit = 1 + {n_sigma} × (MAD/median) = {median_limit:.2f}")
+    print(f"Keep distances ≤ {median_limit:.2f} × median")
+    
+    return median_limit
 
 
 def universal_dispersion_calibration(
     peaks_measured,
     reference_lines,
-    tol=0.04
+    median_limit=10.0
 ):
     # --- Normalize ---
     x_n, x0, x1 = normalize(peaks_measured)
@@ -155,43 +149,64 @@ def universal_dispersion_calibration(
     # --- Quantile-based initial map ---
     f0 = quantile_map(x_n, y_n)
 
-    # --- Candidate matching (normalized space) ---
-    pairs_n = candidate_matches(x_n, y_n, f0, tol=tol)
-    if len(pairs_n) < 2:
-        raise RuntimeError("Not enough matched peaks")
-
-    x_fit_n = pairs_n[:, 0]
-    y_fit_n = pairs_n[:, 1]
-
-    #print(pairs_n)
-    # 🔥 FIX: collapse BEFORE PCHIP
-    x_fit, y_fit = collapse_candidates_pre_fit(x_fit_n, y_fit_n, f0)
-    #print(x_fit, y_fit)
+    # --- Use mutual nearest neighbors instead of tolerance matching ---
     
-    ir = IsotonicRegression(increasing=True)
-    y_iso = ir.fit_transform(x_fit, y_fit)
+    # Build distance matrix: A[i,j] = error for matching y[i] to x[j]
+    # Error = |y[i] - f0(x[j])|
+    A = np.abs(y_n[:, None] - f0(x_n)[None, :])
+    min_distances = np.min(A, axis=1)
+    plt.hist(min_distances)
+    print(f"{min(min_distances) , max(min_distances)}")
+    if median_limit is None:
+        median_limit = estimate_median_limit_from_data(A, n_sigma=6)
+    
+    print(f"Distance matrix shape: {A.shape} ({len(y_n)} ref lines × {len(x_n)} detected peaks) tollerance {median_limit}")
+
+    # Find mutual nearest neighbors
+    matches = argmin2d(A, median_limit=median_limit)
+    
+    print(f"Mutual NN matches: {len(matches)}")
+    
+    if len(matches) < 2:
+        raise RuntimeError("Not enough mutual NN matches")
+    
+    # Extract matched pairs (y_idx, x_idx)
+    y_idx = matches[:, 0]
+    x_idx = matches[:, 1]
+    
+    x_fit_n = x_n[x_idx]
+    y_fit_n = y_n[y_idx]
+
+    pairs_n = np.column_stack([x_fit_n, y_fit_n])
+
+    
+    # Sort by x
+    idx = np.argsort(x_fit_n)
+    x_fit = x_fit_n[idx]
+    y_fit = y_fit_n[idx]
+    
+    print(f"Final pairs: {len(x_fit)}")
+    print(f"  Unique x: {len(np.unique(x_fit))}")
+    print(f"  Unique y: {len(np.unique(y_fit))}")
+    
+    # Verify no duplicates
+    assert len(x_fit) == len(np.unique(x_fit)), "Duplicate x values!"
+    assert len(y_fit) == len(np.unique(y_fit)), "Duplicate y values!"
+
     # --- Robust monotone fit ---
-    spline_n, inlier_mask = robust_pchip_fit(x_fit, y_iso)
+    x, y, inlier_mask =  robust_pchip_fit_percentile(x_fit, y_fit)
+    spline_n = PchipInterpolator(x, y, extrapolate=True)
 
     # --- Forward / inverse mappings (original units) ---
     def forward(x):
         x = np.asarray(x, dtype=float)
         x_nq = (x - x0) / (x1 - x0)     # use calibration normalization
         return denormalize(spline_n(x_nq), y0, y1)
-    
-    #xf, yf = enforce_monotone_average(
-    #    x_fit[inlier_mask],
-    #    y_fit[inlier_mask]
-    #)
-    iri = IsotonicRegression(increasing=True)
-    yi_iso = iri.fit_transform(x_fit[inlier_mask], y_fit[inlier_mask])    
-    inv_n = invert_monotone(x_fit[inlier_mask], yi_iso)
 
-    def inverse(y):
-        y = np.asarray(y, dtype=float)
-        y_nq = (y - y0) / (y1 - y0)
-        return denormalize(inv_n(y_nq), x0, x1)
-
+    #def inverse(y):
+    #    y = np.asarray(y, dtype=float)
+    #    y_nq = (y - y0) / (y1 - y0)
+    #    return denormalize(inv_n(y_nq), x0, x1)
 
     # --- Matched pairs for inspection ---
 
@@ -209,7 +224,7 @@ def universal_dispersion_calibration(
 
     return {
         "forward": forward,
-        "inverse": inverse,
+        #"inverse": inverse,
         #"pairs_all": pairs_all,
         "pairs_inliers": pairs_inliers,
         #"pairs_all_normalized": pairs_all_n,
