@@ -1,4 +1,5 @@
 from scipy.interpolate import PchipInterpolator
+from sklearn.isotonic import IsotonicRegression
 
 import numpy as np
 
@@ -11,7 +12,7 @@ def denormalize(arr_n, a0, a1):
     return arr_n * (a1 - a0) + a0
 
 
-def quantile_map(x, y, q=(0.05, 0.5, 0.95)):
+def quantile_map(x, y, q=(0.05,  0.5,  0.95)):
     """
     Build coarse linear map using quantiles.
     """
@@ -63,13 +64,13 @@ def robust_pchip_fit(x, y, max_iter=5, sigma=0.02):
     mask = np.ones(len(x), dtype=bool)
 
     for _ in range(max_iter):
-        spline = PchipInterpolator(x[mask], y[mask])
+        spline = PchipInterpolator(x[mask], y[mask], extrapolate=False)
         resid = y - spline(x)
         mad = np.median(np.abs(resid))
         mask = np.abs(resid) < sigma * max(mad, 1e-6)
         #print(mad)
 
-    return PchipInterpolator(x[mask], y[mask]), mask
+    return PchipInterpolator(x[mask], y[mask], extrapolate=False), mask
 
 
 def invert_monotone(x, y):
@@ -108,6 +109,23 @@ def collapse_candidates_pre_fit(x_n, y_n, f0):
     idx = np.argsort(x_out)
     return x_out[idx], y_out[idx]
 
+def enforce_monotone_average(x, y, eps=1e-10):
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    x_out = [x[0]]
+    y_out = [y[0]]
+
+    for xi, yi in zip(x[1:], y[1:]):
+        if yi <= y_out[-1] + eps:
+            # collapse into previous
+            y_out[-1] = 0.5 * (y_out[-1] + yi)
+        else:
+            x_out.append(xi)
+            y_out.append(yi)
+
+    return np.array(x_out), np.array(y_out)
+
 
 def candidate_matches(x, y, f0, tol=0.03):
     """
@@ -128,7 +146,7 @@ def candidate_matches(x, y, f0, tol=0.03):
 def universal_dispersion_calibration(
     peaks_measured,
     reference_lines,
-    tol=0.03
+    tol=0.04
 ):
     # --- Normalize ---
     x_n, x0, x1 = normalize(peaks_measured)
@@ -149,19 +167,31 @@ def universal_dispersion_calibration(
     # 🔥 FIX: collapse BEFORE PCHIP
     x_fit, y_fit = collapse_candidates_pre_fit(x_fit_n, y_fit_n, f0)
     #print(x_fit, y_fit)
+    
+    ir = IsotonicRegression(increasing=True)
+    y_iso = ir.fit_transform(x_fit, y_fit)
     # --- Robust monotone fit ---
-    spline_n, inlier_mask = robust_pchip_fit(x_fit, y_fit)
+    spline_n, inlier_mask = robust_pchip_fit(x_fit, y_iso)
 
     # --- Forward / inverse mappings (original units) ---
     def forward(x):
-        x_nq = normalize(x)[0]
+        x = np.asarray(x, dtype=float)
+        x_nq = (x - x0) / (x1 - x0)     # use calibration normalization
         return denormalize(spline_n(x_nq), y0, y1)
-
-    inv_n = invert_monotone(x_fit[inlier_mask], y_fit[inlier_mask])
+    
+    #xf, yf = enforce_monotone_average(
+    #    x_fit[inlier_mask],
+    #    y_fit[inlier_mask]
+    #)
+    iri = IsotonicRegression(increasing=True)
+    yi_iso = iri.fit_transform(x_fit[inlier_mask], y_fit[inlier_mask])    
+    inv_n = invert_monotone(x_fit[inlier_mask], yi_iso)
 
     def inverse(y):
-        y_nq = normalize(y)[0]
+        y = np.asarray(y, dtype=float)
+        y_nq = (y - y0) / (y1 - y0)
         return denormalize(inv_n(y_nq), x0, x1)
+
 
     # --- Matched pairs for inspection ---
 
@@ -198,8 +228,3 @@ def universal_dispersion_calibration(
 # convert full spectrum
 #pixel_axis = np.arange(1600)
 #raman_axis = fwd(pixel_axis)
-
-ne_peaks_cwa = [
-    [533.07775,540.05616,556.27662,565.66588,571.92248,574.82985,576.44188,580.44496,582.01558,585.24878,587.28275,588.1895,590.24623,594.4834,596.5471,598.79074,602.99968,607.43376,609.6163,612.84498,614.30627,616.35937,618.2146,621.72812,626.64952,630.47893,633.44276,638.29914,640.2248,650.65277,653.28824,659.89528,667.82766,671.7043,692.94672,702.405,703.24128,705.91079,717.3938,724.51665,748.88712,753.57739,754.40439,794.31805,808.24576,811.85495,813.64061,830.03248,836.57464,837.7607,846.33569,849.53591,854.46952,857.13535,859.12583,863.46472,870.41122,877.16575,878.37539,885.38669,891.95007,898.85564,914.8672,920.17588,927.55191,930.08532,932.65072,937.33079,942.53797,945.9211,948.66825,953.4164,954.74052,966.542],
-    [0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00005,0.00004,0.00005,0.00004,0.00005,0.00004,0.00004,0.00005,0.00005,0.00005,0.00004,0.00005,0.00005,0.00004,0.00005,0.00005,0.00005,0.00005,0.00005,0.0001,0.00005,0.00005,0.00005,0.00005,0.00005,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.0001,0.00004,0.00004,0.00004,0.00004,0.00004,0.00004,0.0001,0.0001,0.00004,0.00004,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.00005]
-]
