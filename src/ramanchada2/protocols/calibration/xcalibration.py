@@ -5,6 +5,7 @@ from typing import Dict, Literal
 import numpy as np
 import pandas as pd
 from scipy.interpolate import CubicSpline, PchipInterpolator, RBFInterpolator
+from ramanchada2.protocols.calibration import qmatch
 
 from ramanchada2.misc.utils import find_closest_pairs_idx
 
@@ -28,8 +29,8 @@ class XCalibrationComponent(CalibrationComponent):
         spe_units: Literal["cm-1", "nm", "pixel"] = "cm-1",
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
-        match_method: Literal["cluster", "argmin2d", "assignment", "monotonic", "dynamicp"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
+        match_method: Literal["cluster", "argmin2d", "assignment", "monotonic", "dynamicp", "qargmin2d"] = "cluster",
+        interpolator_method: Literal["rbf", "pchip", "cubic_spline", "pchippoly"] = "pchip",
         extrapolate=True,
     ):
         super(XCalibrationComponent, self).__init__(
@@ -69,6 +70,8 @@ class XCalibrationComponent(CalibrationComponent):
             else:
                 if isinstance(self.model, CustomPChipInterpolator):
                     new_spe.x = self.model(new_spe.x)
+                elif isinstance(self.model, CustomPolyInterpolator):
+                    new_spe.x = self.model(new_spe.x)                    
                 elif isinstance(self.model, CustomRBFInterpolator):
                     new_spe.x = self.model(new_spe.x.reshape(-1, 1))
                     if not self.extrapolate:
@@ -214,9 +217,33 @@ class XCalibrationComponent(CalibrationComponent):
             self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
             try:
-                if self.interpolator_method == "pchip":
-                    # kwargs = {"kernel": "thin_plate_spline"}
-                    interp = CustomPChipInterpolator(x_spe, x_reference)
+                if self.interpolator_method in ["pchip", "pchippoly"]:
+    # --------------------------------------------------------
+    # Inverse spline: spe = f(reference)
+    # --------------------------------------------------------                    
+                    inverse = CustomPChipInterpolator(x_reference, x_spe)
+    # --------------------------------------------------------
+    # Dense sampling in reference space
+    # --------------------------------------------------------                    
+                    dense_reference = np.linspace(
+                        x_reference[0],
+                        x_reference[-1],
+                        max(2048, 10*len(x_reference)) # N≫number of original knots
+                        # Anything smaller gives you no benefit over the raw calibration.
+                    )
+    # --------------------------------------------------------
+    # Enforce monotonic ordering (important for polyfit)
+    # --------------------------------------------------------
+                    dense_spe = inverse(dense_reference)
+                    order = np.argsort(dense_spe)
+                    dense_spe = dense_spe[order]
+                    dense_reference = dense_reference[order]  
+                    if  self.interpolator_method == "pchip":
+                        interp = CustomPChipInterpolator(dense_spe, dense_reference)
+                    else:
+                        interp = CustomPolyInterpolator(dense_spe, dense_reference)
+                    # direct
+                    #interp_raw = CustomPChipInterpolator(x_spe, x_reference)
                 elif self.interpolator_method == "cubic_spline":
                     kwargs = {"bc_type": "clamped"}
                     interp = CustomCubicSplineInterpolator(x_spe, x_reference, **kwargs)
@@ -236,7 +263,7 @@ class XCalibrationComponent(CalibrationComponent):
 
     def match_peaks(self, threshold_max_distance=9, return_df=False):
         _match_method = self.match_method
-        if self.spe_units == "pixel":
+        if self.spe_units == "pixel" and self.match_method != "qargmin2d":
             _match_method = "dynamicp"
         print(self.match_method)
         print(f"spe_pos_dict {self.spe_pos_dict}, \nref {self.ref}")
@@ -245,9 +272,12 @@ class XCalibrationComponent(CalibrationComponent):
                 self.spe_pos_dict, self.ref,
                 #_filter_range = self.spe_units != "pixel"
             )
+            x_inliers, y_inliers, inlier_mask = qmatch.iterative_linear_filter(
+                x_spe, x_reference, n_sigma=3
+            )            
             cost_matrix = None
             df = pd.DataFrame(
-                {"spe": x_spe, "reference": x_reference, "distances": x_distance}
+                {"spe": x_inliers, "reference": y_inliers, "distances": None}
             )
             return x_spe, x_reference, x_distance, cost_matrix, df
         elif _match_method == "dynamicp":
@@ -264,6 +294,32 @@ class XCalibrationComponent(CalibrationComponent):
             #    {"spe": x_spe, "reference": x_reference, "distances": None}
             #)
             return x_spe, x_reference, x_spe - x_reference, cost_matrix, df
+        elif _match_method == "qargmin2d":
+            x = np.array(list(self.spe_pos_dict.keys()))
+            y = np.array(list(self.ref.keys()))
+            if self.spe_units == "pixel":
+                x_idx, y_idx = qmatch.find_closest_pairs_quantile_idx(x,y,n_sigma=3)
+            else:
+                x_idx, y_idx = find_closest_pairs_idx(x, y)
+            x_spe = x[x_idx]
+            x_reference = y[y_idx]
+            # Sort by x
+            idx = np.argsort(x_spe)
+            x_spe = x_spe[idx]
+            x_reference = x_reference[idx]     
+            #iterative_linear_filter       
+            x_inliers, y_inliers, inlier_mask = qmatch.linear_residual_filter(
+                x_spe, x_reference, n_sigma=3
+            )
+            print(f"Outliers found {len(x_spe)-len(x_inliers)}")
+            df = pd.DataFrame(
+                {
+                    "spe": x_inliers,
+                    "reference": y_inliers,
+                    "distances": x_inliers - y_inliers,
+                }
+            )
+            return x_spe, x_reference, x_spe - x_reference, None, df        
         elif _match_method == "argmin2d":
             x = np.array(list(self.spe_pos_dict.keys()))
             y = np.array(list(self.ref.keys()))
@@ -582,3 +638,118 @@ class CustomCubicSplineInterpolator(CubicSpline):
     def __str__(self):
         return f"Cubic Spline Interpolator with {len(self.x)} points."
 
+
+class CustomPolyInterpolator:
+    def __init__(self, x, y, max_degree=3):
+        self.x = np.asarray(x, dtype=float)
+        self.y = np.asarray(y, dtype=float)
+        self.max_degree = max_degree
+
+        # enforce monotonic ordering in x
+        order = np.argsort(self.x)
+        self.x = self.x[order]
+        self.y = self.y[order]
+
+        # normalize x for numerical stability
+        self.x_min = self.x.min()
+        self.x_max = self.x.max()
+
+        u = (self.x - self.x_min) / (self.x_max - self.x_min)
+
+        # choose degree ≤ max_degree by max residual
+        best_err = np.inf
+        best_coeff = None
+        best_deg = None
+
+        for deg in range(2, max_degree + 1):
+            coeff = np.polyfit(u, self.y, deg)
+            pred = np.polyval(coeff, u)
+            err = np.max(np.abs(pred - self.y))
+
+            if err < best_err:
+                best_err = err
+                best_coeff = coeff
+                best_deg = deg
+
+        self.coef = best_coeff
+        self.degree = best_deg
+        self.fit_error = best_err
+
+    # --------------------------------------------------------
+    # Callable interface (like PchipInterpolator)
+    # --------------------------------------------------------
+    def __call__(self, x):
+        x = np.asarray(x, dtype=float)
+        u = (x - self.x_min) / (self.x_max - self.x_min)
+        return np.polyval(self.coef, u)
+
+    # --------------------------------------------------------
+    # Serialization
+    # --------------------------------------------------------
+    @staticmethod
+    def from_dict(poly_dict=None):
+        if poly_dict is None:
+            poly_dict = {}
+
+        obj = CustomPolyInterpolator(
+            np.array(poly_dict["x"]),
+            np.array(poly_dict["y"]),
+            max_degree=poly_dict.get("degree", 3),
+        )
+
+        # overwrite learned parameters
+        obj.coef = np.array(poly_dict["coef"])
+        obj.degree = poly_dict["degree"]
+        obj.x_min = poly_dict["x_min"]
+        obj.x_max = poly_dict["x_max"]
+        obj.fit_error = poly_dict.get("fit_error", None)
+
+        return obj
+
+    def to_dict(self):
+        return {
+            "x": self.x.tolist(),
+            "y": self.y.tolist(),
+            "coef": self.coef.tolist(),
+            "degree": int(self.degree),
+            "x_min": float(self.x_min),
+            "x_max": float(self.x_max),
+            "fit_error": None if self.fit_error is None else float(self.fit_error),
+        }
+
+    def save_coefficients(self, filename):
+        with open(filename, "w") as f:
+            json.dump(self.to_dict(), f)
+
+    @classmethod
+    def load_coefficients(cls, filename):
+        with open(filename, "r") as f:
+            coeffs = json.load(f)
+        return cls.from_dict(coeffs)
+
+    # --------------------------------------------------------
+    # Plot
+    # --------------------------------------------------------
+    def plot(self, ax):
+        ax.scatter(self.x, self.y, marker="+", color="blue", label="Original data")
+
+        x_range = np.linspace(self.x.min(), self.x.max(), 500)
+        y_pred = self(x_range)
+
+        ax.plot(
+            x_range,
+            y_pred,
+            color="red",
+            linestyle="-",
+            label=f"Polynomial degree {self.degree}",
+        )
+        ax.set_xlabel("Original")
+        ax.set_ylabel("Reference")
+        ax.grid(which="both", linestyle="--", linewidth=0.5, color="gray")
+        ax.legend()
+
+    def __str__(self):
+        return (
+            f"Calibration curve {len(self.y)} points "
+            f"(Polynomial degree {self.degree})"
+        )

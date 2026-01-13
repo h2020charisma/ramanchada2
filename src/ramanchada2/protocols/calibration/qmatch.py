@@ -10,8 +10,25 @@ def normalize(arr):
     a0, a1 = arr.min(), arr.max()
     return (arr - a0) / (a1 - a0), a0, a1
 
+
 def denormalize(arr_n, a0, a1):
     return arr_n * (a1 - a0) + a0
+
+
+def find_closest_pairs_quantile_idx(x, y, **kw_args):
+    f0 = quantile_map(x, y)  # No normalization!
+    A = np.abs(y[:, None] - f0(x)[None, :])
+    median_limit = estimate_median_limit_from_data(A, **kw_args)
+    print(median_limit)
+    matches = argmin2d(A, median_limit=10)
+    print(f"Mutual NN matches: {len(matches)}")
+    y_idx = matches[:, 0]
+    x_idx = matches[:, 1]    
+    
+    print(f"x {len(x)} y {len(y)}")    
+    print(f"x idx {x_idx}")
+    print(f"y idx {y_idx}")
+    return x_idx, y_idx 
 
 
 def quantile_map(x, y, q=None):
@@ -215,7 +232,7 @@ def universal_dispersion_calibration(
     else:
         print("Direct matching (assuming same units)...")
         A = np.abs(reference_lines[:, None] - peaks_measured[None, :])
-    
+     
     # Distance statistics
     min_distances = np.min(A, axis=1)
     print(f"Distance range: [{min_distances.min():.2f}, {min_distances.max():.2f}] nm")
@@ -293,27 +310,24 @@ def universal_dispersion_calibration(
     }
 
 
-def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_wl_nm=None, use_quantile_map=True):
+def diagnose_matching(peaks_measured, reference_lines, target_ref=540, laser_wl_nm=None, use_quantile_map=True):
     """
     Diagnose why certain peaks are or aren't matched.
     
     Args:
         peaks_measured: Detected peaks (pixels or nm)
         reference_lines: Reference wavelengths (nm)
+        target_ref: Target reference line to highlight (default 540 nm)
         laser_wl_nm: Optional, for context
         use_quantile_map: If True, use quantile map. If False, direct matching.
     """
     import matplotlib.pyplot as plt
     
-    # Normalize
-    x_n, x0, x1 = normalize(peaks_measured)
-    y_n, y0, y1 = normalize(reference_lines)
-    
     print("\n" + "="*70)
     print("MATCHING DIAGNOSTICS")
     print("="*70)
     
-    print(f"\nDetected peaks (original units):")
+    print(f"\nDetected peaks:")
     print(f"  Range: [{peaks_measured.min():.2f}, {peaks_measured.max():.2f}]")
     print(f"  Count: {len(peaks_measured)}")
     print(f"  First 5: {peaks_measured[:5]}")
@@ -332,28 +346,26 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
     # Build mapping and distance matrix
     if use_quantile_map:
         print(f"\nUsing quantile map for coarse alignment...")
-        f0 = quantile_map(x_n, y_n)
+        f0 = quantile_map(peaks_measured, reference_lines)
         print(f"Quantile map: y = {f0.coefficients[0]:.6f}*x + {f0.coefficients[1]:.6f}")
         
         # Build distance matrix with quantile map
-        A = np.abs(y_n[:, None] - f0(x_n)[None, :])
+        A = np.abs(reference_lines[:, None] - f0(peaks_measured)[None, :])
         
         # Show predictions for first few detected peaks
         print(f"\nPredictions for first 5 detected peaks:")
         for i in range(min(5, len(peaks_measured))):
             x_orig = peaks_measured[i]
-            x_norm = x_n[i]
-            y_pred_norm = f0(x_norm)
-            y_pred_orig = denormalize(np.array([y_pred_norm]), y0, y1)[0]
+            y_pred = f0(x_orig)
             
             # Find nearest reference line
-            distances = np.abs(reference_lines - y_pred_orig)
+            distances = np.abs(reference_lines - y_pred)
             nearest_idx = np.argmin(distances)
             nearest_ref = reference_lines[nearest_idx]
             distance = distances[nearest_idx]
             
             print(f"  Peak #{i}: {x_orig:.2f}")
-            print(f"    → Predicted wavelength: {y_pred_orig:.2f} nm")
+            print(f"    → Predicted wavelength: {y_pred:.2f} nm")
             print(f"    → Nearest ref line: {nearest_ref:.2f} nm (distance: {distance:.2f} nm)")
             
             if laser_wl_nm:
@@ -364,7 +376,7 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
         f0 = None
         
         # Build distance matrix directly
-        A = np.abs(y_n[:, None] - x_n[None, :])
+        A = np.abs(reference_lines[:, None] - peaks_measured[None, :])
         
         # Show direct distances for first few detected peaks
         print(f"\nDirect distances for first 5 detected peaks:")
@@ -386,21 +398,19 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
     
     print(f"\nDistance matrix statistics:")
     print(f"  Shape: {A.shape} ({len(reference_lines)} refs × {len(peaks_measured)} peaks)")
-    print(f"  Min distance overall: {A.min():.6f} (normalized)")
+    print(f"  Min distance overall: {A.min():.2f} nm")
     
     # For each detected peak, show closest reference
     print(f"\nFor each detected peak, closest reference line:")
     for i in range(min(5, len(peaks_measured))):
         x_orig = peaks_measured[i]
-        min_dist_norm = A[:, i].min()
-        min_dist_orig = min_dist_norm * (y1 - y0)  # Convert to nm
+        min_dist = A[:, i].min()
         ref_idx = A[:, i].argmin()
         ref_line = reference_lines[ref_idx]
         
-        print(f"  Peak {x_orig:.2f} → {ref_line:.2f} nm (distance: {min_dist_orig:.2f} nm)")
+        print(f"  Peak {x_orig:.2f} → {ref_line:.2f} nm (distance: {min_dist:.2f} nm)")
     
-    # Check if 540 is in reference lines
-    
+    # Check if target reference is in reference lines
     if target_ref in reference_lines or any(np.abs(reference_lines - target_ref) < 0.5):
         idx_target = np.argmin(np.abs(reference_lines - target_ref))
         ref_target = reference_lines[idx_target]
@@ -410,19 +420,17 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
         distances_to_target = A[idx_target, :]
         closest_peak_idx = distances_to_target.argmin()
         closest_peak = peaks_measured[closest_peak_idx]
-        distance = distances_to_target[closest_peak_idx] * (y1 - y0)
+        distance = distances_to_target[closest_peak_idx]
         
         print(f"  Closest detected peak: {closest_peak:.2f}")
         print(f"  Distance: {distance:.2f} nm")
         
         if use_quantile_map and f0 is not None:
             # What does quantile map predict for this peak?
-            x_closest_norm = x_n[closest_peak_idx]
-            y_pred_norm = f0(x_closest_norm)
-            y_pred_orig = denormalize(np.array([y_pred_norm]), y0, y1)[0]
+            y_pred = f0(closest_peak)
             
-            print(f"  Quantile map predicts: {y_pred_orig:.2f} nm for this peak")
-            print(f"  Error: {abs(y_pred_orig - ref_target):.2f} nm")
+            print(f"  Quantile map predicts: {y_pred:.2f} nm for this peak")
+            print(f"  Error: {abs(y_pred - ref_target):.2f} nm")
     else:
         print(f"\n✗ {target_ref} nm line NOT in reference lines!")
         print(f"  Reference range: {reference_lines.min():.1f} - {reference_lines.max():.1f} nm")
@@ -432,7 +440,7 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
     
     # Plot 1: Mapping (quantile or direct)
     if use_quantile_map and f0 is not None:
-        predicted_wl = denormalize(f0(x_n), y0, y1)
+        predicted_wl = f0(peaks_measured)
         ax1.scatter(peaks_measured, predicted_wl, 
                     label='Detected peaks → Predicted wavelength', 
                     alpha=0.6, s=50)
@@ -450,7 +458,7 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # Highlight 540 if present
+    # Highlight target reference if present
     if target_ref in reference_lines or any(np.abs(reference_lines - target_ref) < 0.5):
         ax1.axhline(ref_target, color='green', linewidth=2, label=f'{ref_target:.1f} nm', linestyle='--')
     
@@ -468,9 +476,9 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_w
     else:
         ax2.set_title(f'Distance Matrix (Direct)\n(first {n_show} peaks, {m_show} refs)')
     
-    plt.colorbar(im, ax=ax2, label='Distance (normalized)')
+    plt.colorbar(im, ax=ax2, label='Distance (nm)')
     
-    # Mark 540 nm if present
+    # Mark target reference if present
     if target_ref in reference_lines or any(np.abs(reference_lines - target_ref) < 0.5):
         if idx_target < m_show:
             ax2.axhline(idx_target, color='red', linewidth=2, alpha=0.7)

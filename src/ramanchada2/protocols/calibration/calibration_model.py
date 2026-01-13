@@ -102,7 +102,7 @@ class CalibrationModel(ProcessingModel, Plottable):
         find_kw={"wlen": 200, "width": 1},
         fit_kw={},
         should_fit=False,
-        match_method: Literal["cluster", "argmin2d", "assignment", "dynamicp"] = "cluster",
+        match_method: Literal["cluster", "argmin2d", "assignment", "dynamicp", "qargmin2d"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
         extrapolate=True,
     ):
