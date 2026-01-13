@@ -30,8 +30,8 @@ def laser_wl_nm(raman_shift_cm_1, wave_length_nm):
 def filter_ref_lines_for_raman(
     ref_wavelengths,
     laser_wl_nm,
-    raman_shift_range_cm_1=(0, 4000),
-    margin_nm=10
+    raman_shift_range_cm_1=(-500, 4000),
+    margin_nm=1
 ):
     """
     Filter Ne reference lines to expected Raman detection range.

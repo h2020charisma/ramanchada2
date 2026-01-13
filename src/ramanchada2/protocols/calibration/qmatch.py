@@ -3,7 +3,7 @@ from sklearn.isotonic import IsotonicRegression
 from ramanchada2.misc.utils import argmin2d
 import numpy as np
 import matplotlib.pyplot as plt
-
+import ramanchada2.misc.constants as rc2const
 
 def normalize(arr):
     arr = np.asarray(arr, dtype=float)
@@ -14,98 +14,26 @@ def denormalize(arr_n, a0, a1):
     return arr_n * (a1 - a0) + a0
 
 
-def quantile_map(x, y, q=(0.05,  0.5,  0.95)):
+def quantile_map(x, y, q=(0.05, 0.5, 0.95)):
     """
     Build coarse linear map using quantiles.
     """
-    qx = np.quantile(x, q)
-    qy = np.quantile(y, q)
+    # Always include 0 and 1 (min and max)
+    q_with_endpoints = sorted(set([0.0] + list(q) + [1.0]))
+    
+    qx = np.quantile(x, q_with_endpoints)
+    qy = np.quantile(y, q_with_endpoints)
+    
     a = np.polyfit(qx, qy, deg=1)
-    return np.poly1d(a)
-
-
-def robust_pchip_fit(x, y, max_iter=5, sigma=0.02):
-    """
-    Iterative robust monotone fit.
-    """
-    mask = np.ones(len(x), dtype=bool)
-
-    for _ in range(max_iter):
-        spline = PchipInterpolator(x[mask], y[mask], extrapolate=False)
-        resid = y - spline(x)
-        mad = np.median(np.abs(resid))
-        mask = np.abs(resid) < sigma * max(mad, 1e-6)
-        print(mad, len(mask))
-    return x[mask], y[mask], mask
-
-
-def robust_pchip_fit_simple(x, y, n_sigma=3.0):
-    """
-    Single-pass robust fit.
-    """
-    # Initial fit on all points
-    spline = PchipInterpolator(x, y, extrapolate=False)
-    resid = y - spline(x)
+    poly =  np.poly1d(a)
+    # Diagnostic: check endpoint predictions
+    pred_first = poly(x.min())
+    pred_last = poly(x.max())
+    err_first = abs(pred_first - y.min())
+    err_last = abs(pred_last - y.max())
     
-    # Detect outliers
-    mad = np.median(np.abs(resid))
-    threshold = n_sigma * mad
-    mask = np.abs(resid) <= threshold
-    
-    print(f"  Outlier removal: {mask.sum()}/{len(x)} inliers, "
-          f"MAD={mad:.6f}, threshold={threshold:.6f}")
-    
-    # Refit without outliers
-    return PchipInterpolator(x[mask], y[mask], extrapolate=False), mask
-
-
-def robust_pchip_fit_percentile(x, y, max_iter=3, percentile=90):
-    """
-    Iterative robust fit keeping best X% of points by residual.
-    """
-    mask = np.ones(len(x), dtype=bool)
-    
-    for iteration in range(max_iter):
-        x_fit = x[mask]
-        y_fit = y[mask]
-        
-        if len(x_fit) < 3:
-            break
-        
-        spline = PchipInterpolator(x_fit, y_fit, extrapolate=True)
-        resid = np.abs(y - spline(x))
-        
-        # Keep best percentile
-        threshold = np.percentile(resid, percentile)
-        new_mask = resid <= threshold
-        
-        n_inliers = new_mask.sum()
-        print(f"  Iteration {iteration}: {n_inliers}/{len(x)} inliers, "
-              f"{percentile}th percentile threshold={threshold:.6f}")
-        
-        if np.array_equal(mask, new_mask):
-            print(f"  Converged")
-            break
-        
-        mask = new_mask
-    
-    return x[mask], y[mask], mask
-
-def invert_monotone(x, y):
-    """Build inverse, keeping only monotonic points."""
-    idx = np.argsort(x)
-    x, y = x[idx], y[idx]
-    
-    # Keep only strictly increasing y
-    keep = [0]
-    for i in range(1, len(y)):
-        if y[i] > y[keep[-1]] + 1e-10:
-            keep.append(i)
-    
-    if len(keep) < 2:
-        raise ValueError(f"Only {len(keep)} monotonic points - calibration failed")
-    
-    return PchipInterpolator(y[keep], x[keep])
+    print(f"  Endpoint errors: first={err_first:.4f}, last={err_last:.4f}")    
+    return poly
 
 
 def estimate_median_limit_from_data(A, n_sigma=3.0):
@@ -128,39 +56,163 @@ def estimate_median_limit_from_data(A, n_sigma=3.0):
         print(f"  Using default: 10.0")
         return 10.0
     
-    # median_limit = (med + n_sigma*mad) / med = 1 + n_sigma*(mad/med)
+    # median_limit = 1 + n_sigma*(mad/med)
     median_limit = 1.0 + n_sigma * (mad / med)
     
     print(f"  median_limit = 1 + {n_sigma} × (MAD/median) = {median_limit:.2f}")
-    print(f"Keep distances ≤ {median_limit:.2f} × median")
+    print(f"  Keep distances ≤ {median_limit:.2f} × median")
     
     return median_limit
+
+
+def linear_residual_filter(x, y, n_sigma=3.0):
+    """
+    Filter outliers using linear fit residuals.
+    Fast and simple - good when outliers are few.
+    
+    Args:
+        x, y: Matched pairs (normalized)
+        n_sigma: Number of MAD sigmas for threshold
+    
+    Returns:
+        x_inliers, y_inliers, mask
+    """
+    if len(x) < 2:
+        return x, y, np.ones(len(x), dtype=bool)
+    
+    # Fit linear model: y = ax + b
+    a, b = np.polyfit(x, y, deg=1)
+    
+    # Compute residuals
+    y_pred = a * x + b
+    resid = y - y_pred
+    
+    # MAD-based outlier detection
+    med_resid = np.median(resid)
+    mad = np.median(np.abs(resid - med_resid))
+    
+    if mad < 1e-10:
+        # All residuals tiny - no outliers
+        threshold = np.percentile(np.abs(resid), 95)
+        print(f"  Linear filter: MAD too small, using 95th percentile threshold={threshold:.6f}")
+    else:
+        threshold = n_sigma * mad
+        print(f"  Linear filter: MAD={mad:.6f}, threshold={n_sigma}×MAD={threshold:.6f}")
+    
+    mask = np.abs(resid - med_resid) < threshold
+    
+    print(f"  Kept {mask.sum()}/{len(x)} inliers")
+    
+    return x[mask], y[mask], mask
+
+
+def iterative_linear_filter(x, y, n_sigma=3.0, max_iter=5):
+    """
+    Iteratively fit linear model and remove outliers.
+    
+    Args:
+        x, y: Matched pairs (normalized)
+        n_sigma: Number of MAD sigmas
+        max_iter: Maximum iterations
+    
+    Returns:
+        x_inliers, y_inliers, mask
+    """
+    mask = np.ones(len(x), dtype=bool)
+    
+    for iteration in range(max_iter):
+        x_fit = x[mask]
+        y_fit = y[mask]
+        
+        if len(x_fit) < 2:
+            print(f"  Iteration {iteration}: Too few points, stopping")
+            break
+        
+        # Fit linear model on current inliers
+        a, b = np.polyfit(x_fit, y_fit, deg=1)
+        
+        # Compute residuals on ALL points
+        y_pred = a * x + b
+        resid = y - y_pred
+        
+        # MAD on current inliers
+        resid_inliers = resid[mask]
+        med = np.median(resid_inliers)
+        mad = np.median(np.abs(resid_inliers - med))
+        
+        if mad < 1e-10:
+            print(f"  Iteration {iteration}: Converged (MAD={mad:.2e})")
+            break
+        
+        threshold = n_sigma * mad
+        new_mask = np.abs(resid - med) < threshold
+        
+        n_removed = (mask & ~new_mask).sum()
+        print(f"  Iteration {iteration}: {new_mask.sum()}/{len(x)} inliers, "
+              f"removed {n_removed}, MAD={mad:.6f}")
+        
+        if np.array_equal(mask, new_mask):
+            print(f"  Converged (mask unchanged)")
+            break
+        
+        mask = new_mask
+    
+    return x[mask], y[mask], mask
 
 
 def universal_dispersion_calibration(
     peaks_measured,
     reference_lines,
-    median_limit=10.0
+    median_limit=None,
+    n_sigma_match=3.0,
+    outlier_method='linear',
+    n_sigma_outlier=3.0,
+    use_quantile_map=True  
 ):
+    """
+    Universal dispersion calibration with separated matching and interpolation.
+    
+    Args:
+        peaks_measured: Detected peak positions (pixels or nm)
+        reference_lines: Known reference wavelengths (nm)
+        median_limit: Tolerance for mutual NN matching (computed if None)
+        n_sigma_match: Number of sigmas for adaptive median_limit
+        outlier_method: Method for outlier removal ('linear', 'iterative', None)
+        n_sigma_outlier: Number of sigmas for outlier filtering
+        use_quantile_map: If True, use quantile map for matching. 
+                          If False, assume peaks_measured already in same units as reference_lines
+    """
+
     # --- Normalize ---
     x_n, x0, x1 = normalize(peaks_measured)
     y_n, y0, y1 = normalize(reference_lines)
 
-    # --- Quantile-based initial map ---
-    f0 = quantile_map(x_n, y_n)
+   # --- STEP 1: MATCHING with Mutual Nearest Neighbors ---
+    print("\n=== STEP 1: MATCHING ===")
+    
+    if use_quantile_map:
+        # Use quantile-based coarse mapping
+        print("Using quantile map for coarse alignment...")
+        f0 = quantile_map(x_n, y_n)
+        # Build distance matrix: A[i,j] = |y[i] - f0(x[j])|
+        A = np.abs(y_n[:, None] - f0(x_n)[None, :])
+    else:
+        # Direct matching (assume same units)
+        print("Direct matching (assuming same units)...")
+        # Build distance matrix: A[i,j] = |y[i] - x[j]|
+        A = np.abs(y_n[:, None] - x_n[None, :])
+    
 
-    # --- Use mutual nearest neighbors instead of tolerance matching ---
-    
-    # Build distance matrix: A[i,j] = error for matching y[i] to x[j]
-    # Error = |y[i] - f0(x[j])|
-    A = np.abs(y_n[:, None] - f0(x_n)[None, :])
+    # Diagnostic: show distance distribution
     min_distances = np.min(A, axis=1)
-    plt.hist(min_distances)
-    print(f"{min(min_distances) , max(min_distances)}")
-    if median_limit is None:
-        median_limit = estimate_median_limit_from_data(A, n_sigma=6)
+    print(f"Distance range: [{min_distances.min():.6f}, {min_distances.max():.6f}]")
     
-    print(f"Distance matrix shape: {A.shape} ({len(y_n)} ref lines × {len(x_n)} detected peaks) tollerance {median_limit}")
+    # Estimate median_limit if not provided
+    if median_limit is None:
+        median_limit = estimate_median_limit_from_data(A, n_sigma=n_sigma_match)
+    
+    print(f"\nDistance matrix: {A.shape} ({len(y_n)} ref × {len(x_n)} detected)")
+    print(f"Tolerance: {median_limit:.2f} × median")
 
     # Find mutual nearest neighbors
     matches = argmin2d(A, median_limit=median_limit)
@@ -170,76 +222,268 @@ def universal_dispersion_calibration(
     if len(matches) < 2:
         raise RuntimeError("Not enough mutual NN matches")
     
-    # Extract matched pairs (y_idx, x_idx)
+    # Extract matched pairs
     y_idx = matches[:, 0]
     x_idx = matches[:, 1]
     
-    x_fit_n = x_n[x_idx]
-    y_fit_n = y_n[y_idx]
-
-    pairs_n = np.column_stack([x_fit_n, y_fit_n])
-
+    x_matched = x_n[x_idx]
+    y_matched = y_n[y_idx]
     
     # Sort by x
-    idx = np.argsort(x_fit_n)
-    x_fit = x_fit_n[idx]
-    y_fit = y_fit_n[idx]
+    idx = np.argsort(x_matched)
+    x_matched = x_matched[idx]
+    y_matched = y_matched[idx]
     
-    print(f"Final pairs: {len(x_fit)}")
-    print(f"  Unique x: {len(np.unique(x_fit))}")
-    print(f"  Unique y: {len(np.unique(y_fit))}")
+    print(f"\nAfter matching: {len(x_matched)} pairs")
+    print(f"  Unique x: {len(np.unique(x_matched))}")
+    print(f"  Unique y: {len(np.unique(y_matched))}")
     
-    # Verify no duplicates
-    assert len(x_fit) == len(np.unique(x_fit)), "Duplicate x values!"
-    assert len(y_fit) == len(np.unique(y_fit)), "Duplicate y values!"
+    # Verify no duplicates from matching
+    assert len(x_matched) == len(np.unique(x_matched)), "Duplicate x values!"
+    assert len(y_matched) == len(np.unique(y_matched)), "Duplicate y values!"
 
-    # --- Robust monotone fit ---
-    x, y, inlier_mask =  robust_pchip_fit_percentile(x_fit, y_fit)
-    spline_n = PchipInterpolator(x, y, extrapolate=True)
+    # --- STEP 2: OUTLIER REMOVAL (using linear model) ---
+    print("\n=== STEP 2: OUTLIER REMOVAL ===")
+    
+    if outlier_method == 'linear':
+        x_inliers, y_inliers, inlier_mask = linear_residual_filter(
+            x_matched, y_matched, n_sigma=n_sigma_outlier
+        )
+    elif outlier_method == 'iterative':
+        x_inliers, y_inliers, inlier_mask = iterative_linear_filter(
+            x_matched, y_matched, n_sigma=n_sigma_outlier, max_iter=5
+        )
+    elif outlier_method is None:
+        print("  Skipping outlier removal")
+        x_inliers, y_inliers = x_matched, y_matched
+        inlier_mask = np.ones(len(x_matched), dtype=bool)
+    else:
+        raise ValueError(f"Unknown outlier_method: {outlier_method}")
+    
+    print(f"\nAfter outlier removal: {len(x_inliers)} inliers")
+    
+    # Verify monotonicity
+    assert np.all(np.diff(x_inliers) > 0), "Non-monotonic x!"
+    assert np.all(np.diff(y_inliers) > 0), "Non-monotonic y!"
 
-    # --- Forward / inverse mappings (original units) ---
+    # --- STEP 3: INTERPOLATION (PCHIP on clean data) ---
+    print("\n=== STEP 3: INTERPOLATION ===")
+    print(f"Fitting PCHIP spline on {len(x_inliers)} clean points...")
+    
+    spline_n = PchipInterpolator(x_inliers, y_inliers, extrapolate=False)
+
+    # --- Forward mapping ---
     def forward(x):
         x = np.asarray(x, dtype=float)
-        x_nq = (x - x0) / (x1 - x0)     # use calibration normalization
+        x_nq = (x - x0) / (x1 - x0)
         return denormalize(spline_n(x_nq), y0, y1)
 
-    #def inverse(y):
-    #    y = np.asarray(y, dtype=float)
-    #    y_nq = (y - y0) / (y1 - y0)
-    #    return denormalize(inv_n(y_nq), x0, x1)
-
-    # --- Matched pairs for inspection ---
-
-    # All candidate pairs (original units)
+    # --- Pairs for inspection ---
     pairs_all = np.column_stack([
-        denormalize(x_fit, x0, x1),
-        denormalize(y_fit, y0, y1)
+        denormalize(x_matched, x0, x1),
+        denormalize(y_matched, y0, y1)
     ])
 
-    # Inlier pairs only (original units)
-    pairs_inliers = pairs_all[inlier_mask]
-
-    # Optional: also return normalized versions for debugging
-    pairs_all_n = pairs_n
+    pairs_inliers = np.column_stack([
+        denormalize(x_inliers, x0, x1),
+        denormalize(y_inliers, y0, y1)
+    ])
 
     return {
         "forward": forward,
-        #"inverse": inverse,
-        #"pairs_all": pairs_all,
+        "pairs_all": pairs_all,
         "pairs_inliers": pairs_inliers,
-        #"pairs_all_normalized": pairs_all_n,
-        "pairs_inliers_normalized": [x_fit[inlier_mask], y_fit[inlier_mask]],
+        "pairs_all_normalized": np.column_stack([x_matched, y_matched]),
+        "pairs_inliers_normalized": [x_inliers, y_inliers],
     }
 
 
-# measured peak positions (pixels)
-#pixels = np.array([120, 345, 512, 689, 842, 1030, 1210, 1390])
-
-# known Ne lines (cm⁻1 or nm — doesn't matter)
-#ne_lines = np.array([540.1, 585.2, 614.3, 640.2, 703.2, 724.5, 743.9, 748.8])
-
-#fwd, inv = universal_dispersion_calibration(pixels, ne_lines)
-
-# convert full spectrum
-#pixel_axis = np.arange(1600)
-#raman_axis = fwd(pixel_axis)
+def diagnose_matching(peaks_measured, reference_lines, target_ref = 540, laser_wl_nm=None, use_quantile_map=True):
+    """
+    Diagnose why certain peaks are or aren't matched.
+    
+    Args:
+        peaks_measured: Detected peaks (pixels or nm)
+        reference_lines: Reference wavelengths (nm)
+        laser_wl_nm: Optional, for context
+        use_quantile_map: If True, use quantile map. If False, direct matching.
+    """
+    import matplotlib.pyplot as plt
+    
+    # Normalize
+    x_n, x0, x1 = normalize(peaks_measured)
+    y_n, y0, y1 = normalize(reference_lines)
+    
+    print("\n" + "="*70)
+    print("MATCHING DIAGNOSTICS")
+    print("="*70)
+    
+    print(f"\nDetected peaks (original units):")
+    print(f"  Range: [{peaks_measured.min():.2f}, {peaks_measured.max():.2f}]")
+    print(f"  Count: {len(peaks_measured)}")
+    print(f"  First 5: {peaks_measured[:5]}")
+    
+    print(f"\nReference lines (nm):")
+    print(f"  Range: [{reference_lines.min():.2f}, {reference_lines.max():.2f}]")
+    print(f"  Count: {len(reference_lines)}")
+    print(f"  First 5: {reference_lines[:5]}")
+    
+    if laser_wl_nm:
+        print(f"\nLaser wavelength: {laser_wl_nm} nm")
+        from ramanchada2.misc.utils.ramanshift_to_wavelength import abs_nm_to_shift_cm_1
+        shifts = abs_nm_to_shift_cm_1(reference_lines[:5], laser_wl_nm)
+        print(f"  First 5 ref lines as Raman shifts: {shifts}")
+    
+    # Build mapping and distance matrix
+    if use_quantile_map:
+        print(f"\nUsing quantile map for coarse alignment...")
+        f0 = quantile_map(x_n, y_n)
+        print(f"Quantile map: y = {f0.coefficients[0]:.6f}*x + {f0.coefficients[1]:.6f}")
+        
+        # Build distance matrix with quantile map
+        A = np.abs(y_n[:, None] - f0(x_n)[None, :])
+        
+        # Show predictions for first few detected peaks
+        print(f"\nPredictions for first 5 detected peaks:")
+        for i in range(min(5, len(peaks_measured))):
+            x_orig = peaks_measured[i]
+            x_norm = x_n[i]
+            y_pred_norm = f0(x_norm)
+            y_pred_orig = denormalize(np.array([y_pred_norm]), y0, y1)[0]
+            
+            # Find nearest reference line
+            distances = np.abs(reference_lines - y_pred_orig)
+            nearest_idx = np.argmin(distances)
+            nearest_ref = reference_lines[nearest_idx]
+            distance = distances[nearest_idx]
+            
+            print(f"  Peak #{i}: {x_orig:.2f}")
+            print(f"    → Predicted wavelength: {y_pred_orig:.2f} nm")
+            print(f"    → Nearest ref line: {nearest_ref:.2f} nm (distance: {distance:.2f} nm)")
+            
+            if laser_wl_nm:
+                shift = abs_nm_to_shift_cm_1(nearest_ref, laser_wl_nm)
+                print(f"    → As Raman shift: {shift:.0f} cm⁻¹")
+    else:
+        print(f"\nDirect matching (no quantile map)...")
+        f0 = None
+        
+        # Build distance matrix directly
+        A = np.abs(y_n[:, None] - x_n[None, :])
+        
+        # Show direct distances for first few detected peaks
+        print(f"\nDirect distances for first 5 detected peaks:")
+        for i in range(min(5, len(peaks_measured))):
+            x_orig = peaks_measured[i]
+            
+            # Find nearest reference line
+            distances = np.abs(reference_lines - x_orig)
+            nearest_idx = np.argmin(distances)
+            nearest_ref = reference_lines[nearest_idx]
+            distance = distances[nearest_idx]
+            
+            print(f"  Peak #{i}: {x_orig:.2f} nm")
+            print(f"    → Nearest ref line: {nearest_ref:.2f} nm (distance: {distance:.2f} nm)")
+            
+            if laser_wl_nm:
+                shift = abs_nm_to_shift_cm_1(nearest_ref, laser_wl_nm)
+                print(f"    → As Raman shift: {shift:.0f} cm⁻¹")
+    
+    print(f"\nDistance matrix statistics:")
+    print(f"  Shape: {A.shape} ({len(reference_lines)} refs × {len(peaks_measured)} peaks)")
+    print(f"  Min distance overall: {A.min():.6f} (normalized)")
+    
+    # For each detected peak, show closest reference
+    print(f"\nFor each detected peak, closest reference line:")
+    for i in range(min(5, len(peaks_measured))):
+        x_orig = peaks_measured[i]
+        min_dist_norm = A[:, i].min()
+        min_dist_orig = min_dist_norm * (y1 - y0)  # Convert to nm
+        ref_idx = A[:, i].argmin()
+        ref_line = reference_lines[ref_idx]
+        
+        print(f"  Peak {x_orig:.2f} → {ref_line:.2f} nm (distance: {min_dist_orig:.2f} nm)")
+    
+    # Check if 540 is in reference lines
+    
+    if target_ref in reference_lines or any(np.abs(reference_lines - target_ref) < 0.5):
+        idx_target = np.argmin(np.abs(reference_lines - target_ref))
+        ref_target = reference_lines[idx_target]
+        print(f"\n✓ {target_ref} nm line found in references: {ref_target:.2f} nm")
+        
+        # Which detected peak is closest?
+        distances_to_target = A[idx_target, :]
+        closest_peak_idx = distances_to_target.argmin()
+        closest_peak = peaks_measured[closest_peak_idx]
+        distance = distances_to_target[closest_peak_idx] * (y1 - y0)
+        
+        print(f"  Closest detected peak: {closest_peak:.2f}")
+        print(f"  Distance: {distance:.2f} nm")
+        
+        if use_quantile_map and f0 is not None:
+            # What does quantile map predict for this peak?
+            x_closest_norm = x_n[closest_peak_idx]
+            y_pred_norm = f0(x_closest_norm)
+            y_pred_orig = denormalize(np.array([y_pred_norm]), y0, y1)[0]
+            
+            print(f"  Quantile map predicts: {y_pred_orig:.2f} nm for this peak")
+            print(f"  Error: {abs(y_pred_orig - ref_target):.2f} nm")
+    else:
+        print(f"\n✗ {target_ref} nm line NOT in reference lines!")
+        print(f"  Reference range: {reference_lines.min():.1f} - {reference_lines.max():.1f} nm")
+    
+    # Visualization
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot 1: Mapping (quantile or direct)
+    if use_quantile_map and f0 is not None:
+        predicted_wl = denormalize(f0(x_n), y0, y1)
+        ax1.scatter(peaks_measured, predicted_wl, 
+                    label='Detected peaks → Predicted wavelength', 
+                    alpha=0.6, s=50)
+        ax1.set_title('Quantile Map Predictions')
+    else:
+        ax1.scatter(peaks_measured, peaks_measured, 
+                    label='Detected peaks (direct matching)', 
+                    alpha=0.6, s=50)
+        ax1.set_title('Direct Matching (1:1 line)')
+    
+    ax1.hlines(reference_lines, peaks_measured.min(), peaks_measured.max(), 
+               colors='red', alpha=0.3, linewidth=0.5, label='Reference lines')
+    ax1.set_xlabel('Detected Peak Position')
+    ax1.set_ylabel('Wavelength (nm)')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Highlight 540 if present
+    if target_ref in reference_lines or any(np.abs(reference_lines - target_ref) < 0.5):
+        ax1.axhline(ref_target, color='green', linewidth=2, label=f'{ref_target:.1f} nm', linestyle='--')
+    
+    # Plot 2: Distance matrix heatmap
+    n_show = min(20, len(peaks_measured))
+    m_show = min(30, len(reference_lines))
+    
+    im = ax2.imshow(A[:m_show, :n_show], aspect='auto', cmap='viridis', 
+                    interpolation='nearest')
+    ax2.set_xlabel('Detected Peak Index')
+    ax2.set_ylabel('Reference Line Index')
+    
+    if use_quantile_map:
+        ax2.set_title(f'Distance Matrix with Quantile Map\n(first {n_show} peaks, {m_show} refs)')
+    else:
+        ax2.set_title(f'Distance Matrix (Direct)\n(first {n_show} peaks, {m_show} refs)')
+    
+    plt.colorbar(im, ax=ax2, label='Distance (normalized)')
+    
+    # Mark 540 nm if present
+    if target_ref in reference_lines or any(np.abs(reference_lines - target_ref) < 0.5):
+        if idx_target < m_show:
+            ax2.axhline(idx_target, color='red', linewidth=2, alpha=0.7)
+            ax2.text(n_show-1, idx_target, f'  {ref_target:.1f}nm', 
+                    color='red', va='center', fontweight='bold')
+    
+    plt.tight_layout()
+    plt.savefig('matching_diagnosis.png', dpi=150, bbox_inches='tight')
+    print(f"\n📊 Saved visualization to: matching_diagnosis.png")
+    
+    return fig
