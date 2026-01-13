@@ -14,33 +14,29 @@ def denormalize(arr_n, a0, a1):
     return arr_n * (a1 - a0) + a0
 
 
-def quantile_map(x, y, q=(0.05, 0.5, 0.95)):
+def quantile_map(x, y, q=None):
     """
     Build coarse linear map using quantiles.
+    No normalization needed!
     """
-    # Always include 0 and 1 (min and max)
-    q_with_endpoints = sorted(set([0.0] + list(q) + [1.0]))
+    if q is None:
+        q = [0.0, 0.25, 0.5, 0.75, 1.0]
     
-    qx = np.quantile(x, q_with_endpoints)
-    qy = np.quantile(y, q_with_endpoints)
-    
+    qx = np.quantile(x, q)
+    qy = np.quantile(y, q)
     a = np.polyfit(qx, qy, deg=1)
-    poly =  np.poly1d(a)
-    # Diagnostic: check endpoint predictions
-    pred_first = poly(x.min())
-    pred_last = poly(x.max())
-    err_first = abs(pred_first - y.min())
-    err_last = abs(pred_last - y.max())
     
-    print(f"  Endpoint errors: first={err_first:.4f}, last={err_last:.4f}")    
+    poly = np.poly1d(a)
+    print(f"  Quantile map: y = {a[0]:.6f}*x + {a[1]:.6f}")
+    
     return poly
 
 
 def estimate_median_limit_from_data(A, n_sigma=3.0):
     """
-    Estimate median_limit: multiplier such that threshold = median × median_limit
+    Estimate median_limit from distance distribution.
+    Works directly with physical units (nm).
     """
-    # Minimum distances
     min_dist_per_ref = np.min(A, axis=1)
     min_dist_per_peak = np.min(A, axis=0)
     all_min_dist = np.concatenate([min_dist_per_ref, min_dist_per_peak])
@@ -49,18 +45,14 @@ def estimate_median_limit_from_data(A, n_sigma=3.0):
     mad = np.median(np.abs(all_min_dist - med))
     
     print(f"\nAdaptive median_limit:")
-    print(f"  Median distance: {med:.6f}")
-    print(f"  MAD: {mad:.6f}")
+    print(f"  Median distance: {med:.2f} nm")
+    print(f"  MAD: {mad:.2f} nm")
     
     if med < 1e-10 or mad < 1e-10:
-        print(f"  Using default: 10.0")
         return 10.0
     
-    # median_limit = 1 + n_sigma*(mad/med)
     median_limit = 1.0 + n_sigma * (mad / med)
-    
-    print(f"  median_limit = 1 + {n_sigma} × (MAD/median) = {median_limit:.2f}")
-    print(f"  Keep distances ≤ {median_limit:.2f} × median")
+    print(f"  median_limit = {median_limit:.2f}")
     
     return median_limit
 
@@ -68,39 +60,79 @@ def estimate_median_limit_from_data(A, n_sigma=3.0):
 def linear_residual_filter(x, y, n_sigma=3.0):
     """
     Filter outliers using linear fit residuals.
-    Fast and simple - good when outliers are few.
-    
-    Args:
-        x, y: Matched pairs (normalized)
-        n_sigma: Number of MAD sigmas for threshold
-    
-    Returns:
-        x_inliers, y_inliers, mask
+    Works directly in physical units.
     """
     if len(x) < 2:
         return x, y, np.ones(len(x), dtype=bool)
     
-    # Fit linear model: y = ax + b
     a, b = np.polyfit(x, y, deg=1)
-    
-    # Compute residuals
     y_pred = a * x + b
     resid = y - y_pred
     
-    # MAD-based outlier detection
     med_resid = np.median(resid)
     mad = np.median(np.abs(resid - med_resid))
     
     if mad < 1e-10:
-        # All residuals tiny - no outliers
         threshold = np.percentile(np.abs(resid), 95)
-        print(f"  Linear filter: MAD too small, using 95th percentile threshold={threshold:.6f}")
+        print(f"  Linear filter: MAD too small, using 95th percentile threshold={threshold:.2f} nm")
     else:
         threshold = n_sigma * mad
-        print(f"  Linear filter: MAD={mad:.6f}, threshold={n_sigma}×MAD={threshold:.6f}")
+        print(f"  Linear filter: MAD={mad:.2f} nm, threshold={threshold:.2f} nm")
     
     mask = np.abs(resid - med_resid) < threshold
+    print(f"  Kept {mask.sum()}/{len(x)} inliers")
     
+    return x[mask], y[mask], mask
+
+
+def estimate_median_limit_from_data(A, n_sigma=3.0):
+    """
+    Estimate median_limit from distance distribution.
+    Works directly with physical units (nm).
+    """
+    min_dist_per_ref = np.min(A, axis=1)
+    min_dist_per_peak = np.min(A, axis=0)
+    all_min_dist = np.concatenate([min_dist_per_ref, min_dist_per_peak])
+    
+    med = np.median(all_min_dist)
+    mad = np.median(np.abs(all_min_dist - med))
+    
+    print(f"\nAdaptive median_limit:")
+    print(f"  Median distance: {med:.2f} nm")
+    print(f"  MAD: {mad:.2f} nm")
+    
+    if med < 1e-10 or mad < 1e-10:
+        return 10.0
+    
+    median_limit = 1.0 + n_sigma * (mad / med)
+    print(f"  median_limit = {median_limit:.2f}")
+    
+    return median_limit
+
+
+def linear_residual_filter(x, y, n_sigma=3.0):
+    """
+    Filter outliers using linear fit residuals.
+    Works directly in physical units.
+    """
+    if len(x) < 2:
+        return x, y, np.ones(len(x), dtype=bool)
+    
+    a, b = np.polyfit(x, y, deg=1)
+    y_pred = a * x + b
+    resid = y - y_pred
+    
+    med_resid = np.median(resid)
+    mad = np.median(np.abs(resid - med_resid))
+    
+    if mad < 1e-10:
+        threshold = np.percentile(np.abs(resid), 95)
+        print(f"  Linear filter: MAD too small, using 95th percentile threshold={threshold:.2f} nm")
+    else:
+        threshold = n_sigma * mad
+        print(f"  Linear filter: MAD={mad:.2f} nm, threshold={threshold:.2f} nm")
+    
+    mask = np.abs(resid - med_resid) < threshold
     print(f"  Kept {mask.sum()}/{len(x)} inliers")
     
     return x[mask], y[mask], mask
@@ -167,67 +199,45 @@ def universal_dispersion_calibration(
     n_sigma_match=3.0,
     outlier_method='linear',
     n_sigma_outlier=3.0,
-    use_quantile_map=True  
+    use_quantile_map=True
 ):
     """
-    Universal dispersion calibration with separated matching and interpolation.
-    
-    Args:
-        peaks_measured: Detected peak positions (pixels or nm)
-        reference_lines: Known reference wavelengths (nm)
-        median_limit: Tolerance for mutual NN matching (computed if None)
-        n_sigma_match: Number of sigmas for adaptive median_limit
-        outlier_method: Method for outlier removal ('linear', 'iterative', None)
-        n_sigma_outlier: Number of sigmas for outlier filtering
-        use_quantile_map: If True, use quantile map for matching. 
-                          If False, assume peaks_measured already in same units as reference_lines
+    Universal dispersion calibration WITHOUT normalization.
     """
-
-    # --- Normalize ---
-    x_n, x0, x1 = normalize(peaks_measured)
-    y_n, y0, y1 = normalize(reference_lines)
-
-   # --- STEP 1: MATCHING with Mutual Nearest Neighbors ---
+    
+    # --- STEP 1: MATCHING ---
     print("\n=== STEP 1: MATCHING ===")
     
     if use_quantile_map:
-        # Use quantile-based coarse mapping
         print("Using quantile map for coarse alignment...")
-        f0 = quantile_map(x_n, y_n)
-        # Build distance matrix: A[i,j] = |y[i] - f0(x[j])|
-        A = np.abs(y_n[:, None] - f0(x_n)[None, :])
+        f0 = quantile_map(peaks_measured, reference_lines)  # No normalization!
+        A = np.abs(reference_lines[:, None] - f0(peaks_measured)[None, :])
     else:
-        # Direct matching (assume same units)
         print("Direct matching (assuming same units)...")
-        # Build distance matrix: A[i,j] = |y[i] - x[j]|
-        A = np.abs(y_n[:, None] - x_n[None, :])
+        A = np.abs(reference_lines[:, None] - peaks_measured[None, :])
     
-
-    # Diagnostic: show distance distribution
+    # Distance statistics
     min_distances = np.min(A, axis=1)
-    print(f"Distance range: [{min_distances.min():.6f}, {min_distances.max():.6f}]")
+    print(f"Distance range: [{min_distances.min():.2f}, {min_distances.max():.2f}] nm")
     
-    # Estimate median_limit if not provided
     if median_limit is None:
         median_limit = estimate_median_limit_from_data(A, n_sigma=n_sigma_match)
     
-    print(f"\nDistance matrix: {A.shape} ({len(y_n)} ref × {len(x_n)} detected)")
+    print(f"Distance matrix: {A.shape} ({len(reference_lines)} ref × {len(peaks_measured)} detected)")
     print(f"Tolerance: {median_limit:.2f} × median")
 
-    # Find mutual nearest neighbors
+    # Mutual NN matching
     matches = argmin2d(A, median_limit=median_limit)
-    
     print(f"Mutual NN matches: {len(matches)}")
     
     if len(matches) < 2:
         raise RuntimeError("Not enough mutual NN matches")
     
-    # Extract matched pairs
     y_idx = matches[:, 0]
     x_idx = matches[:, 1]
     
-    x_matched = x_n[x_idx]
-    y_matched = y_n[y_idx]
+    x_matched = peaks_measured[x_idx]
+    y_matched = reference_lines[y_idx]
     
     # Sort by x
     idx = np.argsort(x_matched)
@@ -235,14 +245,11 @@ def universal_dispersion_calibration(
     y_matched = y_matched[idx]
     
     print(f"\nAfter matching: {len(x_matched)} pairs")
-    print(f"  Unique x: {len(np.unique(x_matched))}")
-    print(f"  Unique y: {len(np.unique(y_matched))}")
     
-    # Verify no duplicates from matching
     assert len(x_matched) == len(np.unique(x_matched)), "Duplicate x values!"
     assert len(y_matched) == len(np.unique(y_matched)), "Duplicate y values!"
 
-    # --- STEP 2: OUTLIER REMOVAL (using linear model) ---
+    # --- STEP 2: OUTLIER REMOVAL ---
     print("\n=== STEP 2: OUTLIER REMOVAL ===")
     
     if outlier_method == 'linear':
@@ -262,39 +269,27 @@ def universal_dispersion_calibration(
     
     print(f"\nAfter outlier removal: {len(x_inliers)} inliers")
     
-    # Verify monotonicity
     assert np.all(np.diff(x_inliers) > 0), "Non-monotonic x!"
     assert np.all(np.diff(y_inliers) > 0), "Non-monotonic y!"
 
-    # --- STEP 3: INTERPOLATION (PCHIP on clean data) ---
+    # --- STEP 3: INTERPOLATION ---
     print("\n=== STEP 3: INTERPOLATION ===")
     print(f"Fitting PCHIP spline on {len(x_inliers)} clean points...")
     
-    spline_n = PchipInterpolator(x_inliers, y_inliers, extrapolate=False)
+    spline = PchipInterpolator(x_inliers, y_inliers, extrapolate=False)
 
-    # --- Forward mapping ---
+    # --- Forward mapping (no denormalization needed!) ---
     def forward(x):
-        x = np.asarray(x, dtype=float)
-        x_nq = (x - x0) / (x1 - x0)
-        return denormalize(spline_n(x_nq), y0, y1)
+        return spline(np.asarray(x, dtype=float))
 
     # --- Pairs for inspection ---
-    pairs_all = np.column_stack([
-        denormalize(x_matched, x0, x1),
-        denormalize(y_matched, y0, y1)
-    ])
-
-    pairs_inliers = np.column_stack([
-        denormalize(x_inliers, x0, x1),
-        denormalize(y_inliers, y0, y1)
-    ])
+    pairs_all = np.column_stack([x_matched, y_matched])
+    pairs_inliers = np.column_stack([x_inliers, y_inliers])
 
     return {
         "forward": forward,
         "pairs_all": pairs_all,
         "pairs_inliers": pairs_inliers,
-        "pairs_all_normalized": np.column_stack([x_matched, y_matched]),
-        "pairs_inliers_normalized": [x_inliers, y_inliers],
     }
 
 
