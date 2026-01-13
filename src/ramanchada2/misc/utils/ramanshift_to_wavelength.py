@@ -61,3 +61,27 @@ def filter_ref_lines_for_raman(
     print(f"Reference lines: {len(ref_wavelengths)} total → {len(filtered)} in range")
     
     return filtered
+
+
+# Helper function to create filtered dicts
+def _create_dict_for_laser(laser_wl_nm, raman_range=(-500, 4000), peaks=None, margin_nm=10):
+    """
+    Create Neon wavelength dict for a specific laser by filtering ne_peaks_cwa.
+    
+    Returns dict of {wavelength_nm: intensity_placeholder}
+    """
+    from ramanchada2.misc.utils.ramanshift_to_wavelength import (
+        shift_cm_1_to_abs_nm, filter_ref_lines_for_raman
+    )
+    
+    # Filter wavelengths for this laser
+    filtered_wl = filter_ref_lines_for_raman(
+        ref_wavelengths=peaks,
+        laser_wl_nm=laser_wl_nm,
+        raman_shift_range_cm_1=raman_range,
+        margin_nm=margin_nm
+    )
+    
+    # Create dict with placeholder intensities (or use 1.0 as default)
+    # If you want actual intensities, you'd need to store them in ne_peaks_cwa
+    return {wl: 1.0 for wl in filtered_wl}
