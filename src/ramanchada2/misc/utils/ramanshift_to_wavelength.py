@@ -55,10 +55,10 @@ def filter_ref_lines_for_raman(
     mask = (ne_array >= wl_min) & (ne_array <= wl_max)
     filtered = ne_array[mask]
     
-    print(f"Laser: {laser_wl_nm} nm")
-    print(f"Raman range: {raman_shift_range_cm_1[0]} to {raman_shift_range_cm_1[1]} cm⁻¹")
-    print(f"Wavelength range: {wl_min:.1f} - {wl_max:.1f} nm")
-    print(f"Reference lines: {len(ref_wavelengths)} total → {len(filtered)} in range")
+    #print(f"Laser: {laser_wl_nm} nm")
+    #print(f"Raman range: {raman_shift_range_cm_1[0]} to {raman_shift_range_cm_1[1]} cm⁻¹")
+    #print(f"Wavelength range: {wl_min:.1f} - {wl_max:.1f} nm")
+    #print(f"Reference lines: {len(ref_wavelengths)} total → {len(filtered)} in range")
     
     return filtered
 
