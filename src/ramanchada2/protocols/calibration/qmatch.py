@@ -1,9 +1,14 @@
 from scipy.interpolate import PchipInterpolator
-from sklearn.isotonic import IsotonicRegression
 from ramanchada2.misc.utils import argmin2d
 import numpy as np
 import matplotlib.pyplot as plt
-import ramanchada2.misc.constants as rc2const
+from ramanchada2.protocols.calibration.interpolators import (
+    get_interpolator
+)
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def normalize(arr):
     arr = np.asarray(arr, dtype=float)
@@ -19,15 +24,12 @@ def find_closest_pairs_quantile_idx(x, y, **kw_args):
     f0 = quantile_map(x, y)  # No normalization!
     A = np.abs(y[:, None] - f0(x)[None, :])
     median_limit = estimate_median_limit_from_data(A, **kw_args)
-    print(median_limit)
     matches = argmin2d(A, median_limit=10)
-    print(f"Mutual NN matches: {len(matches)}")
+    logger.debug(f"Mutual NN matches: {len(matches)}")
     y_idx = matches[:, 0]
     x_idx = matches[:, 1]    
     
-    print(f"x {len(x)} y {len(y)}")    
-    print(f"x idx {x_idx}")
-    print(f"y idx {y_idx}")
+    logger.debug(f"x {len(x)} y {len(y)}")    
     return x_idx, y_idx 
 
 
@@ -44,7 +46,7 @@ def quantile_map(x, y, q=None):
     a = np.polyfit(qx, qy, deg=1)
     
     poly = np.poly1d(a)
-    print(f"  Quantile map: y = {a[0]:.6f}*x + {a[1]:.6f}")
+    logger.info(f"  Quantile map: y = {a[0]:.6f}*x + {a[1]:.6f}")
     
     return poly
 
@@ -61,9 +63,7 @@ def estimate_median_limit_from_data(A, n_sigma=3.0):
     med = np.median(all_min_dist)
     mad = np.median(np.abs(all_min_dist - med))
     
-    print(f"\nAdaptive median_limit:")
-    print(f"  Median distance: {med:.2f} nm")
-    print(f"  MAD: {mad:.2f} nm")
+    logger.info(f"\nAdaptive median_limit: Median distance: {med:.2f} nm MAD: {mad:.2f} nm")
     
     if med < 1e-10 or mad < 1e-10:
         return 10.0
@@ -216,7 +216,8 @@ def universal_dispersion_calibration(
     n_sigma_match=3.0,
     outlier_method='linear',
     n_sigma_outlier=3.0,
-    use_quantile_map=True
+    use_quantile_map=True,
+    interpolator="pchip"
 ):
     """
     Universal dispersion calibration WITHOUT normalization.
@@ -290,27 +291,25 @@ def universal_dispersion_calibration(
     assert np.all(np.diff(y_inliers) > 0), "Non-monotonic y!"
 
     # --- STEP 3: INTERPOLATION ---
-    print("\n=== STEP 3: INTERPOLATION ===")
-    print(f"Fitting PCHIP spline on {len(x_inliers)} clean points...")
+    logger.info("\n=== STEP 3: INTERPOLATION ===")
+    print(f"Fitting {interpolator} on {len(x_inliers)} clean points...")
     
-    spline = PchipInterpolator(x_inliers, y_inliers, extrapolate=False)
-
-    # --- Forward mapping (no denormalization needed!) ---
-    def forward(x):
-        return spline(np.asarray(x, dtype=float))
-
+    interp = get_interpolator(x_inliers, y_inliers, interpolator_method=interpolator)
+    print(interp)
     # --- Pairs for inspection ---
     pairs_all = np.column_stack([x_matched, y_matched])
     pairs_inliers = np.column_stack([x_inliers, y_inliers])
 
     return {
-        "forward": forward,
+        "interpolator": interp,
         "pairs_all": pairs_all,
         "pairs_inliers": pairs_inliers,
     }
 
 
-def diagnose_matching(peaks_measured, reference_lines, target_ref=540, laser_wl_nm=None, use_quantile_map=True):
+def diagnose_matching(peaks_measured, reference_lines, target_ref=540, 
+                      laser_wl_nm=None, use_quantile_map=True,
+                      output_file="matching_diagnosis.png"):
     """
     Diagnose why certain peaks are or aren't matched.
     
@@ -486,7 +485,7 @@ def diagnose_matching(peaks_measured, reference_lines, target_ref=540, laser_wl_
                     color='red', va='center', fontweight='bold')
     
     plt.tight_layout()
-    plt.savefig('matching_diagnosis.png', dpi=150, bbox_inches='tight')
-    print(f"\n📊 Saved visualization to: matching_diagnosis.png")
+    plt.savefig(output_file, dpi=150, bbox_inches='tight')
+    print(f"\n📊 Saved visualization to: {output_file}")
     
     return fig

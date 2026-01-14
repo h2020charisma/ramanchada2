@@ -19,9 +19,10 @@ def match_peaks_cluster(
     # Min-Max normalize the reference values
     min_value = min(ref.values())
     max_value = max(ref.values())
+    norm = 1 if max_value == min_value else  (max_value - min_value)
     if len(ref.keys()) > 1:
         normalized_ref = {
-            key: (value - min_value) / (max_value - min_value)
+            key: (value - min_value) / norm
             for key, value in ref.items()
         }
     else:
