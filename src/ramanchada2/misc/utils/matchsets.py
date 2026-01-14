@@ -740,23 +740,14 @@ def match_peaks_ready_wrapper(
     # ----------------------------------------------------------
     # Build compatibility DataFrame (same structure as cluster version)
     # ----------------------------------------------------------
-    wl_label = "Wavelength"
-    intensity_label = "Intensity"
-    source_label = "Source"
-
-    df_spe = pd.DataFrame({
-        wl_label: spe_wl,
-        intensity_label: spe_int,
-        source_label: "spe"
-    })
-    df_ref = pd.DataFrame({
-        wl_label: ref_wl,
-        intensity_label: ref_int,
-        source_label: "reference"
-    })
-
-    df = pd.concat([df_spe, df_ref], ignore_index=True)
-
+    df = pd.DataFrame(
+        {
+            "spe": x_spe_sorted,
+            "reference": x_reference_sorted,
+            "distances": x_spe_sorted - x_reference_sorted
+        }
+    )
+    df["inlier_mask"] = True
     # ----------------------------------------------------------
     # Return DP matrix directly in place of "distance"
     # ----------------------------------------------------------
