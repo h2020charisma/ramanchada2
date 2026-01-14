@@ -190,10 +190,8 @@ class XCalibrationComponent(CalibrationComponent):
                 )
             )
         peaks_df = self.fit_peaks(find_kw, fit_peaks_kw, should_fit)
-        x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(
-            threshold_max_distance=None, return_df=True
-        )
-        logger.debug(list(zip(x_spe, x_reference)))
+        x_spe, x_reference, x_distance, cost_matrix, df = match_peaks(
+            self.spe_pos_dict, self.ref, self.spe_units, match_method=self.match_method)
         self.cost_matrix = cost_matrix
         self.matched_peaks = df
         # if df is None:
@@ -228,98 +226,7 @@ class XCalibrationComponent(CalibrationComponent):
                 logger.error(err)
                 raise err
 
-    def match_peaks(self, threshold_max_distance=9, return_df=False):
-        _match_method = self.match_method
-        if self.spe_units == "pixel" and self.match_method != "qargmin2d":
-            _match_method = "dynamicp"
-        logger.debug(f"{self.match_method} spe_pos_dict {self.spe_pos_dict}, \nref {self.ref}")
-        if _match_method == "cluster":
-            x_spe, x_reference, x_distance, _ = match_peaks_cluster(
-                self.spe_pos_dict, self.ref,
-                #_filter_range = self.spe_units != "pixel"
-            )
-            x_inliers, y_inliers, inlier_mask = qmatch.iterative_linear_filter(
-                x_spe, x_reference, n_sigma=3
-            )            
-            cost_matrix = None
-            df = pd.DataFrame(
-                {"spe": x_inliers, "reference": y_inliers, "distances": None}
-            )
-            return x_spe, x_reference, x_distance, cost_matrix, df
-        elif _match_method == "dynamicp":
-            x_spe, x_reference, cost_matrix, df = match_peaks_ready_wrapper(
-                self.spe_pos_dict, self.ref,
-            )
-            return x_spe, x_reference, x_spe - x_reference, cost_matrix, df
-        elif _match_method == "qargmin2d":
-            x = np.array(list(self.spe_pos_dict.keys()))
-            y = np.array(list(self.ref.keys()))
-            if self.spe_units == "pixel":
-                x_idx, y_idx = qmatch.find_closest_pairs_quantile_idx(x,y,n_sigma=3)
-            else:
-                x_idx, y_idx = find_closest_pairs_idx(x, y)
-            x_spe = x[x_idx]
-            x_reference = y[y_idx]
-            # Sort by x
-            idx = np.argsort(x_spe)
-            x_spe = x_spe[idx]
-            x_reference = x_reference[idx]     
-            #iterative_linear_filter       
-            x_inliers, y_inliers, inlier_mask = qmatch.linear_residual_filter(
-                x_spe, x_reference, n_sigma=3
-            )
-            logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
-            df = pd.DataFrame(
-                {
-                    "spe": x_inliers,
-                    "reference": y_inliers,
-                    "distances": x_inliers - y_inliers,
-                }
-            )
-            return x_spe, x_reference, x_spe - x_reference, None, df        
-        elif _match_method == "argmin2d":
-            x = np.array(list(self.spe_pos_dict.keys()))
-            y = np.array(list(self.ref.keys()))
-            x_idx, y_idx = find_closest_pairs_idx(x, y)
-            x_spe = x[x_idx]
-            x_reference = y[y_idx]
-            df = pd.DataFrame(
-                {
-                    "spe": x_spe,
-                    "reference": x_reference,
-                    "distances": x_spe - x_reference,
-                }
-            )
-            return x_spe, x_reference, x_spe - x_reference, None, df
-        elif _match_method == "assignment":  # https://en.wikipedia.org/wiki/Hungarian_algorithm
-            try:
-                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
-                    spe_pos_dict=self.spe_pos_dict,
-                    ref=self.ref,
-                    tolerance=100, relative=False, weight_intensity=0.9
-                )
-                return x_spe, x_reference, x_distance, cost_matrix, df
-            except Exception as err:
-                logger.warning(f"{err} Reverting to monotonic match")
-                x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
-                    spe_pos_dict=self.spe_pos_dict,
-                    ref=self.ref,
-                    tolerance=None, relative=False, weight_intensity=0.25
-                )
-                return x_spe, x_reference, x_distance, None, df
-        else:  # self.match_method == "monotonic":
-            try:
-                x_spe, x_reference, x_distance,  df = match_peaks_monotonic_simple(
-                    spe_pos_dict=self.spe_pos_dict,
-                    ref=self.ref,
-                    tolerance=100,
-                    relative=False,
-                    weight_intensity=.5
-                )
-                return x_spe, x_reference, x_distance, None, df
-            except Exception as err:
-                raise err
-
+  
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
@@ -435,3 +342,101 @@ class LazerZeroingComponent(CalibrationComponent):
         pass
 
 
+def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
+    _match_method = match_method
+    if spe_units == "pixel" and match_method != "qargmin2d":
+        _match_method = "dynamicp"
+    logger.debug(f"{match_method} spe_pos_dict {spe_pos_dict}, \nref {ref_dict}")
+    if _match_method == "cluster":
+        x_spe, x_reference, x_distance, _ = match_peaks_cluster(
+            spe_pos_dict, ref_dict,
+            #_filter_range = self.spe_units != "pixel"
+        )
+        x_inliers, y_inliers, inlier_mask = qmatch.iterative_linear_filter(
+            x_spe, x_reference, n_sigma=3
+        )            
+        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
+        cost_matrix = None
+        df = pd.DataFrame(
+            {
+                "spe": x_spe,
+                "reference": x_reference,
+                "distances": x_spe - x_reference,
+                "inlier_mask" : inlier_mask
+            }
+        )
+        return x_inliers, y_inliers, x_inliers-y_inliers, cost_matrix, df
+    elif _match_method == "dynamicp":
+        x_spe, x_reference, cost_matrix, df = match_peaks_ready_wrapper(
+            spe_pos_dict, ref_dict,
+        )
+        return x_spe, x_reference, x_spe - x_reference, cost_matrix, df
+    elif _match_method == "qargmin2d":
+        x = np.array(list(spe_pos_dict.keys()))
+        y = np.array(list(ref_dict.keys()))
+        if spe_units == "pixel":
+            x_idx, y_idx = qmatch.find_closest_pairs_quantile_idx(x,y,n_sigma=3)
+        else:
+            x_idx, y_idx = find_closest_pairs_idx(x, y)
+        x_spe = x[x_idx]
+        x_reference = y[y_idx]
+        # Sort by x
+        idx = np.argsort(x_spe)
+        x_spe = x_spe[idx]
+        x_reference = x_reference[idx]     
+        #iterative_linear_filter       
+        x_inliers, y_inliers, inlier_mask = qmatch.linear_residual_filter(
+            x_spe, x_reference, n_sigma=3
+        )
+        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
+        df = pd.DataFrame(
+            {
+                "spe": x_spe,
+                "reference": x_reference,
+                "distances": x_spe - x_reference,
+                "inlier_mask" : inlier_mask
+            }
+        )
+        return  x_inliers, y_inliers, x_inliers-y_inliers, None, df        
+    elif _match_method == "argmin2d":
+        x = np.array(list(spe_pos_dict.keys()))
+        y = np.array(list(ref_dict.keys()))
+        x_idx, y_idx = find_closest_pairs_idx(x, y)
+        x_spe = x[x_idx]
+        x_reference = y[y_idx]
+        df = pd.DataFrame(
+            {
+                "spe": x_spe,
+                "reference": x_reference,
+                "distances": x_spe - x_reference,
+            }
+        )
+        return x_spe, x_reference, x_spe - x_reference, None, df
+    elif _match_method == "assignment":  # https://en.wikipedia.org/wiki/Hungarian_algorithm
+        try:
+            x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
+                spe_pos_dict=spe_pos_dict,
+                ref=ref_dict,
+                tolerance=100, relative=False, weight_intensity=0.9
+            )
+            return x_spe, x_reference, x_distance, cost_matrix, df
+        except Exception as err:
+            logger.warning(f"{err} Reverting to monotonic match")
+            x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
+                spe_pos_dict=spe_pos_dict,
+                ref=ref_dict,
+                tolerance=None, relative=False, weight_intensity=0.25
+            )
+            return x_spe, x_reference, x_distance, None, df
+    else:  # self.match_method == "monotonic":
+        try:
+            x_spe, x_reference, x_distance,  df = match_peaks_monotonic_simple(
+                spe_pos_dict=spe_pos_dict,
+                ref=ref_dict,
+                tolerance=100,
+                relative=False,
+                weight_intensity=.5
+            )
+            return x_spe, x_reference, x_distance, None, df
+        except Exception as err:
+            raise err
