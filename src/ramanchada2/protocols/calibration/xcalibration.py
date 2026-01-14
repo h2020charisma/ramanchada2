@@ -226,32 +226,13 @@ class XCalibrationComponent(CalibrationComponent):
                 logger.error(err)
                 raise err
 
-  
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
-
-        peaks_df = None
-        self.fit_res = None
-
-        # instead of fit_peak_positions - we don't want movmin here
-        # baseline removal might be done during preprocessing
-        center_err_threshold = 0.5
-        find_kw.update(dict(sharpening=None))
-        cand = spe_to_process.find_peak_multipeak(**find_kw)
-        # print(cand.get_ampl_pos_fwhm())
-
-        self.fit_res = spe_to_process.fit_peak_multimodel(
-            profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
-            bound_centers_to_group=True
-        )
-        peaks_df = self.fit_res.to_dataframe_peaks()
-        if should_fit:
-            pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
-            self.spe_pos_dict = dict(zip(pos, amp))
-        else:
-            self.spe_pos_dict = cand.get_pos_ampl_dict()
-        return peaks_df
+        fit_res, spe_pos_dict = fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_fit=should_fit)
+        self.spe_pos_dict = spe_pos_dict
+        self.fit_res = fit_res
+        return self.fit_res.to_dataframe_peaks()
 
 
 class LazerZeroingComponent(CalibrationComponent):
@@ -346,7 +327,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
     _match_method = match_method
     if spe_units == "pixel" and match_method != "qargmin2d":
         _match_method = "dynamicp"
-    logger.debug(f"{match_method} spe_pos_dict {spe_pos_dict}, \nref {ref_dict}")
+    logger.debug(f"{_match_method} spe_pos_dict {spe_pos_dict}, \nref {ref_dict}")
     if _match_method == "cluster":
         x_spe, x_reference, x_distance, _ = match_peaks_cluster(
             spe_pos_dict, ref_dict,
@@ -440,3 +421,26 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
             return x_spe, x_reference, x_distance, None, df
         except Exception as err:
             raise err
+
+
+def fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_fit=True):
+
+    fit_res = None
+
+    # instead of fit_peak_positions - we don't want movmin here
+    # baseline removal might be done during preprocessing
+    center_err_threshold = 0.5
+    find_kw.update(dict(sharpening=None))
+    cand = spe_to_process.find_peak_multipeak(**find_kw)
+    # print(cand.get_ampl_pos_fwhm())
+
+    fit_res = spe_to_process.fit_peak_multimodel(
+        profile=profile, candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
+        bound_centers_to_group=True
+    )
+    if should_fit:
+        pos, amp = fit_res.center_amplitude(threshold=center_err_threshold)
+        spe_pos_dict = dict(zip(pos, amp))
+    else:
+        spe_pos_dict = cand.get_pos_ampl_dict()
+    return fit_res, spe_pos_dict
