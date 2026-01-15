@@ -487,7 +487,8 @@ def match_peaks_monotonic(
         "spe": matched_spe,
         "reference": matched_ref,
         "distance": distances,
-        "intensity_diff": inten_diff
+        "intensity_diff": inten_diff,
+        "inlier_mask" : True
     })
 
     return matched_spe, matched_ref, distances, df
