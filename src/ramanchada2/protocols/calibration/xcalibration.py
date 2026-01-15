@@ -455,3 +455,22 @@ def fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_
     else:
         spe_pos_dict = cand.get_pos_ampl_dict()
     return fit_res, spe_pos_dict
+
+
+def match_peaks4analysis(
+        spectra, ref=None, spe_units="nm", 
+        find_kw=None, fit_peaks_kw=None, profile="Gaussian", should_fit=True,
+        match_method = "qargmin2d",
+        stages=["1.original"]):
+    if spectra is None or ref is None:
+        return None
+    matched_peaks = None
+    for spe, stage in list(zip(spectra, stages)):
+        fit_res, spe_pos_dict = fit_peaks(
+            spe, find_kw, fit_peaks_kw, profile=profile, should_fit=should_fit)
+        _x, _ref, _, _, df_calib = match_peaks(
+            spe_pos_dict, ref, spe_units =spe_units, match_method=match_method)    
+        df_calib["match_mode"] = match_method
+        df_calib["before_after"] = stage
+        matched_peaks = df_calib if matched_peaks is None else pd.concat([matched_peaks, df_calib])
+    return matched_peaks
