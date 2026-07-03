@@ -220,7 +220,10 @@ class XCalibrationComponent(CalibrationComponent):
             self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
             try:
-                interp = get_interpolator(x_spe, x_reference,interpolator_method="pchip")
+                interp = get_interpolator(
+                    x_spe, x_reference,
+                    interpolator_method=self.interpolator_method,
+                )
                 self.set_model(interp, self.ref_units, peaks_df, name)
             except Exception as err:
                 logger.error(err)
@@ -369,8 +372,8 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
         # Sort by x
         idx = np.argsort(x_spe)
         x_spe = x_spe[idx]
-        x_reference = x_reference[idx]     
-        #iterative_linear_filter       
+        x_reference = x_reference[idx]
+        #iterative_linear_filter
         x_inliers, y_inliers, inlier_mask = qmatch.linear_residual_filter(
             x_spe, x_reference, n_sigma=3
         )

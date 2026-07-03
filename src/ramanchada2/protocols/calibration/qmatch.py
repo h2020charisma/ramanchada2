@@ -151,8 +151,61 @@ def linear_residual_filter(x, y, n_sigma=3.0):
     
     mask = np.abs(resid - med_resid) < threshold
     print(f"  Kept {mask.sum()}/{len(x)} inliers")
-    
+
     return x[mask], y[mask], mask
+
+
+def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0):
+    """Curve-aware robust outlier filter for matched (measured, reference) pairs.
+
+    ``linear_residual_filter`` fits a *straight line* and rejects points by their
+    residual from it. But the measured->reference relation of a Raman spectrograph is a
+    gently curved dispersion, so correctly-matched lines near the laser deviate from the
+    global straight line and get discarded. Dropping them shrinks the calibration anchor
+    span, which in turn pushes the Silicon laser-zeroing peak (and low-wavenumber sample
+    peaks) *outside* the anchor range where they are extrapolated -> the whole cm-1 axis
+    is mis-scaled and calibration worsens the spectra.
+
+    This filter keeps the largest RANSAC consensus of points lying within an adaptive band
+    of a degree-``deg`` fit, so on-trend (curved) near-laser lines survive while genuine
+    mismatches are still rejected. Returns ``(x_inliers, y_inliers, mask)`` with ``mask``
+    aligned to the input order, matching ``linear_residual_filter``.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n <= deg + 2:
+        return x, y, np.ones(n, dtype=bool)
+
+    xc = x - x.mean()  # centre for numerical stability of polyfit
+    # Adaptive acceptance band: n_sigma * robust-sigma of residuals to a curve-aware
+    # (deg) fit, floored by a small fraction of the reference spacing so a near-linear
+    # region with a tiny MAD does not clip the genuinely curved tails.
+    c_all = np.polyfit(xc, y, deg)
+    r_all = y - np.polyval(c_all, xc)
+    mad = np.median(np.abs(r_all - np.median(r_all)))
+    floor = 0.25 * np.median(np.abs(np.diff(np.sort(y))))
+    thr = max(n_sigma * 1.4826 * mad, floor)
+    if thr <= 0:
+        thr = np.percentile(np.abs(r_all), 95)
+
+    rng = np.random.default_rng(seed)
+    best = np.zeros(n, dtype=bool)
+    for _ in range(n_iter):
+        idx = rng.choice(n, deg + 1, replace=False)
+        try:
+            c = np.polyfit(xc[idx], y[idx], deg)
+        except Exception:
+            continue
+        m = np.abs(y - np.polyval(c, xc)) < thr
+        if m.sum() > best.sum():
+            best = m
+    if best.sum() >= deg + 2:  # refit on the consensus and re-select
+        c = np.polyfit(xc[best], y[best], deg)
+        best = np.abs(y - np.polyval(c, xc)) < thr
+
+    print(f"  Robust deg-{deg} filter: band={thr:.3f}, kept {best.sum()}/{n} inliers")
+    return x[best], y[best], best
 
 
 def iterative_linear_filter(x, y, n_sigma=3.0, max_iter=5):
