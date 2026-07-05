@@ -59,6 +59,9 @@ def _build_neon_model(spe_neon, interpolator_method):
     ("pchippolyinverse", CustomPolyInterpolator),
     ("cubic_spline", CustomCubicSplineInterpolator),
     ("rbf", CustomRBFInterpolator),
+    # rbfinverse: thin-plate spline shape remapped through a monotone PCHIP (CWA/MATLAB
+    # recipe), so the built model is a CustomPChipInterpolator.
+    ("rbfinverse", CustomPChipInterpolator),
 ])
 def test_interpolator_method_is_honoured(spe_neon, interpolator_method, expected_cls):
     model_ne = _build_neon_model(spe_neon, interpolator_method)

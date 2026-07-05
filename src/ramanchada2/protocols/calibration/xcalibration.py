@@ -336,7 +336,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
             spe_pos_dict, ref_dict,
             #_filter_range = self.spe_units != "pixel"
         )
-        x_inliers, y_inliers, inlier_mask = qmatch.iterative_linear_filter(
+        x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
             x_spe, x_reference, n_sigma=3
         )            
         logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
@@ -354,7 +354,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
         x_spe, x_reference, cost_matrix, df = match_peaks_ready_wrapper(
             spe_pos_dict, ref_dict,
         )
-        x_inliers, y_inliers, inlier_mask = qmatch.iterative_linear_filter(
+        x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
             x_spe, x_reference, n_sigma=3
         )
         df["inlier_mask"] = inlier_mask           
@@ -374,7 +374,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
         x_spe = x_spe[idx]
         x_reference = x_reference[idx]
         #iterative_linear_filter
-        x_inliers, y_inliers, inlier_mask = qmatch.linear_residual_filter(
+        x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
             x_spe, x_reference, n_sigma=3
         )
         logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
@@ -427,7 +427,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
                 relative=False,
                 weight_intensity=.5
             )
-            x_inliers, y_inliers, inlier_mask = qmatch.linear_residual_filter(
+            x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
                 x_spe, x_reference, n_sigma=3
             )
             df["inlier_mask"] = inlier_mask

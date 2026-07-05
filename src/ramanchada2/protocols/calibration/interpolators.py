@@ -333,12 +333,30 @@ def get_interpolator(x_spe, x_reference,interpolator_method="pchip"):
     elif interpolator_method == "rbf":
         kwargs = {
             "kernel": "thin_plate_spline",
-            "neighbors": len(x_spe) / 3,
+            "neighbors": int(len(x_spe) / 3),
             "smoothing": 0,
         }
         interp = CustomRBFInterpolator(
             x_spe.reshape(-1, 1), x_reference, **kwargs
         )
+    elif interpolator_method == "rbfinverse":
+        # CWA / MATLAB recipe (phspline + interp1 'pchip'): the polyharmonic (thin-plate)
+        # spline supplies only a SMOOTH SHAPE, evaluated forward (reference -> measured) on a
+        # dense, sorted reference grid; the monotone measured -> reference calibration map is
+        # then a PCHIP through those dense samples. PCHIP -- not the RBF -- guarantees
+        # monotonicity, so the calibrated axis cannot fold (a raw forward RBF can).
+        x_spe = np.asarray(x_spe, dtype=float)
+        x_reference = np.asarray(x_reference, dtype=float)
+        fwd = RBFInterpolator(
+            x_reference.reshape(-1, 1), x_spe,
+            kernel="thin_plate_spline", smoothing=0,
+        )
+        dense_ref = np.linspace(
+            x_reference.min(), x_reference.max(), max(2048, 10 * len(x_reference))
+        )
+        dense_spe = np.asarray(fwd(dense_ref.reshape(-1, 1))).reshape(-1)
+        order = np.argsort(dense_spe)
+        interp = CustomPChipInterpolator(dense_spe[order], dense_ref[order])
     else:
         raise Exception(f"Unknown interpolator {interpolator_method}")
     return interp   
