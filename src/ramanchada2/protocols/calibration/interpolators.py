@@ -177,35 +177,13 @@ class CustomPolyInterpolator:
         self.degree = best_deg
         self.fit_error = best_err
 
-        # Low-order (<= deg 2) model used ONLY to extrapolate beyond the fitted anchor
-        # span. A global high-degree polynomial can diverge steeply just outside
-        # [x_min, x_max]; since the Silicon laser-zeroing peak and low-wavenumber sample
-        # peaks may fall there, that divergence mis-scales the whole cm-1 axis. Keeping a
-        # graceful quadratic tail bounds the extrapolation error.
-        ext_deg = min(2, len(self.x) - 1)
-        self._ext_coef = np.polyfit(u, self.y, ext_deg) if ext_deg >= 1 else None
-
     # --------------------------------------------------------
     # Callable interface (like PchipInterpolator)
     # --------------------------------------------------------
     def __call__(self, x):
         x = np.asarray(x, dtype=float)
         u = (x - self.x_min) / (self.x_max - self.x_min)
-        y = np.polyval(self.coef, u)
-        ext = getattr(self, "_ext_coef", None)
-        if ext is not None:
-            # Replace out-of-range points with the quadratic tail, offset so it joins the
-            # in-range curve continuously at the respective boundary (u=0 / u=1). Offsets
-            # are derived from the current self.coef so this stays correct after load.
-            lo = u < 0.0
-            hi = u > 1.0
-            if lo.any():
-                off = np.polyval(self.coef, 0.0) - np.polyval(ext, 0.0)
-                y = np.where(lo, np.polyval(ext, u) + off, y)
-            if hi.any():
-                off = np.polyval(self.coef, 1.0) - np.polyval(ext, 1.0)
-                y = np.where(hi, np.polyval(ext, u) + off, y)
-        return y
+        return np.polyval(self.coef, u)
 
     # --------------------------------------------------------
     # Serialization
