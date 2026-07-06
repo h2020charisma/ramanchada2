@@ -71,14 +71,24 @@ class CustomPChipInterpolator(PchipInterpolator):
             np.array(pchip_dict["x"]),  # Convert back to numpy arrays
             np.array(pchip_dict["y"]),
         )
+        # restore anchor provenance saved by inverse variants (optional keys)
+        if pchip_dict.get("x_original") is not None:
+            interpolator_loaded.x_original = np.array(pchip_dict["x_original"])
+            interpolator_loaded.y_original = np.array(pchip_dict["y_original"])
         return interpolator_loaded
 
     def to_dict(self):
         # Save the current x and y data to a dictionary
-        return {
-            "x": self.x.tolist(),  # Convert numpy arrays to lists for JSON serialization
-            "y": self.y.tolist(),
+        d = {
+            "x": np.asarray(self.x).tolist(),  # Convert numpy arrays to lists for JSON serialization
+            "y": np.asarray(self.y).tolist(),
         }
+        # inverse variants keep the original anchor knots separately from the dense grid;
+        # preserve them so span/provenance diagnostics survive a JSON round-trip
+        if getattr(self, "x_original", None) is not None:
+            d["x_original"] = np.asarray(self.x_original).tolist()
+            d["y_original"] = np.asarray(self.y_original).tolist()
+        return d
 
     def save_coefficients(self, filename):
         """Save the x and y coefficients to a JSON file."""
@@ -132,10 +142,10 @@ class CustomCubicSplineInterpolator(CubicSpline):
 
     def to_dict(self):
         return {
-            "x": self.x,
-            "y": self.y,
+            "x": np.asarray(self.x).tolist(),
+            "y": np.asarray(self.y).tolist(),
             "bc_type": self.bc_type,
-            "extrapolate": self.extrapolate,
+            "extrapolate": bool(self.extrapolate),
         }
 
     def plot(self, ax):
@@ -252,19 +262,27 @@ class CustomPolyInterpolator:
         obj.x_min = poly_dict["x_min"]
         obj.x_max = poly_dict["x_max"]
         obj.fit_error = poly_dict.get("fit_error", None)
+        # restore anchor provenance saved by inverse variants (optional keys)
+        if poly_dict.get("x_original") is not None:
+            obj.x_original = np.array(poly_dict["x_original"])
+            obj.y_original = np.array(poly_dict["y_original"])
 
         return obj
 
     def to_dict(self):
-        return {
-            "x": self.x.tolist(),
-            "y": self.y.tolist(),
-            "coef": self.coef.tolist(),
+        d = {
+            "x": np.asarray(self.x).tolist(),
+            "y": np.asarray(self.y).tolist(),
+            "coef": np.asarray(self.coef).tolist(),
             "degree": int(self.degree),
             "x_min": float(self.x_min),
             "x_max": float(self.x_max),
             "fit_error": None if self.fit_error is None else float(self.fit_error),
         }
+        if getattr(self, "x_original", None) is not None:
+            d["x_original"] = np.asarray(self.x_original).tolist()
+            d["y_original"] = np.asarray(self.y_original).tolist()
+        return d
 
     def save_coefficients(self, filename):
         with open(filename, "w") as f:
@@ -394,4 +412,33 @@ def get_interpolator(x_spe, x_reference, interpolator_method: InterpolatorMethod
         interp = CustomPChipInterpolator(dense_spe[order], dense_ref[order])
     else:
         raise Exception(f"Unknown interpolator {interpolator_method}")
-    return interp   
+    return interp
+
+
+# Registry for portable (JSON) serialization: class name <-> class. CustomRBFInterpolator is
+# deliberately absent -- its to_dict is not JSON-clean and "rbfinverse" already produces a
+# CustomPChipInterpolator, so no persisted model needs it.
+INTERPOLATOR_CLASSES = {
+    "CustomPChipInterpolator": CustomPChipInterpolator,
+    "CustomPolyInterpolator": CustomPolyInterpolator,
+    "CustomCubicSplineInterpolator": CustomCubicSplineInterpolator,
+}
+
+
+def interpolator_to_tagged_dict(interp):
+    """Serialize an interpolator to a JSON-clean dict with a "type" tag."""
+    name = type(interp).__name__
+    if name not in INTERPOLATOR_CLASSES:
+        raise NotImplementedError(
+            f"{name} has no portable JSON serialization; re-derive the model with a "
+            "supported interpolator_method")
+    return {"type": name, **interp.to_dict()}
+
+
+def interpolator_from_tagged_dict(d):
+    """Reconstruct an interpolator from a dict produced by interpolator_to_tagged_dict."""
+    cls = INTERPOLATOR_CLASSES.get(d.get("type"))
+    if cls is None:
+        raise ValueError(f"Unknown interpolator type {d.get('type')!r}")
+    payload = {k: v for k, v in d.items() if k != "type"}
+    return cls.from_dict(payload)

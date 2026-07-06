@@ -240,3 +240,34 @@ class YCalibrationComponent(CalibrationComponent):
     def _plot(self, ax, **kwargs):
         if self.ref is not None:
             self.ref.plot(ax, **kwargs)
+
+    def to_dict(self):
+        """Portable (JSON-clean) representation: certificate + measured-reference model."""
+        from .interpolators import interpolator_to_tagged_dict
+        return {
+            "type": "YCalibrationComponent",
+            "name": self.name,
+            "enabled": bool(self.enabled),
+            "laser_wl": self.laser_wl,
+            "model_units": self.model_units,
+            "certificate": self.ref.model_dump(),
+            "model": interpolator_to_tagged_dict(self.model),
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        from .interpolators import interpolator_from_tagged_dict
+        obj = object.__new__(cls)  # __init__ requires the reference spectrum
+        obj.laser_wl = d["laser_wl"]
+        obj.spe = None
+        obj.spe_units = None
+        obj.ref = YCalibrationCertificate.model_validate(d["certificate"])
+        obj.ref_units = None
+        obj.name = d.get("name", "Y calibration")
+        obj.model = interpolator_from_tagged_dict(d["model"])
+        obj.model_units = d.get("model_units", "cm-1")
+        obj.peaks = None
+        obj.sample = None
+        obj.enabled = d.get("enabled", True)
+        obj.fit_res = None
+        return obj

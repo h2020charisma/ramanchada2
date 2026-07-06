@@ -53,13 +53,68 @@ class XCalibrationComponent(CalibrationComponent):
         self.interpolator_method = interpolator_method
         self.extrapolate = extrapolate
 
-    
-    # @staticmethod
-    # def from_json(filepath: str):
-    #    rbf_intrpolator, other_data = load_xcalibration_model(filepath)
-    #    calibration_x = XCalibrationComponent(laser_wl, spe, spe_units, ref, ref_units)
-    #    calibration_x.model = rbf_intrpolator
-    #    return calibration_x
+    def to_dict(self):
+        """Portable (JSON-clean) representation of the applied-model state.
+
+        Derivation-time inputs (spe, fit_res, cost matrix) are not included; the matched
+        anchors are kept as provenance so span/quality diagnostics survive the round-trip.
+        """
+        from .interpolators import interpolator_to_tagged_dict
+        d = {
+            "type": "XCalibrationComponent",
+            "name": self.name,
+            "enabled": bool(self.enabled),
+            "laser_wl": self.laser_wl,
+            "sample": self.sample,
+            "spe_units": self.spe_units,
+            "ref_units": self.ref_units,
+            "model_units": self.model_units,
+            "nonmonotonic": self.nonmonotonic,
+            "extrapolate": bool(self.extrapolate),
+            "match_method": self.match_method,
+            "interpolator_method": self.interpolator_method,
+            # JSON object keys are strings; keep float reference positions as pairs
+            "ref": [[float(k), float(v)] for k, v in self.ref.items()] if self.ref else [],
+            "model": interpolator_to_tagged_dict(self.model),
+        }
+        mp = getattr(self, "matched_peaks", None)
+        if mp is not None and hasattr(mp, "columns") and {"spe", "reference"} <= set(mp.columns):
+            inl = mp["inlier_mask"] if "inlier_mask" in mp.columns else [True] * len(mp)
+            d["anchors"] = [
+                [float(s), float(r), bool(i)]
+                for s, r, i in zip(mp["spe"], mp["reference"], inl)
+            ]
+        return d
+
+    @classmethod
+    def from_dict(cls, d):
+        from .interpolators import interpolator_from_tagged_dict
+        obj = object.__new__(cls)  # __init__ requires a spectrum; rebuild state directly
+        obj.laser_wl = d["laser_wl"]
+        obj.spe = None
+        obj.spe_units = d.get("spe_units")
+        obj.ref = {k: v for k, v in d.get("ref", [])}
+        obj.ref_units = d.get("ref_units")
+        obj.name = d.get("name", "X calibration")
+        obj.model = interpolator_from_tagged_dict(d["model"])
+        obj.model_units = d.get("model_units", "nm")
+        obj.peaks = None
+        obj.sample = d.get("sample")
+        obj.enabled = d.get("enabled", True)
+        obj.fit_res = None
+        obj.spe_pos_dict = None
+        obj.cost_function = None
+        obj.cost_matrix = None
+        obj.nonmonotonic = d.get("nonmonotonic", "error")
+        obj.extrapolate = d.get("extrapolate", True)
+        obj.match_method = d.get("match_method", "qargmin2d")
+        obj.interpolator_method = d.get("interpolator_method", "poly")
+        anchors = d.get("anchors")
+        obj.matched_peaks = (
+            pd.DataFrame(anchors, columns=["spe", "reference", "inlier_mask"])
+            if anchors else None
+        )
+        return obj
 
     def process(
         self,
@@ -337,6 +392,40 @@ class LazerZeroingComponent(CalibrationComponent):
         # ax.set_xlim(520.45-50,520.45+50)
         # ax.set_xlabel("cm-1")
         pass
+
+    def to_dict(self):
+        """Portable (JSON-clean) representation: the model is the Si peak position in nm."""
+        return {
+            "type": "LazerZeroingComponent",
+            "name": self.name,
+            "enabled": bool(self.enabled),
+            "laser_wl": self.laser_wl,
+            "sample": self.sample,
+            "spe_units": self.spe_units,
+            "ref_units": self.ref_units,
+            "model_units": self.model_units,
+            "profile": self.profile,
+            "ref": [[float(k), float(v)] for k, v in self.ref.items()] if self.ref else [],
+            "model": float(self.model),
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        obj = object.__new__(cls)  # __init__ requires a spectrum; rebuild state directly
+        obj.laser_wl = d["laser_wl"]
+        obj.spe = None
+        obj.spe_units = d.get("spe_units", "nm")
+        obj.ref = {k: v for k, v in d.get("ref", [])} or {520.45: 1}
+        obj.ref_units = d.get("ref_units", "cm-1")
+        obj.name = d.get("name", "Laser zeroing")
+        obj.model = float(d["model"])
+        obj.model_units = d.get("model_units", "nm")
+        obj.peaks = None
+        obj.sample = d.get("sample", "Silicon")
+        obj.enabled = d.get("enabled", True)
+        obj.fit_res = None
+        obj.profile = d.get("profile", "Pearson4")
+        return obj
 
 
 def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):

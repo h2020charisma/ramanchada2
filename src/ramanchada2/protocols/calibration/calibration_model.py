@@ -1,3 +1,5 @@
+import datetime
+import json
 import pickle
 import warnings
 
@@ -78,17 +80,63 @@ class CalibrationModel(ProcessingModel, Plottable):
     def save(self, filename):
         """
         Saves the calibration model to a file.
+
+        ``.json`` extension writes the portable JSON representation (CWA 18133 §8 friendly,
+        language independent); anything else keeps the legacy pickle format.
         """
-        with open(filename, "wb") as file:
-            pickle.dump(self, file)
+        if str(filename).lower().endswith(".json"):
+            with open(filename, "w", encoding="utf-8") as file:
+                json.dump(self.to_dict(), file, indent=1)
+        else:
+            with open(filename, "wb") as file:
+                pickle.dump(self, file)
 
     @staticmethod
     def from_file(filename):
         """
-        Loads a calibration model from a file.
+        Loads a calibration model from a file (.json portable format or legacy pickle).
         """
+        if str(filename).lower().endswith(".json"):
+            with open(filename, "r", encoding="utf-8") as file:
+                return CalibrationModel.from_dict(json.load(file))
         with open(filename, "rb") as file:
             return pickle.load(file)
+
+    def to_dict(self):
+        """Portable (JSON-clean) representation of the full calibration model."""
+        import ramanchada2
+        return {
+            "format": "ramanchada2-calmodel",
+            "version": 1,
+            "date": datetime.datetime.now().isoformat(timespec="seconds"),
+            "ramanchada2_version": getattr(ramanchada2, "__version__", None),
+            "laser_wl": self.laser_wl,
+            "nonmonotonic": self.nonmonotonic,
+            "prominence_coeff": getattr(self, "prominence_coeff", None),
+            "components": [c.to_dict() for c in self.components],
+        }
+
+    @staticmethod
+    def from_dict(data):
+        """Reconstruct a CalibrationModel from :meth:`to_dict` output."""
+        from .ycalibration import YCalibrationComponent
+        component_classes = {
+            "XCalibrationComponent": XCalibrationComponent,
+            "LazerZeroingComponent": LazerZeroingComponent,
+            "YCalibrationComponent": YCalibrationComponent,
+        }
+        if data.get("format") != "ramanchada2-calmodel":
+            raise ValueError("Not a ramanchada2 calibration model dictionary")
+        calmodel = CalibrationModel(data["laser_wl"])
+        calmodel.nonmonotonic = data.get("nonmonotonic", "nan")
+        if data.get("prominence_coeff") is not None:
+            calmodel.prominence_coeff = data["prominence_coeff"]
+        for cd in data.get("components", []):
+            cls = component_classes.get(cd.get("type"))
+            if cls is None:
+                raise ValueError(f"Unknown calibration component type {cd.get('type')!r}")
+            calmodel.components.append(cls.from_dict(cd))
+        return calmodel
 
     def derive_model_x(
         self,
