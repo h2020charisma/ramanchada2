@@ -131,7 +131,11 @@ class Spectrum(Plottable):
     def x(self):
         if self._xdata is None:
             raise ValueError('x of the spectrum is not set. self._xdata is None')
-        return np.array(self._xdata)
+        # _xdata is a private copy frozen with writeable=False (see setter below), so it is
+        # safe to return directly: no caller can corrupt internal state through it, and an
+        # in-place mutation attempt (e.g. `spe.x[i] = v`) raises instead of silently
+        # vanishing on a throwaway copy.
+        return self._xdata
 
     @x.setter
     def x(self, val: npt.NDArray[np.float64]):
@@ -153,7 +157,8 @@ class Spectrum(Plottable):
     def y(self) -> npt.NDArray[np.float64]:
         if self._ydata is None:
             raise ValueError('y of the spectrum is not set. self._ydata is None')
-        return np.array(self._ydata)
+        # see x getter above: _ydata is a private frozen copy, safe to return directly
+        return self._ydata
 
     @y.setter
     def y(self, val: npt.NDArray[np.float64]):
