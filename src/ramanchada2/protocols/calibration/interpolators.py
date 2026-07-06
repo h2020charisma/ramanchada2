@@ -1,6 +1,15 @@
 from scipy.interpolate import CubicSpline, PchipInterpolator, RBFInterpolator
 import numpy as np
 import json
+from typing import Literal
+
+# Single source of truth for the interpolator options offered across the calibration API.
+# "pchippolyinverse" is a deprecated alias of "polyinverse", accepted for backward
+# compatibility. "rbf" and "cubic_spline" were removed from the public options;
+# their classes are kept so previously saved models still load.
+InterpolatorMethod = Literal[
+    "poly", "polyinverse", "pchip", "pchipinverse", "rbfinverse", "pchippolyinverse"
+]
 
 
 class CustomPChipInterpolator(PchipInterpolator):
@@ -318,27 +327,15 @@ class CustomRBFInterpolator(RBFInterpolator):
         return f"Calibration curve {len(self.y)} points) {self.kernel}"
 
 
-def get_interpolator(x_spe, x_reference,interpolator_method="pchip"):
+def get_interpolator(x_spe, x_reference, interpolator_method: InterpolatorMethod = "poly"):
     if interpolator_method == "pchip":
         interp = CustomPChipInterpolator(x_spe, x_reference, inverse=False)
     elif interpolator_method == "pchipinverse":
         interp = CustomPChipInterpolator(x_spe, x_reference, inverse=True)
-    elif interpolator_method in ["pchippolyinverse"]:
+    elif interpolator_method in ["polyinverse", "pchippolyinverse"]:
         interp = CustomPolyInterpolator(x_spe, x_reference, inverse=True)
     elif interpolator_method in ["poly"]:
         interp = CustomPolyInterpolator(x_spe, x_reference, inverse=False)
-    elif interpolator_method == "cubic_spline":
-        kwargs = {"bc_type": "clamped"}
-        interp = CustomCubicSplineInterpolator(x_spe, x_reference, **kwargs)
-    elif interpolator_method == "rbf":
-        kwargs = {
-            "kernel": "thin_plate_spline",
-            "neighbors": int(len(x_spe) / 3),
-            "smoothing": 0,
-        }
-        interp = CustomRBFInterpolator(
-            x_spe.reshape(-1, 1), x_reference, **kwargs
-        )
     elif interpolator_method == "rbfinverse":
         # CWA / MATLAB recipe (phspline + interp1 'pchip'): the polyharmonic (thin-plate)
         # spline supplies only a SMOOTH SHAPE, evaluated forward (reference -> measured) on a

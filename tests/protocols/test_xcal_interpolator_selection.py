@@ -3,7 +3,7 @@
 
 Regression test for a bug where ``XCalibrationComponent.derive_model`` hardcoded
 ``interpolator_method="pchip"`` and silently ignored the configured value, so every
-calibration (poly/rbf/cubic_spline/...) was built as a PCHIP curve. The type is checked on
+calibration (poly/polyinverse/...) was built as a PCHIP curve. The type is checked on
 the freshly *built* model (not a loaded pickle, whose ``from_dict`` would normalise the type).
 """
 import pytest
@@ -11,10 +11,8 @@ import pytest
 import ramanchada2.misc.constants as rc2const
 from ramanchada2.protocols.calibration.calibration_model import CalibrationModel
 from ramanchada2.protocols.calibration.interpolators import (
-    CustomCubicSplineInterpolator,
     CustomPChipInterpolator,
     CustomPolyInterpolator,
-    CustomRBFInterpolator,
 )
 from ramanchada2.spectrum import from_test_spe
 
@@ -56,9 +54,8 @@ def _build_neon_model(spe_neon, interpolator_method):
     ("pchip", CustomPChipInterpolator),
     ("pchipinverse", CustomPChipInterpolator),
     ("poly", CustomPolyInterpolator),
-    ("pchippolyinverse", CustomPolyInterpolator),
-    ("cubic_spline", CustomCubicSplineInterpolator),
-    ("rbf", CustomRBFInterpolator),
+    ("polyinverse", CustomPolyInterpolator),
+    ("pchippolyinverse", CustomPolyInterpolator),  # deprecated alias of polyinverse
     # rbfinverse: thin-plate spline shape remapped through a monotone PCHIP (CWA/MATLAB
     # recipe), so the built model is a CustomPChipInterpolator.
     ("rbfinverse", CustomPChipInterpolator),

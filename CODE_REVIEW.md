@@ -117,6 +117,8 @@ The `match_method` / `interpolator_method` `Literal`s disagree between layers:
 
 So the newest, recommended methods (`rbfinverse`, `pchipinverse`) are unreachable through the high-level API without violating its type hints, and three entry points have three different defaults. Define the option sets once (module-level `Literal` aliases or an `Enum`) and pass through; align defaults deliberately.
 
+**Status (2026-07-06): fixed.** Option sets are now defined once — `InterpolatorMethod` in `interpolators.py` (`poly`, `polyinverse`, `pchip`, `pchipinverse`, `rbfinverse`; `pchippolyinverse` kept as a deprecated alias of `polyinverse`) and `MatchMethod` in `xcalibration.py` — and reused by `XCalibrationComponent`, `derive_model_x`, `derive_model_curve`, and `calibration_model_factory`. Defaults are unified to `match_method="qargmin2d"` and `interpolator_method="poly"` everywhere. `rbf` and `cubic_spline` were removed from the public options and from `get_interpolator` (their classes remain so previously saved models still load and `process()` still handles them).
+
 ### 3.4 Class-level miscellany
 
 - `CalibrationModel` (`calibration_model.py:16–21`): the intended class docstring is placed *after* the `nonmonotonic` attribute, so it is not a docstring at all — `CalibrationModel.__doc__` is `None` and pdoc loses it.

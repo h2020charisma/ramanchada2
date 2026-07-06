@@ -10,7 +10,8 @@ import ramanchada2.misc.constants as rc2const
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import ProcessingModel
-from .xcalibration import LazerZeroingComponent, XCalibrationComponent
+from .interpolators import InterpolatorMethod
+from .xcalibration import LazerZeroingComponent, MatchMethod, XCalibrationComponent
 
 
 class CalibrationModel(ProcessingModel, Plottable):
@@ -102,8 +103,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         find_kw=None,
         fit_kw=None,
         should_fit=False,
-        match_method: Literal["cluster", "argmin2d", "assignment", "dynamicp", "qargmin2d"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         """
@@ -162,8 +163,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         if find_kw is None:
@@ -198,8 +199,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         warnings.warn(
@@ -322,8 +323,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         should_fit=False,
         prominence_coeff=3,
         si_profile="Pearson4",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "argmin2d",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         if neon_wl is None:

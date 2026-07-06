@@ -217,7 +217,7 @@ def universal_dispersion_calibration(
     outlier_method='linear',
     n_sigma_outlier=3.0,
     use_quantile_map=True,
-    interpolator="pchip"
+    interpolator="poly"
 ):
     """
     Universal dispersion calibration WITHOUT normalization.

@@ -5,11 +5,12 @@ import numpy as np
 import pandas as pd
 from ramanchada2.protocols.calibration import qmatch
 from ramanchada2.protocols.calibration.interpolators import (
-    CustomCubicSplineInterpolator, 
+    CustomCubicSplineInterpolator,
     CustomPChipInterpolator,
     CustomPolyInterpolator,
     CustomRBFInterpolator,
-    get_interpolator
+    get_interpolator,
+    InterpolatorMethod
 )
 
 from ramanchada2.misc.utils import find_closest_pairs_idx
@@ -24,6 +25,11 @@ from .calibration_component import CalibrationComponent
 
 logger = logging.getLogger(__name__)
 
+# Single source of truth for the peak-matching options offered across the calibration API.
+MatchMethod = Literal[
+    "qargmin2d", "argmin2d", "cluster", "assignment", "monotonic", "dynamicp"
+]
+
 
 class XCalibrationComponent(CalibrationComponent):
     def __init__(
@@ -34,8 +40,8 @@ class XCalibrationComponent(CalibrationComponent):
         spe_units: Literal["cm-1", "nm", "pixel"] = "cm-1",
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
-        match_method: Literal["cluster", "argmin2d", "assignment", "monotonic", "dynamicp", "qargmin2d"] = "qargmin2d",
-        interpolator_method: Literal["rbf", "pchip", "pchipinverse", "cubic_spline", "pchippolyinverse", "poly"] = "pchipinverse",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         super(XCalibrationComponent, self).__init__(
