@@ -68,11 +68,15 @@ Other modules already use the correct `None` + `if x is None:` idiom, so this is
 
 ### 1.7 `Spectrum` setter side effect on caller data — P3
 
-The `x`/`y` setters (`spectrum.py:136–158`) store the array *by reference* and set `val.flags.writeable = False`. That freezes the **caller's** array too — a user who does `spe.x = my_array; my_array[0] = 5` gets an unexpected `ValueError: assignment destination is read-only` on their own data. Copy on ingest (`self._xdata = np.asarray(val, dtype=float).copy()`) to keep the immutability contract from leaking outward. The setters also don't cross-check x/y length (only `__init__` does), so `spe.y = shorter_array` succeeds and fails later at plot/compute time.
+The `x`/`y` setters (`spectrum.py:136–158`) stored the array *by reference* and set `val.flags.writeable = False`. That froze the **caller's** array too — a user who did `spe.x = my_array; my_array[0] = 5` got an unexpected `ValueError: assignment destination is read-only` on their own data.
 
-### 1.8 Provenance loss in calibration processing — P3
+**Status: fixed.** Setters now copy on ingest (`self._xdata = np.array(val, dtype=float)`) before freezing, so the frozen array is private to the `Spectrum`. Note: x/y length is intentionally *not* cross-checked in the setters (only in `__init__`) — several filters (e.g. `trim_axes`) legitimately assign `.x` and `.y` sequentially to differing lengths mid-update, so a setter-level check would misfire on that valid intermediate state.
 
-`LazerZeroingComponent.process` (`xcalibration.py:315`) and `YCalibrationComponent.process` (`ycalibration.py:230–234`) build `Spectrum(x, y, metadata=…)` directly, discarding `applied_processings`. Elsewhere the package works hard to track processing history (that's the point of the `.cha` cache design); calibration — arguably the most important transformation to audit — is the step that loses it.
+### 1.8 Provenance loss in calibration processing — P3, deferred
+
+`LazerZeroingComponent.process` (`xcalibration.py`) and `YCalibrationComponent.process` (`ycalibration.py:230–234`) build `Spectrum(x, y, metadata=…)` directly, discarding `applied_processings`.
+
+**Status: deferred by project decision (2026-07-06).** `applied_processings` provenance tracking was designed around the `.cha` cache, which is being retired in favor of NeXus (see §2.3 note). Revisit this once the NeXus-based provenance story is defined instead of patching the old mechanism.
 
 ---
 

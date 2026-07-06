@@ -135,7 +135,10 @@ class Spectrum(Plottable):
 
     @x.setter
     def x(self, val: npt.NDArray[np.float64]):
-        self._xdata = val
+        # copy so freezing this array for immutability doesn't affect the caller's array
+        # (x and y are often set sequentially to differing lengths mid-update, e.g. in
+        # trim_axes, so length is not cross-checked here -- see Spectrum.__init__)
+        self._xdata = np.array(val, dtype=float)
         self._xdata.flags.writeable = False
 
     @property
@@ -154,7 +157,10 @@ class Spectrum(Plottable):
 
     @y.setter
     def y(self, val: npt.NDArray[np.float64]):
-        self._ydata = val
+        # copy so freezing this array for immutability doesn't affect the caller's array
+        # (x and y are often set sequentially to differing lengths mid-update, e.g. in
+        # trim_axes, so length is not cross-checked here -- see Spectrum.__init__)
+        self._ydata = np.array(val, dtype=float)
         self._ydata.flags.writeable = False
 
     @property

@@ -1,5 +1,6 @@
 """Create spectrum from local files."""
 
+import logging
 import os
 from typing import Literal, Union, Dict
 
@@ -13,6 +14,8 @@ from ramanchada2.misc.types import SpeMetadataModel
 
 from ..spectrum import Spectrum
 from .from_chada import from_chada
+
+logger = logging.getLogger(__name__)
 
 
 @add_spectrum_constructor()
@@ -87,7 +90,9 @@ def from_local_file(
     elif backend is None:
         try:
             spe = load_native()
-        except Exception:
+        except Exception as native_err:
+            logger.debug(f"native loader failed for {in_file_name!r}, "
+                         f"falling back to rc1_parser: {native_err}")
             spe = load_rc1()
     spe._sort_x()
     return spe
