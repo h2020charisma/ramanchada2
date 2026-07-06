@@ -81,10 +81,11 @@ class XCalibrationComponent(CalibrationComponent):
                     new_spe.x = self.model(new_spe.x.reshape(-1, 1))
                     if not self.extrapolate:
                         min_train, max_train = self.model.y.min(), self.model.y.max()
-                        out_of_bounds = (new_spe.x < min_train) | (
-                            new_spe.x > max_train
-                        )
-                        new_spe.x[out_of_bounds] = np.nan
+                        # new_spe.x returns a copy; build the masked array and assign it back
+                        _newx = np.asarray(new_spe.x, dtype=float)
+                        out_of_bounds = (_newx < min_train) | (_newx > max_train)
+                        _newx[out_of_bounds] = np.nan
+                        new_spe.x = _newx
 
                 elif isinstance(self.model, CustomCubicSplineInterpolator):
                     new_spe.x = self.model(new_spe.x)
@@ -282,6 +283,10 @@ class LazerZeroingComponent(CalibrationComponent):
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
+            else:
+                raise ValueError(
+                    f"Peak fit results have neither 'position' nor 'center' column: {list(df.columns)}"
+                )
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
             zero_peak_cm1 = self.zero_nm_to_shift_cm_1(
                 zero_peak_nm, zero_peak_nm, list(self.ref.keys())[0]
@@ -444,7 +449,7 @@ def fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_
     # instead of fit_peak_positions - we don't want movmin here
     # baseline removal might be done during preprocessing
     center_err_threshold = 0.5
-    find_kw.update(dict(sharpening=None))
+    find_kw = {**(find_kw or {}), "sharpening": None}  # don't mutate the caller's dict
     cand = spe_to_process.find_peak_multipeak(**find_kw)
     # print(cand.get_ampl_pos_fwhm())
 

@@ -102,59 +102,6 @@ def linear_residual_filter(x, y, n_sigma=3.0):
     return x[mask], y[mask], mask
 
 
-def estimate_median_limit_from_data(A, n_sigma=3.0):
-    """
-    Estimate median_limit from distance distribution.
-    Works directly with physical units (nm).
-    """
-    min_dist_per_ref = np.min(A, axis=1)
-    min_dist_per_peak = np.min(A, axis=0)
-    all_min_dist = np.concatenate([min_dist_per_ref, min_dist_per_peak])
-    
-    med = np.median(all_min_dist)
-    mad = np.median(np.abs(all_min_dist - med))
-    
-    print(f"\nAdaptive median_limit:")
-    print(f"  Median distance: {med:.2f} nm")
-    print(f"  MAD: {mad:.2f} nm")
-    
-    if med < 1e-10 or mad < 1e-10:
-        return 10.0
-    
-    median_limit = 1.0 + n_sigma * (mad / med)
-    print(f"  median_limit = {median_limit:.2f}")
-    
-    return median_limit
-
-
-def linear_residual_filter(x, y, n_sigma=3.0):
-    """
-    Filter outliers using linear fit residuals.
-    Works directly in physical units.
-    """
-    if len(x) < 2:
-        return x, y, np.ones(len(x), dtype=bool)
-    
-    a, b = np.polyfit(x, y, deg=1)
-    y_pred = a * x + b
-    resid = y - y_pred
-    
-    med_resid = np.median(resid)
-    mad = np.median(np.abs(resid - med_resid))
-    
-    if mad < 1e-10:
-        threshold = np.percentile(np.abs(resid), 95)
-        print(f"  Linear filter: MAD too small, using 95th percentile threshold={threshold:.2f} nm")
-    else:
-        threshold = n_sigma * mad
-        print(f"  Linear filter: MAD={mad:.2f} nm, threshold={threshold:.2f} nm")
-    
-    mask = np.abs(resid - med_resid) < threshold
-    print(f"  Kept {mask.sum()}/{len(x)} inliers")
-
-    return x[mask], y[mask], mask
-
-
 def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0):
     """Curve-aware robust outlier filter for matched (measured, reference) pairs.
 

@@ -24,7 +24,7 @@ def from_local_file(
                                       'txt', 'txtr', 'tsv', 'csv', 'prn', 'dpt',
                                       'rruf', 'spe', 'cha']] = None,
         backend: Union[None, Literal['native', 'rc1_parser']] = None,
-        custom_meta: Dict = {}):
+        custom_meta: Union[Dict, None] = None):
     """
     Read experimental spectrum from a local file.
 
@@ -70,7 +70,8 @@ def from_local_file(
         else:
             raise ValueError(f'filetype {ft} not supported')
         meta["Original file"] = os.path.basename(in_file_name)
-        meta.update(custom_meta)
+        if custom_meta:
+            meta.update(custom_meta)
         spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
         return spe
 

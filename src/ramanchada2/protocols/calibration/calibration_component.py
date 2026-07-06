@@ -8,9 +8,6 @@ from matplotlib.axes import Axes
 
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
-import ramanchada2.misc.constants as rc2const
-from ramanchada2.misc.utils.ramanshift_to_wavelength import \
-    abs_nm_to_shift_cm_1 as util_abs_nm_to_shift_cm_1
 
 
 logger = logging.getLogger(__name__)
@@ -67,25 +64,18 @@ class CalibrationComponent(Plottable):
                     laser_wave_length_nm=laser_wl
                 )
             elif spe_unit == "pixel":
+                # pixel axes are not converted here; matching handles them via quantile mapping
+                logger.warning(
+                    "convert_units: pixel axis passed through unconverted (%s -> %s)",
+                    spe_unit, newspe_unit
+                )
                 new_spe = old_spe.__copy__()
-                
-                #neon_wn = {1e7*(1/laser_wl - 1/wl): intensity for wl, intensity in rc2const.NEON_WL[laser_wl].items()}
-                #print(f"neon_wn {min(neon_wn.keys())}, {max(neon_wn.keys())}")
-                #x = self.pixels_to_wavenumber(old_spe.x, neon_wn)
-                #new_spe = Spectrum(x,old_spe.y)
-                #if newspe_unit == "nm":
-                #    new_spe = new_spe.shift_cm_1_to_abs_nm_filter(
-                #        laser_wave_length_nm=laser_wl
-                #    )
-                
-                #new_spe.plot(label=f"{spe_unit} --> {newspe_unit}")                
             else:
-                raise Exception(
-                    "Unsupported conversion {} to {}", spe_unit, newspe_unit
+                raise ValueError(
+                    f"Unsupported conversion {spe_unit} to {newspe_unit}"
                 )
         else:
             new_spe = old_spe.__copy__()
-        #    new_spe = old_spe.__copy__()
         return new_spe
 
     def process(self, old_spe: Spectrum, spe_units="cm-1", convert_back=False):
@@ -149,11 +139,10 @@ class CalibrationComponent(Plottable):
         )
         return df[(df["center"] >= min(spe.x)) & (df["center"] <= max(spe.x))]
 
-
     def pixels_to_wavenumber(self, pixel_array, reference_wn_dict, extension=30):
         """
         Scale pixel positions to wavenumber space based on reference peak range.
-        
+
         Parameters
         ----------
         pixel_array : array-like
@@ -162,12 +151,12 @@ class CalibrationComponent(Plottable):
             Reference peaks as {wavenumber (cm⁻¹): intensity}
         extension : float, optional
             Extend the reference range by this amount (cm⁻¹) on each side
-            
+
         Returns
         -------
         array-like
             Scaled positions in cm⁻¹
-            
+
         Examples
         --------
         >>> neon_wn = {10**7 / wl: intensity for wl, intensity in neon_wl.items()}
@@ -176,16 +165,16 @@ class CalibrationComponent(Plottable):
         # Get wavenumber range from reference
         wn_min = min(reference_wn_dict.keys()) - extension
         wn_max = max(reference_wn_dict.keys()) + 1
-        
+
         # Get pixel range
         pix_min = min(pixel_array)
         pix_max = max(pixel_array)
-        
+
         # Calculate scales
         scale_wn = wn_max - wn_min
         scale_pix = pix_max - pix_min
-        
+
         # Linear scaling
         scaled = (pixel_array - pix_min) * scale_wn / scale_pix + wn_min
-        print(f"pixels_to_wavenumber ({pix_min},{pix_max}) -> ({min(scaled)}, {max(scaled)})")
+        logger.debug(f"pixels_to_wavenumber ({pix_min},{pix_max}) -> ({min(scaled)}, {max(scaled)})")
         return scaled

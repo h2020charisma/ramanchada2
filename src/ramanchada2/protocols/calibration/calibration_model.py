@@ -1,7 +1,7 @@
 import pickle
 import warnings
 
-from typing import Dict, Literal
+from typing import Dict, Literal, Optional
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -97,10 +97,10 @@ class CalibrationModel(ProcessingModel, Plottable):
         ref_neon_units: str,
         spe_sil: Spectrum,
         spe_sil_units="cm-1",
-        ref_sil={520.45: 1},
+        ref_sil=None,
         ref_sil_units="cm-1",
-        find_kw={"wlen": 200, "width": 1},
-        fit_kw={},
+        find_kw=None,
+        fit_kw=None,
         should_fit=False,
         match_method: Literal["cluster", "argmin2d", "assignment", "dynamicp", "qargmin2d"] = "cluster",
         interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
@@ -114,6 +114,12 @@ class CalibrationModel(ProcessingModel, Plottable):
             ref_neon_units = "nm"
         if spe_neon_units is None:
             spe_neon_units = "cm-1"
+        if ref_sil is None:
+            ref_sil = {520.45: 1}
+        if fit_kw is None:
+            fit_kw = {}
+        # copy before adding "prominence", so the caller's dict is not modified
+        find_kw = dict(find_kw) if find_kw is not None else {"wlen": 200, "width": 1}
         find_kw["prominence"] = spe_neon.y_noise_MAD() * self.prominence_coeff
         model_neon = self._derive_model_curve(
             spe_neon,
@@ -149,7 +155,7 @@ class CalibrationModel(ProcessingModel, Plottable):
     def _derive_model_curve(
         self,
         spe: Spectrum,
-        ref=Dict[float, float],
+        ref: Optional[Dict[float, float]] = None,
         spe_units="cm-1",
         ref_units="nm",
         find_kw=None,
@@ -188,8 +194,8 @@ class CalibrationModel(ProcessingModel, Plottable):
         ref=None,
         spe_units="cm-1",
         ref_units="nm",
-        find_kw={},
-        fit_peaks_kw={},
+        find_kw=None,
+        fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
         match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
@@ -253,7 +259,7 @@ class CalibrationModel(ProcessingModel, Plottable):
     def derive_model_zero(
         self,
         spe: Spectrum,
-        ref={520.45: 1},
+        ref=None,
         spe_units="nm",
         ref_units="cm-1",
         find_kw=None,
@@ -322,8 +328,8 @@ class CalibrationModel(ProcessingModel, Plottable):
     ):
         if neon_wl is None:
             neon_wl = rc2const.NEON_WL[laser_wl]
-        if find_kw is None:
-            find_kw = {"wlen": 100, "width": 1}
+        # copy before adding "prominence", so the caller's dict is not modified
+        find_kw = dict(find_kw) if find_kw is not None else {"wlen": 100, "width": 1}
         if fit_peaks_kw is None:
             fit_peaks_kw = {}
         calmodel = CalibrationModel(laser_wl)

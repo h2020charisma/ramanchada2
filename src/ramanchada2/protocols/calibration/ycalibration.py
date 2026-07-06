@@ -1,4 +1,5 @@
 import json
+import logging
 import os.path
 from typing import Optional, Tuple
 
@@ -9,6 +10,8 @@ from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
 from .xcalibration import CustomPChipInterpolator
+
+logger = logging.getLogger(__name__)
 
 
 class YCalibrationCertificate(BaseModel, Plottable):
@@ -34,13 +37,13 @@ class YCalibrationCertificate(BaseModel, Plottable):
     """  # noqa: E501
 
     id: str
-    description: Optional[str]
-    url: Optional[str]
+    description: Optional[str] = None
+    url: Optional[str] = None
     wavelength: int
     params: str
     equation: str
-    temperature_c: Optional[Tuple[int, int]]
-    raman_shift: Optional[Tuple[int, int]]
+    temperature_c: Optional[Tuple[int, int]] = None
+    raman_shift: Optional[Tuple[int, int]] = None
 
     @property
     def response_function(self):
@@ -118,12 +121,12 @@ class CertificatesDict:
                     certificate_data["wavelength"] = int(wavelength)
                     certificate_data["id"] = certificate_id
                     try:
-                        certificate = YCalibrationCertificate.model_construct(
-                            **certificate_data
+                        certificate = YCalibrationCertificate.model_validate(
+                            certificate_data
                         )
                         certificates[wavelength][certificate_id] = certificate
                     except ValidationError as e:
-                        print(f"Validation error for certificate {certificate_id}: {e}")
+                        logger.warning(f"Validation error for certificate {certificate_id}: {e}")
             self.config_certs = certificates
 
     def get_laser_wl(self):

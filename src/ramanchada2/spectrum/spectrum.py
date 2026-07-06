@@ -56,7 +56,7 @@ class Spectrum(Plottable):
         if self._xdata is not None and self._ydata is not None:
             if len(self._xdata) != len(self._ydata):
                 raise ValueError(
-                    f'x and y shold have same dimentions len(x)={len(self._xdata)} len(y)={len(self._ydata)}')
+                    f'x and y should have same dimensions len(x)={len(self._xdata)} len(y)={len(self._ydata)}')
 
     def __copy__(self):
         return Spectrum(
@@ -96,7 +96,7 @@ class Spectrum(Plottable):
 
     def process(self, algorithm: str, **kwargs):
         if algorithm not in self._available_processings:
-            raise ValueError('Unknown algorithm {algorithm}')
+            raise ValueError(f'Unknown algorithm {algorithm}')
         return getattr(self, algorithm)(**kwargs)
 
     @classmethod
@@ -203,7 +203,7 @@ class Spectrum(Plottable):
         if val is not None:
             if val.shape != self._xdata.shape:
                 raise ValueError(
-                    'x_err should have same shape as xdata, expected {self._xdata.shape}, got {val.shape}')
+                    f'x_err should have same shape as xdata, expected {self._xdata.shape}, got {val.shape}')
         self._x_err = val
 
     @property
@@ -220,7 +220,7 @@ class Spectrum(Plottable):
         if val is not None:
             if val.shape != self._ydata.shape:
                 raise ValueError(
-                    'y_err should have same shape as ydata, expected {self._ydata.shape}, got {val.shape}')
+                    f'y_err should have same shape as ydata, expected {self._ydata.shape}, got {val.shape}')
         self._y_err = val
 
     @property
