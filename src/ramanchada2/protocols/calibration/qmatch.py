@@ -125,14 +125,14 @@ def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0):
         return x, y, np.ones(n, dtype=bool)
 
     xc = x - x.mean()  # centre for numerical stability of polyfit
-    # Adaptive acceptance band: n_sigma * robust-sigma of residuals to a curve-aware
-    # (deg) fit, floored by a small fraction of the reference spacing so a near-linear
-    # region with a tiny MAD does not clip the genuinely curved tails.
+    # Initial (generous) acceptance band for the RANSAC search: n_sigma * robust-sigma of
+    # residuals to a curve-aware (deg) fit, floored by a fraction of the reference spacing
+    # so a near-linear region with a tiny MAD does not clip the genuinely curved tails.
     c_all = np.polyfit(xc, y, deg)
     r_all = y - np.polyval(c_all, xc)
     mad = np.median(np.abs(r_all - np.median(r_all)))
-    floor = 0.25 * np.median(np.abs(np.diff(np.sort(y))))
-    thr = max(n_sigma * 1.4826 * mad, floor)
+    spacing = np.median(np.abs(np.diff(np.sort(y))))
+    thr = max(n_sigma * 1.4826 * mad, 0.25 * spacing)
     if thr <= 0:
         thr = np.percentile(np.abs(r_all), 95)
 
@@ -150,6 +150,50 @@ def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0):
     if best.sum() >= deg + 2:  # refit on the consensus and re-select
         c = np.polyfit(xc[best], y[best], deg)
         best = np.abs(y - np.polyval(c, xc)) < thr
+
+    # Doublet-misassignment split: when the matcher alternates between the components of
+    # blended reference doublets, the consensus residuals form TWO parallel populations
+    # (~a fraction of a line spacing apart). Fitting through both tilts the model; keep
+    # the majority population, which the sample-peak residuals confirm as the correct
+    # assignment (the minority would shift the axis by tens of cm-1).
+    if best.sum() >= 2 * (deg + 2):
+        c = np.polyfit(xc[best], y[best], deg)
+        rb = np.sort((y - np.polyval(c, xc))[best])
+        split_gap, split_at = 0.0, None
+        for k in range(deg + 2, len(rb) - (deg + 2) + 1):
+            a, b = rb[:k], rb[k:]
+            gap = b[0] - a[-1]
+            scatter = max(np.median(np.abs(a - np.median(a))),
+                          np.median(np.abs(b - np.median(b))), 1e-6)
+            if gap > 3.0 * 1.4826 * scatter and gap > split_gap:
+                split_gap, split_at = gap, (a[-1] + b[0]) / 2.0
+        if split_at is not None:
+            r_all_c = y - np.polyval(c, xc)
+            lower = best & (r_all_c < split_at)
+            upper = best & (r_all_c >= split_at)
+            major = lower if lower.sum() >= upper.sum() else upper
+            if major.sum() >= deg + 2:
+                print(f"  Robust deg-{deg} filter: bimodal residuals (gap={split_gap:.3f}), "
+                      f"keeping majority {major.sum()}/{best.sum()}")
+                best = major
+
+    # Tighten the band to the consensus scatter. The RANSAC band is floored by the
+    # reference line spacing, so near-miss mismatches (a fraction of a line spacing off,
+    # e.g. spurious peaks matched to the nearest available line) survive the search and
+    # tilt the subsequent model fit -- the exact "slope error amplified by Si zeroing"
+    # failure. The consensus residual MAD is the real measurement noise; rescale to it,
+    # with a small floor so curved tails beyond the deg-fit are not clipped.
+    if best.sum() >= deg + 2:
+        c = np.polyfit(xc[best], y[best], deg)
+        r = y - np.polyval(c, xc)
+        mad_c = np.median(np.abs(r[best] - np.median(r[best])))
+        thr2 = min(thr, max(n_sigma * 1.4826 * mad_c, 0.05 * spacing))
+        tight = np.abs(r) < thr2
+        if tight.sum() >= deg + 2:
+            c = np.polyfit(xc[tight], y[tight], deg)  # final refit on the tightened set
+            tight = np.abs(y - np.polyval(c, xc)) < thr2
+            if tight.sum() >= deg + 2:
+                best, thr = tight, thr2
 
     print(f"  Robust deg-{deg} filter: band={thr:.3f}, kept {best.sum()}/{n} inliers")
     return x[best], y[best], best

@@ -41,13 +41,15 @@ class FitPeaksResult(UserList, Plottable):
         return bounds
 
     def center_amplitude(self, threshold):
+        # reshape keeps the result unpackable as ``pos, amp = ...`` even when no peak
+        # passes the stderr threshold (a bare .T on an empty list has shape (0,))
         return np.array([
             (v.value, peak.params[k[:-6] + 'amplitude'].value)
             for peak in self
             for k, v in peak.params.items()
             if k.endswith('center')
             if hasattr(v, 'stderr') and v.stderr is not None and v.stderr < threshold
-        ]).T
+        ]).reshape(-1, 2).T
 
     @property
     def centers_err(self):

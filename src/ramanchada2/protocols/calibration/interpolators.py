@@ -38,6 +38,30 @@ class CustomPChipInterpolator(PchipInterpolator):
             self.y = y  # Store y values
         self.inverse = inverse
 
+    def __call__(self, x, nu=0, extrapolate=None):
+        """Evaluate; beyond the knot span continue with CONSTANT CORRECTION.
+
+        The PCHIP edge cubic is unconstrained outside the anchors (Ne lines end well below
+        the CH-stretch wavelength at both lasers) and can run away by tens of nm, corrupting
+        the ~2900 cm-1 region and the Si laser-zeroing peak when they fall outside the span.
+        Extending the edge *correction* (unit slope) is the physically safe extrapolation
+        for a wavelength-correction map.
+        """
+        out = super().__call__(x, nu=nu, extrapolate=extrapolate)
+        if nu != 0:
+            return out
+        knots = np.asarray(self.x, dtype=float)
+        lo, hi = knots[0], knots[-1]
+        x_arr = np.asarray(x, dtype=float)
+        if x_arr.size == 0 or (x_arr.min() >= lo and x_arr.max() <= hi):
+            return out
+        y_lo = float(super().__call__(lo))
+        y_hi = float(super().__call__(hi))
+        out = np.asarray(out, dtype=float)
+        out = np.where(x_arr < lo, y_lo + (x_arr - lo), out)
+        out = np.where(x_arr > hi, y_hi + (x_arr - hi), out)
+        return out
+
     @staticmethod
     def from_dict(pchip_dict=None):
         if pchip_dict is None:
@@ -167,7 +191,11 @@ class CustomPolyInterpolator:
 
         u = (self.x - self.x_min) / (self.x_max - self.x_min)
 
-        # choose degree ≤ max_degree by max residual
+        # choose degree ≤ max_degree by max residual, PARSIMONIOUSLY: a higher degree is
+        # accepted only when it reduces the max residual substantially (>20%). Plain
+        # minimization always rewards extra degrees, so noisy anchor sets (blended Ne
+        # lines, ±0.5 nm center scatter) get a noise-chasing fit whose edge tilt is then
+        # amplified over the whole cm-1 axis by the Si laser-zeroing.
         best_err = np.inf
         best_coeff = None
         best_deg = None
@@ -177,7 +205,7 @@ class CustomPolyInterpolator:
             pred = np.polyval(coeff, u)
             err = np.max(np.abs(pred - self.y))
 
-            if err < best_err:
+            if err < 0.8 * best_err:
                 best_err = err
                 best_coeff = coeff
                 best_deg = deg
@@ -192,7 +220,17 @@ class CustomPolyInterpolator:
     def __call__(self, x):
         x = np.asarray(x, dtype=float)
         u = (x - self.x_min) / (self.x_max - self.x_min)
-        return np.polyval(self.coef, u)
+        out = np.polyval(self.coef, u)
+        # Beyond the anchor span the polynomial tail is unconstrained and can run away by
+        # tens of nm (Ne lines end well below the CH-stretch wavelength at both lasers).
+        # Continue with CONSTANT CORRECTION (unit slope) from the edge value instead --
+        # the physically safe extrapolation for a wavelength-correction map.
+        if x.size and (x.min() < self.x_min or x.max() > self.x_max):
+            y_lo = np.polyval(self.coef, 0.0)
+            y_hi = np.polyval(self.coef, 1.0)
+            out = np.where(x < self.x_min, y_lo + (x - self.x_min), out)
+            out = np.where(x > self.x_max, y_hi + (x - self.x_max), out)
+        return out
 
     # --------------------------------------------------------
     # Serialization

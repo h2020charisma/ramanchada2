@@ -87,8 +87,9 @@ class XCalibrationComponent(CalibrationComponent):
                     new_spe.x = self.model(new_spe.x.reshape(-1, 1))
                     if not self.extrapolate:
                         min_train, max_train = self.model.y.min(), self.model.y.max()
-                        # new_spe.x returns a copy; build the masked array and assign it back
-                        _newx = np.asarray(new_spe.x, dtype=float)
+                        # new_spe.x is the internal READ-ONLY array; np.array (unlike
+                        # np.asarray) always copies, so the masking below is legal
+                        _newx = np.array(new_spe.x, dtype=float)
                         out_of_bounds = (_newx < min_train) | (_newx > max_train)
                         _newx[out_of_bounds] = np.nan
                         new_spe.x = _newx
@@ -101,7 +102,8 @@ class XCalibrationComponent(CalibrationComponent):
                         raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
                     elif (self.nonmonotonic == "nan") or (self.nonmonotonic == "drop"):
                         # this is a patch, mostly intended at extrapolation
-                        _newx = np.asarray(new_spe.x, dtype=float)
+                        # (np.array not np.asarray: new_spe.x is read-only, we mutate below)
+                        _newx = np.array(new_spe.x, dtype=float)
                         is_nonmonotonic = np.diff(_newx, prepend=_newx[0]) <= 0
                         _newx[is_nonmonotonic] = np.nan
                         new_spe.x = _newx
@@ -465,7 +467,16 @@ def fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_
     )
     if should_fit:
         pos, amp = fit_res.center_amplitude(threshold=center_err_threshold)
-        spe_pos_dict = dict(zip(pos, amp))
+        if len(pos) == 0:
+            # noisy spectrum / non-converged fit: no center passed the stderr threshold.
+            # Fall back to the candidate positions (same as should_fit=False) so the
+            # spectrum stays in the analysis instead of crashing the caller.
+            logger.warning(
+                f"no fitted peak passed center_err_threshold={center_err_threshold}; "
+                "falling back to candidate positions")
+            spe_pos_dict = cand.get_pos_ampl_dict()
+        else:
+            spe_pos_dict = dict(zip(pos, amp))
     else:
         spe_pos_dict = cand.get_pos_ampl_dict()
     return fit_res, spe_pos_dict
