@@ -16,8 +16,8 @@ from ramanchada2.protocols.calibration.interpolators import (
 from ramanchada2.misc.utils import find_closest_pairs_idx
 
 from ramanchada2.misc.utils.matchsets import (
-    match_peaks_optimized, match_peaks_monotonic, 
-    match_peaks_monotonic_simple, 
+    match_peaks_optimized, match_peaks_monotonic,
+    match_peaks_monotonic_simple,
     match_peaks_cluster, match_peaks_ready_wrapper
 )
 from ramanchada2.spectrum import Spectrum
@@ -137,7 +137,7 @@ class XCalibrationComponent(CalibrationComponent):
                 if isinstance(self.model, CustomPChipInterpolator):
                     new_spe.x = self.model(new_spe.x)
                 elif isinstance(self.model, CustomPolyInterpolator):
-                    new_spe.x = self.model(new_spe.x)                    
+                    new_spe.x = self.model(new_spe.x)
                 elif isinstance(self.model, CustomRBFInterpolator):
                     new_spe.x = self.model(new_spe.x.reshape(-1, 1))
                     if not self.extrapolate:
@@ -171,23 +171,24 @@ class XCalibrationComponent(CalibrationComponent):
             return self.convert_units(new_spe, self.model_units, spe_units)
         else:
             return new_spe
-        
 
     def _plot(self, ax, **kwargs):
         # Normalize x-positions to [0, 1] for comparison
         ref_keys = np.array(list(self.ref.keys()))
         spe_keys = np.array(list(self.spe_pos_dict.keys()))
-        
+
         ref_norm_x = (ref_keys - ref_keys.min()) / (ref_keys.max() - ref_keys.min())
         spe_norm_x = (spe_keys - spe_keys.min()) / (spe_keys.max() - spe_keys.min())
-        
+
         # Normalize y-values to [0, 1] for each dataset
         ref_vals = np.array(list(self.ref.values()))
         spe_vals = np.array(list(self.spe_pos_dict.values()))
-        
-        ref_norm_y = (ref_vals - ref_vals.min()) / (ref_vals.max() - ref_vals.min()) if ref_vals.max() > ref_vals.min() else ref_vals
-        spe_norm_y = (spe_vals - spe_vals.min()) / (spe_vals.max() - spe_vals.min()) if spe_vals.max() > spe_vals.min() else spe_vals
-        
+
+        ref_range = ref_vals.max() - ref_vals.min()
+        ref_norm_y = (ref_vals - ref_vals.min()) / ref_range if ref_range > 0 else ref_vals
+        spe_range = spe_vals.max() - spe_vals.min()
+        spe_norm_y = (spe_vals - spe_vals.min()) / spe_range if spe_range > 0 else spe_vals
+
         # Plot spectrum peaks going UP
         ax.stem(
             spe_norm_x,
@@ -197,29 +198,29 @@ class XCalibrationComponent(CalibrationComponent):
             label=f"{self.sample} peaks (measured)",
             markerfmt="bo"
         )
-        
+
         # Plot reference peaks going DOWN (negative)
         ax.stem(
             ref_norm_x,
             -ref_norm_y,  # Negative for mirror effect
             linefmt="r-",
             basefmt="k-",
-            label=f"Reference peaks",
+            label="Reference peaks",
             markerfmt="ro"
         )
-        
+
         ax.axhline(y=0, color='k', linewidth=0.8)
         ax.set_xlabel("Normalized position [0-1]")
         ax.set_ylabel("Normalized intensity (measured ↑, reference ↓)")
         ax.legend(loc='upper right')
         ax.grid(True, alpha=0.3)
         ax.set_ylim(-1.1, 1.1)  # Give some padding
-        
+
         # Add annotation showing original ranges
         ax.text(0.02, 0.98, f"Spectrum: {spe_keys.min():.1f} - {spe_keys.max():.1f} [{self.spe_units}]",
                 transform=ax.transAxes, va='top', fontsize=8, color='b',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-        
+
         if self.ref_units == "cm-1":
             ref_label = r"$\mathrm{cm^{-1}}$"
         else:
@@ -227,7 +228,6 @@ class XCalibrationComponent(CalibrationComponent):
         ax.text(0.02, 0.02, f"Reference: {ref_keys.min():.1f} - {ref_keys.max():.1f} [{ref_label}]",
                 transform=ax.transAxes, va='bottom', fontsize=8, color='r',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-        
 
     def _plot_peaks(self, ax, **kwargs):
         # self.model.peaks
@@ -296,7 +296,8 @@ class XCalibrationComponent(CalibrationComponent):
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
-        fit_res, spe_pos_dict = fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_fit=should_fit)
+        fit_res, spe_pos_dict = fit_peaks(
+            spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_fit=should_fit)
         self.spe_pos_dict = spe_pos_dict
         self.fit_res = fit_res
         return self.fit_res.to_dataframe_peaks()
@@ -336,12 +337,12 @@ class LazerZeroingComponent(CalibrationComponent):
         # df = self.fitres2df(self.spe)
         # highest peak first
         logger.debug(f"{df.shape} {df.columns}")
-        
+
         # df = df.sort_values(by='amplitude', ascending=False)
         if df.empty:
             raise Exception("No peaks found")
         else:
-            df = df.sort_values(by="height", ascending=False)            
+            df = df.sort_values(by="height", ascending=False)
             if "position" in df.columns:
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
@@ -436,11 +437,11 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
     if _match_method == "cluster":
         x_spe, x_reference, x_distance, _ = match_peaks_cluster(
             spe_pos_dict, ref_dict,
-            #_filter_range = self.spe_units != "pixel"
+            # _filter_range = self.spe_units != "pixel"
         )
         x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
             x_spe, x_reference, n_sigma=3
-        )            
+        )
         logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
         cost_matrix = None
         df = pd.DataFrame(
@@ -448,7 +449,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
                 "spe": x_spe,
                 "reference": x_reference,
                 "distances": x_spe - x_reference,
-                "inlier_mask" : inlier_mask
+                "inlier_mask": inlier_mask
             }
         )
         return x_inliers, y_inliers, x_inliers-y_inliers, cost_matrix, df
@@ -459,14 +460,14 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
         x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
             x_spe, x_reference, n_sigma=3
         )
-        df["inlier_mask"] = inlier_mask           
-        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")        
+        df["inlier_mask"] = inlier_mask
+        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
         return x_inliers, y_inliers, x_inliers - y_inliers, cost_matrix, df
     elif _match_method == "qargmin2d":
         x = np.array(list(spe_pos_dict.keys()))
         y = np.array(list(ref_dict.keys()))
         if spe_units == "pixel":
-            x_idx, y_idx = qmatch.find_closest_pairs_quantile_idx(x,y,n_sigma=3)
+            x_idx, y_idx = qmatch.find_closest_pairs_quantile_idx(x, y, n_sigma=3)
         else:
             x_idx, y_idx = find_closest_pairs_idx(x, y)
         x_spe = x[x_idx]
@@ -475,7 +476,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
         idx = np.argsort(x_spe)
         x_spe = x_spe[idx]
         x_reference = x_reference[idx]
-        #iterative_linear_filter
+        # iterative_linear_filter
         x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
             x_spe, x_reference, n_sigma=3
         )
@@ -485,10 +486,10 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
                 "spe": x_spe,
                 "reference": x_reference,
                 "distances": x_spe - x_reference,
-                "inlier_mask" : inlier_mask
+                "inlier_mask": inlier_mask
             }
         )
-        return  x_inliers, y_inliers, x_inliers-y_inliers, None, df        
+        return x_inliers, y_inliers, x_inliers-y_inliers, None, df
     elif _match_method == "argmin2d":
         x = np.array(list(spe_pos_dict.keys()))
         y = np.array(list(ref_dict.keys()))
@@ -533,7 +534,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
                 x_spe, x_reference, n_sigma=3
             )
             df["inlier_mask"] = inlier_mask
-            logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")            
+            logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
             return x_inliers, y_inliers, x_inliers-y_inliers, None, df
         except Exception as err:
             raise err
@@ -572,9 +573,9 @@ def fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_
 
 
 def match_peaks4analysis(
-        spectra, ref=None, spe_units="nm", 
+        spectra, ref=None, spe_units="nm",
         find_kw=None, fit_peaks_kw=None, profile="Gaussian", should_fit=True,
-        match_method = "qargmin2d",
+        match_method="qargmin2d",
         stages=["1.original"]):
     if spectra is None or ref is None:
         return None
@@ -583,7 +584,7 @@ def match_peaks4analysis(
         fit_res, spe_pos_dict = fit_peaks(
             spe, find_kw, fit_peaks_kw, profile=profile, should_fit=should_fit)
         _x, _ref, _, _, df_calib = match_peaks(
-            spe_pos_dict, ref, spe_units =spe_units, match_method=match_method)    
+            spe_pos_dict, ref, spe_units=spe_units, match_method=match_method)
         df_calib["match_mode"] = match_method
         df_calib["before_after"] = stage
         matched_peaks = df_calib if matched_peaks is None else pd.concat([matched_peaks, df_calib])

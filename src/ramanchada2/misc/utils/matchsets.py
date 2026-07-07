@@ -19,7 +19,7 @@ def match_peaks_cluster(
     # Min-Max normalize the reference values
     min_value = min(ref.values())
     max_value = max(ref.values())
-    norm = 1 if max_value == min_value else  (max_value - min_value)
+    norm = 1 if max_value == min_value else (max_value - min_value)
     if len(ref.keys()) > 1:
         normalized_ref = {
             key: (value - min_value) / norm
@@ -120,7 +120,7 @@ def match_peaks_cluster_robust(
     verbose=False
 ):
     """Original cluster-based matcher with optional outlier filtering."""
-    
+
     # --- Original cluster matcher ---
     x_spe, x_ref, x_dist, df = match_peaks_cluster(
         spe_pos_dict, ref, _filter_range=True, cost_intensity=cost_intensity
@@ -275,7 +275,7 @@ def match_peaks_monotonic_simple(
         diffs = np.diff(sorted(ref.keys()))
         tolerance = np.min(diffs) if len(diffs) > 0 else 1.0
         print(f"[match_peaks_monotonic] tolerance auto-set to {tolerance}")
-        
+
     # Sort peaks
     ref_peaks = np.asarray(sorted(ref.keys()), dtype=float)
     found_peaks = np.asarray(sorted(spe_pos_dict.keys()), dtype=float)
@@ -367,7 +367,7 @@ def match_peaks_monotonic_dynamic_programming(
     if tolerance is None:
         diffs = np.diff(sorted(ref.keys()))
         tolerance = np.min(diffs) if len(diffs) > 0 else 1.0
-        print(f"[match_peaks_monotonic] tolerance auto-set to {tolerance}")    
+        print(f"[match_peaks_monotonic] tolerance auto-set to {tolerance}")
 
     ref_peaks = np.array(sorted(ref.keys()), dtype=float)
     spe_peaks = np.array(sorted(spe_pos_dict.keys()), dtype=float)
@@ -488,7 +488,7 @@ def match_peaks_monotonic(
         "reference": matched_ref,
         "distance": distances,
         "intensity_diff": inten_diff,
-        "inlier_mask" : True
+        "inlier_mask": True
     })
 
     return matched_spe, matched_ref, distances, df
@@ -524,7 +524,8 @@ def _dp_match_partial_core(ref_peaks, ref_int, spe_peaks, spe_int,
 
         if debug:
             candidates = np.sum(np.abs(spe_peaks - ref_val) <= tol)
-            print(f"Row {i}/{n_ref} filled. candidates within tol: {candidates}, longest subset={np.max(dp_len[i,:])}")
+            print(f"Row {i}/{n_ref} filled. candidates within tol: {candidates}, "
+                  f"longest subset={np.max(dp_len[i, :])}")
 
     # Traceback: maximal subset
     i, j = n_ref, n_spe
@@ -541,7 +542,8 @@ def _dp_match_partial_core(ref_peaks, ref_int, spe_peaks, spe_int,
     matched_spe = np.array(matched_spe[::-1])
     distances = matched_spe - matched_ref
     if debug:
-        print(f"[DP partial] Traceback complete. {len(matched_ref)} matches, mean distance {np.mean(distances) if len(distances)>0 else np.nan:.3f}")
+        mean_dist = np.mean(distances) if len(distances) > 0 else np.nan
+        print(f"[DP partial] Traceback complete. {len(matched_ref)} matches, mean distance {mean_dist:.3f}")
 
     return matched_ref, matched_spe, distances
 
@@ -554,7 +556,7 @@ def match_peaks_ready(measured_pixels, ref_wavelengths,
     """
     Monotonic one-to-one peak alignment using dynamic programming.
 
-    Aligns measured peaks to reference peaks, allowing skips. 
+    Aligns measured peaks to reference peaks, allowing skips.
     Match cost is based on position differences and favors stronger measured peaks nonlinearly.
     Skip cost depends on measured peak intensity plus an optional baseline. Positions can be optionally normalized.
 
@@ -579,7 +581,7 @@ def match_peaks_ready(measured_pixels, ref_wavelengths,
         Maximum allowed normalized position difference for a match. Peaks beyond this
         are penalized. If None, a default based on median reference spacing is used.
     normalize : bool, optional
-        If True, positions are normalized to [0,1] for scale-independent computation. 
+        If True, positions are normalized to [0,1] for scale-independent computation.
         Default is False.
 
     Returns
@@ -639,17 +641,17 @@ def match_peaks_ready(measured_pixels, ref_wavelengths,
 
     # DP table
     DP = np.full((n+1, m+1), np.inf)
-    DP[0,0] = 0.0
+    DP[0, 0] = 0.0
 
     # Fill DP table
     for i in range(n+1):
         for j in range(m+1):
             # Skip measured
             if i > 0:
-                DP[i,j] = min(DP[i,j], DP[i-1,j] + k * mp_i[i-1] + skip_baseline)
+                DP[i, j] = min(DP[i, j], DP[i-1, j] + k * mp_i[i-1] + skip_baseline)
             # Skip reference (free)
             if j > 0:
-                DP[i,j] = min(DP[i,j], DP[i,j-1])
+                DP[i, j] = min(DP[i, j], DP[i, j-1])
             # Match
             if i > 0 and j > 0:
                 pos_diff = abs(mp_p[i-1] - rw_p[j-1])
@@ -657,12 +659,12 @@ def match_peaks_ready(measured_pixels, ref_wavelengths,
                     cost = pos_diff / (1 + alpha * mp_i[i-1])**gamma
                 else:
                     cost = large_penalty
-                DP[i,j] = min(DP[i,j], DP[i-1,j-1] + cost)
+                DP[i, j] = min(DP[i, j], DP[i-1, j-1] + cost)
 
     # Backtrack to get matched pairs
     i, j = n, m
     pairs = []
-    path = [(i,j)]
+    path = [(i, j)]
     while i > 0 or j > 0:
         if i > 0 and j > 0:
             pos_diff = abs(mp_p[i-1] - rw_p[j-1])
@@ -670,19 +672,19 @@ def match_peaks_ready(measured_pixels, ref_wavelengths,
                 cost = pos_diff / (1 + alpha * mp_i[i-1])**gamma
             else:
                 cost = large_penalty
-            if DP[i,j] == DP[i-1,j-1] + cost:
+            if DP[i, j] == DP[i-1, j-1] + cost:
                 pairs.append((mp[i-1], rw[j-1]))
                 i -= 1
                 j -= 1
-                path.append((i,j))
+                path.append((i, j))
                 continue
-        if i > 0 and DP[i,j] == DP[i-1,j] + k * mp_i[i-1] + skip_baseline:
+        if i > 0 and DP[i, j] == DP[i-1, j] + k * mp_i[i-1] + skip_baseline:
             i -= 1
-            path.append((i,j))
+            path.append((i, j))
             continue
-        if j > 0 and DP[i,j] == DP[i,j-1]:
+        if j > 0 and DP[i, j] == DP[i, j-1]:
             j -= 1
-            path.append((i,j))
+            path.append((i, j))
             continue
 
     pairs.reverse()
@@ -711,7 +713,6 @@ def match_peaks_ready_wrapper(
     spe_wl = np.array(list(spe_pos_dict.keys()), dtype=float)
     spe_int = np.array(list(spe_pos_dict.values()), dtype=float)
     ref_wl = np.array(list(ref.keys()), dtype=float)
-    ref_int = np.array(list(ref.values()), dtype=float)
 
     # ----------------------------------------------------------
     # Run DP exactly as-is
@@ -753,4 +754,3 @@ def match_peaks_ready_wrapper(
     # Return DP matrix directly in place of "distance"
     # ----------------------------------------------------------
     return x_spe_sorted, x_reference_sorted, DP, df
-

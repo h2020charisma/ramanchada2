@@ -19,7 +19,7 @@ class CustomPChipInterpolator(PchipInterpolator):
             dense_reference = np.linspace(
                 y[0],
                 y[-1],
-                max(2048, 10*len(y)) # N≫number of original knots
+                max(2048, 10*len(y))  # N≫number of original knots
                 # Anything smaller gives you no benefit over the raw calibration.
             )
             dense_spe = _inverse_curve(dense_reference)
@@ -198,7 +198,7 @@ class CustomPolyInterpolator:
             dense_reference = np.linspace(
                 y[0],
                 y[-1],
-                max(2048, 10*len(y)) # N≫number of original knots
+                max(2048, 10*len(y))  # N≫number of original knots
                 # Anything smaller gives you no benefit over the raw calibration.
             )
             dense_spe = _inverse_curve(dense_reference)
