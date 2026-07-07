@@ -15,8 +15,11 @@ def test_spectrum_init():
     spec = spe.__copy__()
     assert np.all(spe.x == spec.x)
     assert np.all(spe.y == spec.y)
-    assert spe._xdata is spec._xdata
-    assert spe._ydata is spec._ydata
+    # the x/y setters always copy (freezing writeable=False must not affect the
+    # caller's array), so __copy__ never shares the underlying buffer -- only
+    # value equality is guaranteed, not identity
+    assert spe._xdata is not spec._xdata
+    assert spe._ydata is not spec._ydata
 
     spe = rc2.spectrum.Spectrum(x=np.arange(100, dtype=int))
     assert spe._ydata is None

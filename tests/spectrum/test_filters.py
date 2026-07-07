@@ -9,7 +9,7 @@ def test_recover_spikes():
     spe = spe.add_baseline(n_freq=30, amplitude=2, pedestal=30, rng_seed=9999)
     spe = spe.add_poisson_noise(.1, rng_seed=9999)
     spe_bad = spe.__copy__()
-    y = spe_bad.y[:]
+    y = spe_bad.y.copy()
     y[300] = 0
     y[1000] = 70
     y[1500] = 55
