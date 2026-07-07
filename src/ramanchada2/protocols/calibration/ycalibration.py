@@ -175,13 +175,21 @@ class YCalibrationComponent(CalibrationComponent):
         self.ref = certificate
         self.name = "Y calibration"
         # self.model = self.spe.spe_distribution(trim_range=certificate.raman_shift)
-        tmp = self.spe.trim_axes(method="x-axis", boundaries=self.ref.raman_shift)
+        tmp = self._trimmed_reference()
         self.model = CustomPChipInterpolator(tmp.x, tmp.y)
         self.model_units = "cm-1"
 
+    def _trimmed_reference(self):
+        # certificate.raman_shift is optional; without a certified range there is
+        # nothing to trim to, so use the full measured reference spectrum instead
+        # of letting trim_axes(boundaries=None) raise
+        if self.ref.raman_shift is None:
+            return self.spe
+        return self.spe.trim_axes(method="x-axis", boundaries=self.ref.raman_shift)
+
     def derive_model(self, find_kw=None, fit_peaks_kw=None, should_fit=True, name=None):
         # measured reference spectrum as distribution, so we can resample
-        tmp = self.spe.trim_axes(method="x-axis", boundaries=self.ref.raman_shift)
+        tmp = self._trimmed_reference()
         self.model = CustomPChipInterpolator(tmp.x, tmp.y)
 
     def safe_divide(self, spe_to_correct, spe_reference_resampled):
@@ -208,9 +216,18 @@ class YCalibrationComponent(CalibrationComponent):
 
     def safe_mask(self, spe_to_correct, spe_reference_resampled):
         ref_noise = spe_reference_resampled.y_noise_MAD()
-        return (spe_reference_resampled.y >= 0) & (
+        mask = (spe_reference_resampled.y >= 0) & (
             abs(spe_reference_resampled.y) > ref_noise
         )
+        # Outside the certified range, self.model (CustomPChipInterpolator) falls
+        # back to a unit-slope extrapolation meant for x-calibration curves, not
+        # measured reference intensity -- exclude those points rather than treat
+        # the extrapolated value as a real intensity factor.
+        if self.ref.raman_shift is not None:
+            lo, hi = self.ref.raman_shift
+            x = spe_reference_resampled.x
+            mask = mask & (x >= lo) & (x <= hi)
+        return mask
 
     def safe_factor(self, spe_to_correct, spe_reference_resampled):
         numerator = spe_to_correct.y

@@ -1,7 +1,7 @@
 from scipy.interpolate import CubicSpline, PchipInterpolator, RBFInterpolator
 import numpy as np
 import json
-from typing import Literal
+from typing import Literal, Union
 
 # Single source of truth for the interpolator options offered across the calibration API.
 # "pchippolyinverse" is a deprecated alias of "polyinverse", accepted for backward
@@ -412,7 +412,10 @@ class CustomRBFInterpolator(RBFInterpolator):
         return f"Calibration curve {len(self.y)} points) {self.kernel}"
 
 
-def get_interpolator(x_spe, x_reference, interpolator_method: InterpolatorMethod = "poly"):
+def get_interpolator(
+    x_spe, x_reference, interpolator_method: InterpolatorMethod = "poly"
+) -> Union[CustomPChipInterpolator, CustomPolyInterpolator]:
+    interp: Union[CustomPChipInterpolator, CustomPolyInterpolator]
     if interpolator_method == "pchip":
         interp = CustomPChipInterpolator(x_spe, x_reference, inverse=False)
     elif interpolator_method == "pchipinverse":

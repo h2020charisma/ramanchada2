@@ -3,7 +3,6 @@ from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import numpy as np
 from typing import Dict, Tuple
-from numpy.typing import NDArray
 
 
 def match_peaks_cluster(
@@ -330,116 +329,6 @@ def match_peaks_monotonic_simple(
     })
 
     return matched_spe_array, matched_ref_array, distances_array, df
-
-
-def match_peaks_monotonic_dynamic_programming(
-    spe_pos_dict: Dict[float, float],
-    ref: Dict[float, float],
-    tolerance: float = 2.0,
-    relative: bool = False,
-    weight_intensity: float = 0.0
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame]:
-    """
-    Match peaks monotonically (order-preserving) using dynamic programming.
-    Finds the maximal set of matches within tolerance.
-
-    Parameters
-    ----------
-    spe_pos_dict : Dict[float, float]
-        Found peaks {position: intensity}.
-    ref : Dict[float, float]
-        Reference peaks {position: intensity}.
-    tolerance : float
-        Absolute or relative tolerance for matching.
-    relative : bool
-        If True, interpret tolerance as fraction of reference position.
-    weight_intensity : float
-        Optional weighting for intensity difference (not used in DP, but reported).
-
-    Returns
-    -------
-    matched_spe : np.ndarray
-    matched_ref : np.ndarray
-    distances : np.ndarray
-    df : pd.DataFrame
-    """
-
-    if tolerance is None:
-        diffs = np.diff(sorted(ref.keys()))
-        tolerance = np.min(diffs) if len(diffs) > 0 else 1.0
-        print(f"[match_peaks_monotonic] tolerance auto-set to {tolerance}")
-
-    ref_peaks = np.array(sorted(ref.keys()), dtype=float)
-    spe_peaks = np.array(sorted(spe_pos_dict.keys()), dtype=float)
-    ref_intensities = np.array([ref[k] for k in sorted(ref.keys())], dtype=float)
-    spe_intensities = np.array([spe_pos_dict[k] for k in sorted(spe_pos_dict.keys())], dtype=float)
-
-    n_ref = len(ref_peaks)
-    n_spe = len(spe_peaks)
-
-    # DP table: dp[i,j] = max matches using ref[:i], spe[:j]
-    dp = np.zeros((n_ref + 1, n_spe + 1), dtype=int)
-    back = np.zeros((n_ref + 1, n_spe + 1), dtype=int)  # 0: none, 1: match, 2: skip ref, 3: skip spe
-
-    # Fill DP table
-    for i in range(1, n_ref + 1):
-        for j in range(1, n_spe + 1):
-            ref_val = ref_peaks[i - 1]
-            spe_val = spe_peaks[j - 1]
-            tol = tolerance * ref_val if relative else tolerance
-            diff = abs(spe_val - ref_val)
-
-            if diff <= tol:
-                # Match possible
-                dp[i, j] = dp[i - 1, j - 1] + 1
-                back[i, j] = 1
-            else:
-                if dp[i - 1, j] >= dp[i, j - 1]:
-                    dp[i, j] = dp[i - 1, j]
-                    back[i, j] = 2  # skip ref
-                else:
-                    dp[i, j] = dp[i, j - 1]
-                    back[i, j] = 3  # skip spe
-
-    # Traceback to get matched pairs
-    matched_ref: list[float] = []
-    matched_spe: list[float] = []
-
-    i, j = n_ref, n_spe
-    while i > 0 and j > 0:
-        if back[i, j] == 1:
-            matched_ref.append(ref_peaks[i - 1])
-            matched_spe.append(spe_peaks[j - 1])
-            i -= 1
-            j -= 1
-        elif back[i, j] == 2:
-            i -= 1
-        else:
-            j -= 1
-
-    # Reverse because traceback goes from end
-    matched_ref = np.array(matched_ref[::-1], dtype=float)
-    matched_spe = np.array(matched_spe[::-1], dtype=float)
-    distances = matched_spe - matched_ref
-
-    # Compute intensity differences
-    ref_int_dict = dict(zip(ref_peaks, ref_intensities))
-    spe_int_dict = dict(zip(spe_peaks, spe_intensities))
-    inten_diff = np.array([
-        abs(spe_int_dict[s] - ref_int_dict[r]) / (spe_int_dict[s] + ref_int_dict[r] + 1e-9)
-        if (s in spe_int_dict and r in ref_int_dict) else np.nan
-        for s, r in zip(matched_spe, matched_ref)
-    ])
-
-    df = pd.DataFrame({
-        "spe": matched_spe,
-        "reference": matched_ref,
-        "distance": distances,
-        "intensity_diff": inten_diff
-    })
-    matched_spe_array: NDArray[np.float64] = np.array(matched_spe[::-1], dtype=float)
-    matched_ref_array: NDArray[np.float64] = np.array(matched_ref[::-1], dtype=float)
-    return matched_spe_array, matched_ref_array, distances, df
 
 
 def match_peaks_monotonic(
