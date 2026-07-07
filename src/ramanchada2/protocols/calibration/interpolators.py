@@ -15,28 +15,54 @@ InterpolatorMethod = Literal[
 class CustomPChipInterpolator(PchipInterpolator):
     def __init__(self, x, y,  inverse=False, **kwargs):
         if inverse:
-            inverse = PchipInterpolator(y, x)
+            _inverse_curve = PchipInterpolator(y, x)
             dense_reference = np.linspace(
                 y[0],
                 y[-1],
                 max(2048, 10*len(y)) # N≫number of original knots
                 # Anything smaller gives you no benefit over the raw calibration.
             )
-            dense_spe = inverse(dense_reference)
+            dense_spe = _inverse_curve(dense_reference)
             order = np.argsort(dense_spe)
             dense_spe = dense_spe[order]
-            dense_reference = dense_reference[order]  
+            dense_reference = dense_reference[order]
             super().__init__(dense_spe, dense_reference,  **kwargs)
             self.x = dense_spe  # Store x values
             self.y = dense_reference  # Store y values
             self.x_original = x  # Store x values
-            self.y_original = y  # Store y values                  
+            self.y_original = y  # Store y values
         else:
-            # direct        
+            # direct
             super().__init__(x, y,  **kwargs)
             self.x = x  # Store x values
             self.y = y  # Store y values
-        self.inverse = inverse
+        # bool flag only (never re-read); MUST NOT hold the throwaway
+        # PchipInterpolator built above -- scipy's PchipInterpolator/PPoly
+        # carries unpicklable internal module references (array-API dispatch
+        # handles), which would make the whole calmodel unpicklable.
+        self.inverse = bool(inverse)
+
+    def __getstate__(self):
+        # self.x/self.y are already this object's own dense knots (see
+        # __init__), so pickle just those and rebuild the PPoly base on load
+        # instead of letting scipy pickle its own (sometimes unpicklable)
+        # internal state.
+        return {
+            "x": np.asarray(self.x),
+            "y": np.asarray(self.y),
+            "inverse": self.inverse,
+            "x_original": getattr(self, "x_original", None),
+            "y_original": getattr(self, "y_original", None),
+        }
+
+    def __setstate__(self, state):
+        super().__init__(state["x"], state["y"])
+        self.x = state["x"]
+        self.y = state["y"]
+        self.inverse = state["inverse"]
+        if state.get("x_original") is not None:
+            self.x_original = state["x_original"]
+            self.y_original = state["y_original"]
 
     def __call__(self, x, nu=0, extrapolate=None):
         """Evaluate; beyond the knot span continue with CONSTANT CORRECTION.
@@ -168,26 +194,29 @@ class CustomCubicSplineInterpolator(CubicSpline):
 class CustomPolyInterpolator:
     def __init__(self, x, y, inverse=False, max_degree=4):
         if inverse:
-            inverse = PchipInterpolator(y, x)
+            _inverse_curve = PchipInterpolator(y, x)
             dense_reference = np.linspace(
                 y[0],
                 y[-1],
                 max(2048, 10*len(y)) # N≫number of original knots
                 # Anything smaller gives you no benefit over the raw calibration.
             )
-            dense_spe = inverse(dense_reference)
+            dense_spe = _inverse_curve(dense_reference)
             order = np.argsort(dense_spe)
             dense_spe = dense_spe[order]
-            dense_reference = dense_reference[order]  
+            dense_reference = dense_reference[order]
             self.x = dense_spe  # Store x values
             self.y = dense_reference  # Store y values
             self.x_original = x  # Store x values
-            self.y_original = y  # Store y values                  
+            self.y_original = y  # Store y values
         else:
-            # direct        
+            # direct
             self.x = x  # Store x values
             self.y = y  # Store y values
-        self.inverse = inverse
+        # bool flag only (never re-read); MUST NOT hold the throwaway
+        # PchipInterpolator built above -- it carries unpicklable scipy
+        # internal state (see CustomPChipInterpolator for the same issue).
+        self.inverse = bool(inverse)
         self.max_degree = max_degree
 
         # enforce monotonic ordering in x
