@@ -66,7 +66,7 @@ def export_cwa_x(calmodel, base_path, spectral_range, npoints=200, metadata=None
     doc = {
         "format": "CWA18133-x-calibration",
         "date": datetime.datetime.now().isoformat(timespec="seconds"),
-        "laser_wl_nominal_nm": calmodel.laser_wl,
+        "laser_wl_nominal_nm": int(calmodel.laser_wl) if calmodel.laser_wl is not None else None,
         **_laser_zero_info(calmodel),
         "spectral_range_cm1": [float(min(spectral_range)), float(max(spectral_range))],
         "curve_csv": csv_path.replace("\\", "/").split("/")[-1],
@@ -108,7 +108,7 @@ def export_cwa_y(ycal_component, base_path, spectral_range=None, npoints=200,
     doc = {
         "format": "CWA18133-y-calibration",
         "date": datetime.datetime.now().isoformat(timespec="seconds"),
-        "laser_wl_nominal_nm": ycal_component.laser_wl,
+        "laser_wl_nominal_nm": int(ycal_component.laser_wl) if ycal_component.laser_wl is not None else None,
         "certificate": cert.model_dump(),
         "x_calibration_ref": x_calibration_ref,
         "spectral_range_cm1": [lo, hi],

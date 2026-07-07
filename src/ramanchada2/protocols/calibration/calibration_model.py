@@ -110,7 +110,7 @@ class CalibrationModel(ProcessingModel, Plottable):
             "version": 1,
             "date": datetime.datetime.now().isoformat(timespec="seconds"),
             "ramanchada2_version": getattr(ramanchada2, "__version__", None),
-            "laser_wl": self.laser_wl,
+            "laser_wl": int(self.laser_wl) if self.laser_wl is not None else None,
             "nonmonotonic": self.nonmonotonic,
             "prominence_coeff": getattr(self, "prominence_coeff", None),
             "components": [c.to_dict() for c in self.components],

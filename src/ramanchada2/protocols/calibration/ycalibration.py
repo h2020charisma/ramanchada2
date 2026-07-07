@@ -248,7 +248,7 @@ class YCalibrationComponent(CalibrationComponent):
             "type": "YCalibrationComponent",
             "name": self.name,
             "enabled": bool(self.enabled),
-            "laser_wl": self.laser_wl,
+            "laser_wl": int(self.laser_wl) if self.laser_wl is not None else None,
             "model_units": self.model_units,
             "certificate": self.ref.model_dump(),
             "model": interpolator_to_tagged_dict(self.model),
