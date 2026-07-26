@@ -351,6 +351,45 @@ class CustomPolyInterpolator:
         )
 
 
+class ParametricModel:
+    """A callable analytic response model: an ``equation`` string evaluated with
+    fitted parameter values.
+
+    Used by the relative-intensity (y) calibration to represent the *measured*
+    reference fitted with the certificate's own functional form (a polynomial of
+    the certificate's order, or the certificate's log-Gaussian), so the response
+    is analytic and noise-free instead of a raw/smoothed interpolation. The
+    equation is the certificate's own (config-sourced) expression -- the same
+    trusted ``eval`` pattern as ``YCalibrationCertificate.response_function``.
+    """
+
+    def __init__(self, equation, param_names, coef):
+        self.equation = equation
+        self.param_names = list(param_names)
+        self.coef = [float(c) for c in np.asarray(coef, dtype=float)]
+
+    def __call__(self, x):
+        local_vars = dict(zip(self.param_names, self.coef))
+        local_vars["x"] = np.asarray(x, dtype=float)
+        return eval(self.equation, {"np": np}, local_vars)
+
+    @staticmethod
+    def from_dict(d=None):
+        if d is None:
+            d = {}
+        return ParametricModel(d["equation"], d["param_names"], d["coef"])
+
+    def to_dict(self):
+        return {
+            "equation": self.equation,
+            "param_names": list(self.param_names),
+            "coef": [float(c) for c in self.coef],
+        }
+
+    def __str__(self):
+        return f"ParametricModel({self.equation!r}, {len(self.coef)} params)"
+
+
 class CustomRBFInterpolator(RBFInterpolator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -454,6 +493,7 @@ INTERPOLATOR_CLASSES = {
     "CustomPChipInterpolator": CustomPChipInterpolator,
     "CustomPolyInterpolator": CustomPolyInterpolator,
     "CustomCubicSplineInterpolator": CustomCubicSplineInterpolator,
+    "ParametricModel": ParametricModel,
 }
 
 
