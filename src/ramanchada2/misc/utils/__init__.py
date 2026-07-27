@@ -5,6 +5,7 @@ from .ramanshift_to_wavelength import (abs_nm_to_shift_cm_1,
                                        abs_nm_to_shift_cm_1_dict,
                                        shift_cm_1_to_abs_nm_dict,
                                        laser_wl_nm,
+                                       filter_ref_lines_for_raman
                                        )
 
 from .svd import (svd_inverse,
@@ -18,6 +19,7 @@ from .argmin2d import (argmin2d,
                        )
 
 from .matchsets import (
-                       match_peaks,
+                       match_peaks_optimized, match_peaks_monotonic,
+                       match_peaks_monotonic_simple,
                        match_peaks_cluster
                        )

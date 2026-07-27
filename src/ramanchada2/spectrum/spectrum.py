@@ -56,7 +56,7 @@ class Spectrum(Plottable):
         if self._xdata is not None and self._ydata is not None:
             if len(self._xdata) != len(self._ydata):
                 raise ValueError(
-                    f'x and y shold have same dimentions len(x)={len(self._xdata)} len(y)={len(self._ydata)}')
+                    f'x and y should have same dimensions len(x)={len(self._xdata)} len(y)={len(self._ydata)}')
 
     def __copy__(self):
         return Spectrum(
@@ -96,7 +96,7 @@ class Spectrum(Plottable):
 
     def process(self, algorithm: str, **kwargs):
         if algorithm not in self._available_processings:
-            raise ValueError('Unknown algorithm {algorithm}')
+            raise ValueError(f'Unknown algorithm {algorithm}')
         return getattr(self, algorithm)(**kwargs)
 
     @classmethod
@@ -131,11 +131,18 @@ class Spectrum(Plottable):
     def x(self):
         if self._xdata is None:
             raise ValueError('x of the spectrum is not set. self._xdata is None')
-        return np.array(self._xdata)
+        # _xdata is a private copy frozen with writeable=False (see setter below), so it is
+        # safe to return directly: no caller can corrupt internal state through it, and an
+        # in-place mutation attempt (e.g. `spe.x[i] = v`) raises instead of silently
+        # vanishing on a throwaway copy.
+        return self._xdata
 
     @x.setter
     def x(self, val: npt.NDArray[np.float64]):
-        self._xdata = val
+        # copy so freezing this array for immutability doesn't affect the caller's array
+        # (x and y are often set sequentially to differing lengths mid-update, e.g. in
+        # trim_axes, so length is not cross-checked here -- see Spectrum.__init__)
+        self._xdata = np.array(val, dtype=float)
         self._xdata.flags.writeable = False
 
     @property
@@ -150,11 +157,15 @@ class Spectrum(Plottable):
     def y(self) -> npt.NDArray[np.float64]:
         if self._ydata is None:
             raise ValueError('y of the spectrum is not set. self._ydata is None')
-        return np.array(self._ydata)
+        # see x getter above: _ydata is a private frozen copy, safe to return directly
+        return self._ydata
 
     @y.setter
     def y(self, val: npt.NDArray[np.float64]):
-        self._ydata = val
+        # copy so freezing this array for immutability doesn't affect the caller's array
+        # (x and y are often set sequentially to differing lengths mid-update, e.g. in
+        # trim_axes, so length is not cross-checked here -- see Spectrum.__init__)
+        self._ydata = np.array(val, dtype=float)
         self._ydata.flags.writeable = False
 
     @property
@@ -203,7 +214,7 @@ class Spectrum(Plottable):
         if val is not None:
             if val.shape != self._xdata.shape:
                 raise ValueError(
-                    'x_err should have same shape as xdata, expected {self._xdata.shape}, got {val.shape}')
+                    f'x_err should have same shape as xdata, expected {self._xdata.shape}, got {val.shape}')
         self._x_err = val
 
     @property
@@ -220,7 +231,7 @@ class Spectrum(Plottable):
         if val is not None:
             if val.shape != self._ydata.shape:
                 raise ValueError(
-                    'y_err should have same shape as ydata, expected {self._ydata.shape}, got {val.shape}')
+                    f'y_err should have same shape as ydata, expected {self._ydata.shape}, got {val.shape}')
         self._y_err = val
 
     @property

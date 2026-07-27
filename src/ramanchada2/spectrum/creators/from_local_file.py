@@ -1,5 +1,6 @@
 """Create spectrum from local files."""
 
+import logging
 import os
 from typing import Literal, Union, Dict
 
@@ -14,6 +15,8 @@ from ramanchada2.misc.types import SpeMetadataModel
 from ..spectrum import Spectrum
 from .from_chada import from_chada
 
+logger = logging.getLogger(__name__)
+
 
 @add_spectrum_constructor()
 @validate_call(config=dict(arbitrary_types_allowed=True))
@@ -24,7 +27,7 @@ def from_local_file(
                                       'txt', 'txtr', 'tsv', 'csv', 'prn', 'dpt',
                                       'rruf', 'spe', 'cha']] = None,
         backend: Union[None, Literal['native', 'rc1_parser']] = None,
-        custom_meta: Dict = {}):
+        custom_meta: Union[Dict, None] = None):
     """
     Read experimental spectrum from a local file.
 
@@ -70,7 +73,8 @@ def from_local_file(
         else:
             raise ValueError(f'filetype {ft} not supported')
         meta["Original file"] = os.path.basename(in_file_name)
-        meta.update(custom_meta)
+        if custom_meta:
+            meta.update(custom_meta)
         spe = Spectrum(x=x, y=y, metadata=meta)  # type: ignore
         return spe
 
@@ -86,7 +90,9 @@ def from_local_file(
     elif backend is None:
         try:
             spe = load_native()
-        except Exception:
+        except Exception as native_err:
+            logger.debug(f"native loader failed for {in_file_name!r}, "
+                         f"falling back to rc1_parser: {native_err}")
             spe = load_rc1()
     spe._sort_x()
     return spe

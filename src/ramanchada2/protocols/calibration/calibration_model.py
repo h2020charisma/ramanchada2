@@ -1,7 +1,9 @@
+import datetime
+import json
 import pickle
 import warnings
 
-from typing import Dict, Literal
+from typing import Dict, Literal, Optional
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -10,7 +12,8 @@ import ramanchada2.misc.constants as rc2const
 from ramanchada2.misc.plottable import Plottable
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import ProcessingModel
-from .xcalibration import LazerZeroingComponent, XCalibrationComponent
+from .interpolators import InterpolatorMethod
+from .xcalibration import LazerZeroingComponent, MatchMethod, XCalibrationComponent
 
 
 class CalibrationModel(ProcessingModel, Plottable):
@@ -77,17 +80,63 @@ class CalibrationModel(ProcessingModel, Plottable):
     def save(self, filename):
         """
         Saves the calibration model to a file.
+
+        ``.json`` extension writes the portable JSON representation (CWA 18133 §8 friendly,
+        language independent); anything else keeps the legacy pickle format.
         """
-        with open(filename, "wb") as file:
-            pickle.dump(self, file)
+        if str(filename).lower().endswith(".json"):
+            with open(filename, "w", encoding="utf-8") as file:
+                json.dump(self.to_dict(), file, indent=1)
+        else:
+            with open(filename, "wb") as file:
+                pickle.dump(self, file)
 
     @staticmethod
     def from_file(filename):
         """
-        Loads a calibration model from a file.
+        Loads a calibration model from a file (.json portable format or legacy pickle).
         """
+        if str(filename).lower().endswith(".json"):
+            with open(filename, "r", encoding="utf-8") as file:
+                return CalibrationModel.from_dict(json.load(file))
         with open(filename, "rb") as file:
             return pickle.load(file)
+
+    def to_dict(self):
+        """Portable (JSON-clean) representation of the full calibration model."""
+        import ramanchada2
+        return {
+            "format": "ramanchada2-calmodel",
+            "version": 1,
+            "date": datetime.datetime.now().isoformat(timespec="seconds"),
+            "ramanchada2_version": getattr(ramanchada2, "__version__", None),
+            "laser_wl": int(self.laser_wl) if self.laser_wl is not None else None,
+            "nonmonotonic": self.nonmonotonic,
+            "prominence_coeff": getattr(self, "prominence_coeff", None),
+            "components": [c.to_dict() for c in self.components],
+        }
+
+    @staticmethod
+    def from_dict(data):
+        """Reconstruct a CalibrationModel from :meth:`to_dict` output."""
+        from .ycalibration import YCalibrationComponent
+        component_classes = {
+            "XCalibrationComponent": XCalibrationComponent,
+            "LazerZeroingComponent": LazerZeroingComponent,
+            "YCalibrationComponent": YCalibrationComponent,
+        }
+        if data.get("format") != "ramanchada2-calmodel":
+            raise ValueError("Not a ramanchada2 calibration model dictionary")
+        calmodel = CalibrationModel(data["laser_wl"])
+        calmodel.nonmonotonic = data.get("nonmonotonic", "nan")
+        if data.get("prominence_coeff") is not None:
+            calmodel.prominence_coeff = data["prominence_coeff"]
+        for cd in data.get("components", []):
+            cls = component_classes.get(cd.get("type"))
+            if cls is None:
+                raise ValueError(f"Unknown calibration component type {cd.get('type')!r}")
+            calmodel.components.append(cls.from_dict(cd))
+        return calmodel
 
     def derive_model_x(
         self,
@@ -97,13 +146,13 @@ class CalibrationModel(ProcessingModel, Plottable):
         ref_neon_units: str,
         spe_sil: Spectrum,
         spe_sil_units="cm-1",
-        ref_sil={520.45: 1},
+        ref_sil=None,
         ref_sil_units="cm-1",
-        find_kw={"wlen": 200, "width": 1},
-        fit_kw={},
+        find_kw=None,
+        fit_kw=None,
         should_fit=False,
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         """
@@ -114,6 +163,12 @@ class CalibrationModel(ProcessingModel, Plottable):
             ref_neon_units = "nm"
         if spe_neon_units is None:
             spe_neon_units = "cm-1"
+        if ref_sil is None:
+            ref_sil = {520.45: 1}
+        if fit_kw is None:
+            fit_kw = {}
+        # copy before adding "prominence", so the caller's dict is not modified
+        find_kw = dict(find_kw) if find_kw is not None else {"wlen": 200, "width": 1}
         find_kw["prominence"] = spe_neon.y_noise_MAD() * self.prominence_coeff
         model_neon = self._derive_model_curve(
             spe_neon,
@@ -149,15 +204,15 @@ class CalibrationModel(ProcessingModel, Plottable):
     def _derive_model_curve(
         self,
         spe: Spectrum,
-        ref=Dict[float, float],
+        ref: Optional[Dict[float, float]] = None,
         spe_units="cm-1",
         ref_units="nm",
         find_kw=None,
         fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         if find_kw is None:
@@ -188,12 +243,12 @@ class CalibrationModel(ProcessingModel, Plottable):
         ref=None,
         spe_units="cm-1",
         ref_units="nm",
-        find_kw={},
-        fit_peaks_kw={},
+        find_kw=None,
+        fit_peaks_kw=None,
         should_fit=False,
         name="X calibration",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "rbf",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         warnings.warn(
@@ -253,7 +308,7 @@ class CalibrationModel(ProcessingModel, Plottable):
     def derive_model_zero(
         self,
         spe: Spectrum,
-        ref={520.45: 1},
+        ref=None,
         spe_units="nm",
         ref_units="cm-1",
         find_kw=None,
@@ -316,14 +371,14 @@ class CalibrationModel(ProcessingModel, Plottable):
         should_fit=False,
         prominence_coeff=3,
         si_profile="Pearson4",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "argmin2d",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         if neon_wl is None:
             neon_wl = rc2const.NEON_WL[laser_wl]
-        if find_kw is None:
-            find_kw = {"wlen": 100, "width": 1}
+        # copy before adding "prominence", so the caller's dict is not modified
+        find_kw = dict(find_kw) if find_kw is not None else {"wlen": 100, "width": 1}
         if fit_peaks_kw is None:
             fit_peaks_kw = {}
         calmodel = CalibrationModel(laser_wl)

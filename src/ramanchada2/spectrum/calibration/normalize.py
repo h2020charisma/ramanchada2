@@ -23,27 +23,23 @@ def normalize(old_spe: Spectrum,
             `unity_density`: normalize to `Σ(y_i*Δx_i)`. If `unity_area`: same as `unity_density`. If `minmax`: scale
             amplitudes in range `[0, 1]`. If 'L1' or 'L2': L1 or L2 norm without subtracting the pedestal.
     """
+    # NB: old_spe.y returns the spectrum's internal read-only array; never modify it
+    # in place -- always compute a new array (plain division allocates one).
     if strategy == 'unity':
         res = old_spe.y
-        res /= np.sum(res)
-        new_spe.y = res
+        new_spe.y = res / np.sum(res)
     elif strategy == 'min_unity':
         res = old_spe.y - np.min(old_spe.y)
-        res /= np.sum(res)
-        new_spe.y = res
+        new_spe.y = res / np.sum(res)
     if strategy == 'unity_density' or strategy == 'unity_area':
         res = old_spe.y
-        res /= np.sum(res * np.diff(old_spe.x_bin_boundaries))
-        new_spe.y = res
+        new_spe.y = res / np.sum(res * np.diff(old_spe.x_bin_boundaries))
     elif strategy == 'minmax':
         res = old_spe.y - np.min(old_spe.y)
-        res /= np.max(res)
-        new_spe.y = res
+        new_spe.y = res / np.max(res)
     elif strategy == 'L1':
         res = old_spe.y
-        res /= np.linalg.norm(res, 1)
-        new_spe.y = res
+        new_spe.y = res / np.linalg.norm(res, 1)
     elif strategy == 'L2':
         res = old_spe.y
-        res /= np.linalg.norm(res)
-        new_spe.y = res
+        new_spe.y = res / np.linalg.norm(res)

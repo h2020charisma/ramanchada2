@@ -1,22 +1,34 @@
-import json
 import logging
 from typing import Dict, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.interpolate import CubicSpline, PchipInterpolator, RBFInterpolator
+from ramanchada2.protocols.calibration import qmatch
+from ramanchada2.protocols.calibration.interpolators import (
+    CustomCubicSplineInterpolator,
+    CustomPChipInterpolator,
+    CustomPolyInterpolator,
+    CustomRBFInterpolator,
+    get_interpolator,
+    InterpolatorMethod
+)
 
 from ramanchada2.misc.utils import find_closest_pairs_idx
 
 from ramanchada2.misc.utils.matchsets import (
-    cost_function_position,
-    match_peaks,
-    match_peaks_cluster,
+    match_peaks_optimized, match_peaks_monotonic,
+    match_peaks_monotonic_simple,
+    match_peaks_cluster, match_peaks_ready_wrapper
 )
 from ramanchada2.spectrum import Spectrum
 from .calibration_component import CalibrationComponent
 
 logger = logging.getLogger(__name__)
+
+# Single source of truth for the peak-matching options offered across the calibration API.
+MatchMethod = Literal[
+    "qargmin2d", "argmin2d", "cluster", "assignment", "monotonic", "dynamicp"
+]
 
 
 class XCalibrationComponent(CalibrationComponent):
@@ -25,11 +37,11 @@ class XCalibrationComponent(CalibrationComponent):
         laser_wl,
         spe: Spectrum,
         ref: Dict[float, float],
-        spe_units: Literal["cm-1", "nm"] = "cm-1",
+        spe_units: Literal["cm-1", "nm", "pixel"] = "cm-1",
         ref_units: Literal["cm-1", "nm"] = "nm",
         sample="Neon",
-        match_method: Literal["cluster", "argmin2d", "assignment"] = "cluster",
-        interpolator_method: Literal["rbf", "pchip", "cubic_spline"] = "pchip",
+        match_method: MatchMethod = "qargmin2d",
+        interpolator_method: InterpolatorMethod = "poly",
         extrapolate=True,
     ):
         super(XCalibrationComponent, self).__init__(
@@ -37,30 +49,85 @@ class XCalibrationComponent(CalibrationComponent):
         )
         self.spe_pos_dict = None
         self.match_method = match_method
-        self.cost_function = cost_function_position
+        self.cost_function = None
         self.interpolator_method = interpolator_method
         self.extrapolate = extrapolate
 
-    # @staticmethod
-    # def from_json(filepath: str):
-    #    rbf_intrpolator, other_data = load_xcalibration_model(filepath)
-    #    calibration_x = XCalibrationComponent(laser_wl, spe, spe_units, ref, ref_units)
-    #    calibration_x.model = rbf_intrpolator
-    #    return calibration_x
+    def to_dict(self):
+        """Portable (JSON-clean) representation of the applied-model state.
+
+        Derivation-time inputs (spe, fit_res, cost matrix) are not included; the matched
+        anchors are kept as provenance so span/quality diagnostics survive the round-trip.
+        """
+        from .interpolators import interpolator_to_tagged_dict
+        d = {
+            "type": "XCalibrationComponent",
+            "name": self.name,
+            "enabled": bool(self.enabled),
+            "laser_wl": int(self.laser_wl) if self.laser_wl is not None else None,
+            "sample": self.sample,
+            "spe_units": self.spe_units,
+            "ref_units": self.ref_units,
+            "model_units": self.model_units,
+            "nonmonotonic": self.nonmonotonic,
+            "extrapolate": bool(self.extrapolate),
+            "match_method": self.match_method,
+            "interpolator_method": self.interpolator_method,
+            # JSON object keys are strings; keep float reference positions as pairs
+            "ref": [[float(k), float(v)] for k, v in self.ref.items()] if self.ref else [],
+            "model": interpolator_to_tagged_dict(self.model),
+        }
+        mp = getattr(self, "matched_peaks", None)
+        if mp is not None and hasattr(mp, "columns") and {"spe", "reference"} <= set(mp.columns):
+            inl = mp["inlier_mask"] if "inlier_mask" in mp.columns else [True] * len(mp)
+            d["anchors"] = [
+                [float(s), float(r), bool(i)]
+                for s, r, i in zip(mp["spe"], mp["reference"], inl)
+            ]
+        return d
+
+    @classmethod
+    def from_dict(cls, d):
+        from .interpolators import interpolator_from_tagged_dict
+        obj = object.__new__(cls)  # __init__ requires a spectrum; rebuild state directly
+        obj.laser_wl = d["laser_wl"]
+        obj.spe = None
+        obj.spe_units = d.get("spe_units")
+        obj.ref = {k: v for k, v in d.get("ref", [])}
+        obj.ref_units = d.get("ref_units")
+        obj.name = d.get("name", "X calibration")
+        obj.model = interpolator_from_tagged_dict(d["model"])
+        obj.model_units = d.get("model_units", "nm")
+        obj.peaks = None
+        obj.sample = d.get("sample")
+        obj.enabled = d.get("enabled", True)
+        obj.fit_res = None
+        obj.spe_pos_dict = None
+        obj.cost_function = None
+        obj.cost_matrix = None
+        obj.nonmonotonic = d.get("nonmonotonic", "error")
+        obj.extrapolate = d.get("extrapolate", True)
+        obj.match_method = d.get("match_method", "qargmin2d")
+        obj.interpolator_method = d.get("interpolator_method", "poly")
+        anchors = d.get("anchors")
+        obj.matched_peaks = (
+            pd.DataFrame(anchors, columns=["spe", "reference", "inlier_mask"])
+            if anchors else None
+        )
+        return obj
 
     def process(
         self,
         old_spe: Spectrum,
-        spe_units: Literal["cm-1", "nm"] = "cm-1",
+        spe_units: Literal["cm-1", "nm", "pixel"] = "cm-1",
         convert_back=False,
     ):
+        new_spe = self.convert_units(old_spe, spe_units, self.model_units)
         logger.debug(
             "convert spe_units {} --> model units {}".format(
                 spe_units, self.model_units
             )
         )
-        new_spe = self.convert_units(old_spe, spe_units, self.model_units)
-
         if self.model is None:
             return new_spe
         elif self.enabled:
@@ -69,14 +136,18 @@ class XCalibrationComponent(CalibrationComponent):
             else:
                 if isinstance(self.model, CustomPChipInterpolator):
                     new_spe.x = self.model(new_spe.x)
+                elif isinstance(self.model, CustomPolyInterpolator):
+                    new_spe.x = self.model(new_spe.x)
                 elif isinstance(self.model, CustomRBFInterpolator):
                     new_spe.x = self.model(new_spe.x.reshape(-1, 1))
                     if not self.extrapolate:
                         min_train, max_train = self.model.y.min(), self.model.y.max()
-                        out_of_bounds = (new_spe.x < min_train) | (
-                            new_spe.x > max_train
-                        )
-                        new_spe.x[out_of_bounds] = np.nan
+                        # new_spe.x is the internal READ-ONLY array; np.array (unlike
+                        # np.asarray) always copies, so the masking below is legal
+                        _newx = np.array(new_spe.x, dtype=float)
+                        out_of_bounds = (_newx < min_train) | (_newx > max_train)
+                        _newx[out_of_bounds] = np.nan
+                        new_spe.x = _newx
 
                 elif isinstance(self.model, CustomCubicSplineInterpolator):
                     new_spe.x = self.model(new_spe.x)
@@ -86,7 +157,8 @@ class XCalibrationComponent(CalibrationComponent):
                         raise ValueError(f"Non-monotonic values detected (mode={self.nonmonotonic})")
                     elif (self.nonmonotonic == "nan") or (self.nonmonotonic == "drop"):
                         # this is a patch, mostly intended at extrapolation
-                        _newx = np.asarray(new_spe.x, dtype=float)
+                        # (np.array not np.asarray: new_spe.x is read-only, we mutate below)
+                        _newx = np.array(new_spe.x, dtype=float)
                         is_nonmonotonic = np.diff(_newx, prepend=_newx[0]) <= 0
                         _newx[is_nonmonotonic] = np.nan
                         new_spe.x = _newx
@@ -101,27 +173,61 @@ class XCalibrationComponent(CalibrationComponent):
             return new_spe
 
     def _plot(self, ax, **kwargs):
+        # Normalize x-positions to [0, 1] for comparison
+        ref_keys = np.array(list(self.ref.keys()))
+        spe_keys = np.array(list(self.spe_pos_dict.keys()))
+
+        ref_norm_x = (ref_keys - ref_keys.min()) / (ref_keys.max() - ref_keys.min())
+        spe_norm_x = (spe_keys - spe_keys.min()) / (spe_keys.max() - spe_keys.min())
+
+        # Normalize y-values to [0, 1] for each dataset
+        ref_vals = np.array(list(self.ref.values()))
+        spe_vals = np.array(list(self.spe_pos_dict.values()))
+
+        ref_range = ref_vals.max() - ref_vals.min()
+        ref_norm_y = (ref_vals - ref_vals.min()) / ref_range if ref_range > 0 else ref_vals
+        spe_range = spe_vals.max() - spe_vals.min()
+        spe_norm_y = (spe_vals - spe_vals.min()) / spe_range if spe_range > 0 else spe_vals
+
+        # Plot spectrum peaks going UP
         ax.stem(
-            self.spe_pos_dict.keys(),
-            self.spe_pos_dict.values(),
+            spe_norm_x,
+            spe_norm_y,
             linefmt="b-",
-            basefmt=" ",
-            label="{} peaks".format(self.sample),
-        )
-        ax.twinx().stem(
-            self.ref.keys(),
-            self.ref.values(),
-            linefmt="r-",
-            basefmt=" ",
-            label="Reference {}".format(self.sample),
+            basefmt="k-",
+            label=f"{self.sample} peaks (measured)",
+            markerfmt="bo"
         )
 
+        # Plot reference peaks going DOWN (negative)
+        ax.stem(
+            ref_norm_x,
+            -ref_norm_y,  # Negative for mirror effect
+            linefmt="r-",
+            basefmt="k-",
+            label="Reference peaks",
+            markerfmt="ro"
+        )
+
+        ax.axhline(y=0, color='k', linewidth=0.8)
+        ax.set_xlabel("Normalized position [0-1]")
+        ax.set_ylabel("Normalized intensity (measured ↑, reference ↓)")
+        ax.legend(loc='upper right')
+        ax.grid(True, alpha=0.3)
+        ax.set_ylim(-1.1, 1.1)  # Give some padding
+
+        # Add annotation showing original ranges
+        ax.text(0.02, 0.98, f"Spectrum: {spe_keys.min():.1f} - {spe_keys.max():.1f} [{self.spe_units}]",
+                transform=ax.transAxes, va='top', fontsize=8, color='b',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+
         if self.ref_units == "cm-1":
-            _units = r"$\mathrm{{[{self.ref_units}]}}$"
+            ref_label = r"$\mathrm{cm^{-1}}$"
         else:
-            _units = self.ref_units
-        ax.set_xlabel(_units)
-        ax.legend()
+            ref_label = self.ref_units
+        ax.text(0.02, 0.02, f"Reference: {ref_keys.min():.1f} - {ref_keys.max():.1f} [{ref_label}]",
+                transform=ax.transAxes, va='bottom', fontsize=8, color='r',
+                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
     def _plot_peaks(self, ax, **kwargs):
         # self.model.peaks
@@ -138,16 +244,18 @@ class XCalibrationComponent(CalibrationComponent):
         if fit_peaks_kw is None:
             fit_peaks_kw = {}
         # convert to ref_units
-        logger.debug(
-            "[{}]: convert spe_units {} to ref_units {}".format(
-                self.name, self.spe_units, self.ref_units
+        if self.spe_units == "pixel":
+            logger.debug(self.spe_units)
+            pass
+        else:
+            logger.debug(
+                "[{}]: convert spe_units {} to ref_units {}".format(
+                    self.name, self.spe_units, self.ref_units
+                )
             )
-        )
         peaks_df = self.fit_peaks(find_kw, fit_peaks_kw, should_fit)
-        x_spe, x_reference, x_distance, cost_matrix, df = self.match_peaks(
-            threshold_max_distance=8, return_df=True
-        )
-
+        x_spe, x_reference, x_distance, cost_matrix, df = match_peaks(
+            self.spe_pos_dict, self.ref, self.spe_units, match_method=self.match_method)
         self.cost_matrix = cost_matrix
         self.matched_peaks = df
         # if df is None:
@@ -176,88 +284,23 @@ class XCalibrationComponent(CalibrationComponent):
             self.set_model(_offset, self.ref_units, peaks_df, name)
         else:
             try:
-                if self.interpolator_method == "pchip":
-                    # kwargs = {"kernel": "thin_plate_spline"}
-                    interp = CustomPChipInterpolator(x_spe, x_reference)
-                elif self.interpolator_method == "cubic_spline":
-                    kwargs = {"bc_type": "clamped"}
-                    interp = CustomCubicSplineInterpolator(x_spe, x_reference, **kwargs)
-                elif self.interpolator_method == "rbf":
-                    kwargs = {
-                        "kernel": "thin_plate_spline",
-                        "neighbors": len(x_spe) / 3,
-                        "smoothing": 0,
-                    }
-                    interp = CustomRBFInterpolator(
-                        x_spe.reshape(-1, 1), x_reference, **kwargs
-                    )
+                interp = get_interpolator(
+                    x_spe, x_reference,
+                    interpolator_method=self.interpolator_method,
+                )
                 self.set_model(interp, self.ref_units, peaks_df, name)
             except Exception as err:
-                print(err)
-                raise err
-
-    def match_peaks(self, threshold_max_distance=9, return_df=False):
-        if self.match_method == "cluster":
-            x_spe, x_reference, x_distance, _ = match_peaks_cluster(
-                self.spe_pos_dict, self.ref
-            )
-            cost_matrix = None
-            df = pd.DataFrame(
-                {"spe": x_spe, "reference": x_reference, "distances": x_distance}
-            )
-            return x_spe, x_reference, x_distance, cost_matrix, df
-        elif self.match_method == "argmin2d":
-            x = np.array(list(self.spe_pos_dict.keys()))
-            y = np.array(list(self.ref.keys()))
-            x_idx, y_idx = find_closest_pairs_idx(x, y)
-            x_spe = x[x_idx]
-            x_reference = y[y_idx]
-            df = pd.DataFrame(
-                {
-                    "spe": x_spe,
-                    "reference": x_reference,
-                    "distances": x_spe - x_reference,
-                }
-            )
-            return x_spe, x_reference, x_spe - x_reference, None, df
-        else:
-            try:
-                x_spe, x_reference, x_distance, cost_matrix, df = match_peaks(
-                    self.spe_pos_dict,
-                    self.ref,
-                    threshold_max_distance=threshold_max_distance,
-                    df=return_df,
-                    cost_func=self.cost_function,
-                )
-                return x_spe, x_reference, x_distance, cost_matrix, df
-            except Exception as err:
+                logger.error(err)
                 raise err
 
     def fit_peaks(self, find_kw, fit_peaks_kw, should_fit):
         spe_to_process = self.convert_units(self.spe, self.spe_units, self.ref_units)
         logger.debug("max x {} {}".format(max(spe_to_process.x), self.ref_units))
-
-        peaks_df = None
-        self.fit_res = None
-
-        # instead of fit_peak_positions - we don't want movmin here
-        # baseline removal might be done during preprocessing
-        center_err_threshold = 0.5
-        find_kw.update(dict(sharpening=None))
-        cand = spe_to_process.find_peak_multipeak(**find_kw)
-        # print(cand.get_ampl_pos_fwhm())
-
-        self.fit_res = spe_to_process.fit_peak_multimodel(
-            profile="Gaussian", candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
-            bound_centers_to_group=True
-        )
-        peaks_df = self.fit_res.to_dataframe_peaks()
-        if should_fit:
-            pos, amp = self.fit_res.center_amplitude(threshold=center_err_threshold)
-            self.spe_pos_dict = dict(zip(pos, amp))
-        else:
-            self.spe_pos_dict = cand.get_pos_ampl_dict()
-        return peaks_df
+        fit_res, spe_pos_dict = fit_peaks(
+            spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_fit=should_fit)
+        self.spe_pos_dict = spe_pos_dict
+        self.fit_res = fit_res
+        return self.fit_res.to_dataframe_peaks()
 
 
 class LazerZeroingComponent(CalibrationComponent):
@@ -293,15 +336,21 @@ class LazerZeroingComponent(CalibrationComponent):
         df = self.fit_res.to_dataframe_peaks()
         # df = self.fitres2df(self.spe)
         # highest peak first
-        df = df.sort_values(by="height", ascending=False)
+        logger.debug(f"{df.shape} {df.columns}")
+
         # df = df.sort_values(by='amplitude', ascending=False)
         if df.empty:
             raise Exception("No peaks found")
         else:
+            df = df.sort_values(by="height", ascending=False)
             if "position" in df.columns:
                 zero_peak_nm = df.iloc[0]["position"]
             elif "center" in df.columns:
                 zero_peak_nm = df.iloc[0]["center"]
+            else:
+                raise ValueError(
+                    f"Peak fit results have neither 'position' nor 'center' column: {list(df.columns)}"
+                )
             # https://www.elodiz.com/calibration-and-validation-of-raman-instruments/
             zero_peak_cm1 = self.zero_nm_to_shift_cm_1(
                 zero_peak_nm, zero_peak_nm, list(self.ref.keys())[0]
@@ -345,162 +394,198 @@ class LazerZeroingComponent(CalibrationComponent):
         # ax.set_xlabel("cm-1")
         pass
 
-
-class CustomRBFInterpolator(RBFInterpolator):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    @staticmethod
-    def from_dict(rbf_dict=None):
-        if rbf_dict is None:
-            rbf_dict = {}
-        interpolator_loaded = CustomRBFInterpolator(
-            rbf_dict["y"],
-            rbf_dict["d"],
-            epsilon=rbf_dict["epsilon"],
-            smoothing=rbf_dict["smoothing"],
-            kernel=rbf_dict["kernel"],
-            neighbors=rbf_dict["neighbors"],
-        )
-        interpolator_loaded._coeffs = rbf_dict["coeffs"]
-        interpolator_loaded._scale = rbf_dict["scale"]
-        interpolator_loaded._shift = rbf_dict["shift"]
-        return interpolator_loaded
-
     def to_dict(self):
+        """Portable (JSON-clean) representation: the model is the Si peak position in nm."""
         return {
-            "y": self.y,
-            "d": self.d,
-            "d_dtype": self.d_dtype,
-            "d_shape": self.d_shape,
-            "epsilon": self.epsilon,
-            "kernel": self.kernel,
-            "neighbors": self.neighbors,
-            "powers": self.powers,
-            "smoothing": self.smoothing,
-            "coeffs": self._coeffs,
-            "scale": self._scale,
-            "shift": self._shift,
+            "type": "LazerZeroingComponent",
+            "name": self.name,
+            "enabled": bool(self.enabled),
+            "laser_wl": int(self.laser_wl) if self.laser_wl is not None else None,
+            "sample": self.sample,
+            "spe_units": self.spe_units,
+            "ref_units": self.ref_units,
+            "model_units": self.model_units,
+            "profile": self.profile,
+            "ref": [[float(k), float(v)] for k, v in self.ref.items()] if self.ref else [],
+            "model": float(self.model),
         }
-
-    def plot(self, ax):
-        ax.scatter(
-            self.y.reshape(-1),
-            self.d.reshape(-1),
-            marker="+",
-            color="blue",
-            label="Matched peaks",
-        )
-
-        x_range = np.linspace(self.y.min(), self.y.max(), 100)
-        predicted_x = self(x_range.reshape(-1, 1))
-
-        ax.plot(
-            x_range, predicted_x, color="red", linestyle="-", label="Calibration curve"
-        )
-        ax.set_xlabel("Ne peaks, nm")
-        ax.set_ylabel("Reference peaks, nm")
-        ax.grid(which="both", linestyle="--", linewidth=0.5, color="gray")
-        ax.legend()
-
-    def __str__(self):
-        return f"Calibration curve {len(self.y)} points) {self.kernel}"
-
-
-class CustomPChipInterpolator(PchipInterpolator):
-    def __init__(self, x, y,  **kwargs):
-        super().__init__(x, y,  **kwargs)
-        self.x = x  # Store x values
-        self.y = y  # Store y values
-
-    @staticmethod
-    def from_dict(pchip_dict=None):
-        if pchip_dict is None:
-            pchip_dict = {}
-        # Load the PCHIP interpolator from a dictionary
-        interpolator_loaded = CustomPChipInterpolator(
-            np.array(pchip_dict["x"]),  # Convert back to numpy arrays
-            np.array(pchip_dict["y"]),
-        )
-        return interpolator_loaded
-
-    def to_dict(self):
-        # Save the current x and y data to a dictionary
-        return {
-            "x": self.x.tolist(),  # Convert numpy arrays to lists for JSON serialization
-            "y": self.y.tolist(),
-        }
-
-    def save_coefficients(self, filename):
-        """Save the x and y coefficients to a JSON file."""
-        coeffs = self.to_dict()
-        with open(filename, "w") as f:
-            json.dump(coeffs, f)
 
     @classmethod
-    def load_coefficients(cls, filename):
-        """Load the coefficients from a JSON file."""
-        with open(filename, "r") as f:
-            coeffs = json.load(f)
-        return cls.from_dict(coeffs)
+    def from_dict(cls, d):
+        obj = object.__new__(cls)  # __init__ requires a spectrum; rebuild state directly
+        obj.laser_wl = d["laser_wl"]
+        obj.spe = None
+        obj.spe_units = d.get("spe_units", "nm")
+        obj.ref = {k: v for k, v in d.get("ref", [])} or {520.45: 1}
+        obj.ref_units = d.get("ref_units", "cm-1")
+        obj.name = d.get("name", "Laser zeroing")
+        obj.model = float(d["model"])
+        obj.model_units = d.get("model_units", "nm")
+        obj.peaks = None
+        obj.sample = d.get("sample", "Silicon")
+        obj.enabled = d.get("enabled", True)
+        obj.fit_res = None
+        obj.profile = d.get("profile", "Pearson4")
+        return obj
 
-    def plot(self, ax):
-        """Plot the interpolation curve and the original points."""
-        ax.scatter(self.x, self.y, marker="+", color="blue", label="Ne original data")
 
-        x_range = np.linspace(self.x.min(), self.x.max(), 100)
-        predicted_y = self(x_range)
-
-        ax.plot(
-            x_range, predicted_y, color="red", linestyle="-", label="Ne calibration curve"
+def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
+    _match_method = match_method
+    if spe_units == "pixel" and match_method != "qargmin2d":
+        _match_method = "dynamicp"
+    logger.debug(f"{_match_method} spe_pos_dict {spe_pos_dict}, \nref {ref_dict}")
+    if _match_method == "cluster":
+        x_spe, x_reference, x_distance, _ = match_peaks_cluster(
+            spe_pos_dict, ref_dict,
+            # _filter_range = self.spe_units != "pixel"
         )
-        ax.set_xlabel("Ne peak original/nm")
-        ax.set_ylabel("Ne peak NIST/nm")
-        ax.grid(which="both", linestyle="--", linewidth=0.5, color="gray")
-        ax.legend()
-
-    def __str__(self):
-        return f"Calibration curve {len(self.y)} points) (PchipInterpolator)"
-
-
-class CustomCubicSplineInterpolator(CubicSpline):
-    def __init__(self, x, y,  **kwargs):
-        super().__init__(x, y, **kwargs)
-        self.x = x
-        self.y = y
-
-    @staticmethod
-    def from_dict(spline_dict=None):
-        if spline_dict is None:
-            spline_dict = {}
-        interpolator_loaded = CustomCubicSplineInterpolator(
-            spline_dict["x"],
-            spline_dict["y"],
-            bc_type=spline_dict.get("bc_type", "clamped"),
-            extrapolate=spline_dict.get("extrapolate", True),
+        x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
+            x_spe, x_reference, n_sigma=3
         )
-        return interpolator_loaded
-
-    def to_dict(self):
-        return {
-            "x": self.x,
-            "y": self.y,
-            "bc_type": self.bc_type,
-            "extrapolate": self.extrapolate,
-        }
-
-    def plot(self, ax):
-        ax.scatter(self.x, self.y, marker="+", color="blue", label="Data points")
-        x_range = np.linspace(self.x.min(), self.x.max(), 100)
-        predicted_y = self(x_range)
-
-        ax.plot(
-            x_range, predicted_y, color="red", linestyle="-", label="Cubic spline curve"
+        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
+        cost_matrix = None
+        df = pd.DataFrame(
+            {
+                "spe": x_spe,
+                "reference": x_reference,
+                "distances": x_spe - x_reference,
+                "inlier_mask": inlier_mask
+            }
         )
-        ax.set_xlabel("X values")
-        ax.set_ylabel("Y values")
-        ax.grid(which="both", linestyle="--", linewidth=0.5, color="gray")
-        ax.legend()
+        return x_inliers, y_inliers, x_inliers-y_inliers, cost_matrix, df
+    elif _match_method == "dynamicp":
+        x_spe, x_reference, cost_matrix, df = match_peaks_ready_wrapper(
+            spe_pos_dict, ref_dict,
+        )
+        x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
+            x_spe, x_reference, n_sigma=3
+        )
+        df["inlier_mask"] = inlier_mask
+        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
+        return x_inliers, y_inliers, x_inliers - y_inliers, cost_matrix, df
+    elif _match_method == "qargmin2d":
+        x = np.array(list(spe_pos_dict.keys()))
+        y = np.array(list(ref_dict.keys()))
+        if spe_units == "pixel":
+            x_idx, y_idx = qmatch.find_closest_pairs_quantile_idx(x, y, n_sigma=3)
+        else:
+            x_idx, y_idx = find_closest_pairs_idx(x, y)
+        x_spe = x[x_idx]
+        x_reference = y[y_idx]
+        # Sort by x
+        idx = np.argsort(x_spe)
+        x_spe = x_spe[idx]
+        x_reference = x_reference[idx]
+        # iterative_linear_filter
+        x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
+            x_spe, x_reference, n_sigma=3
+        )
+        logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
+        df = pd.DataFrame(
+            {
+                "spe": x_spe,
+                "reference": x_reference,
+                "distances": x_spe - x_reference,
+                "inlier_mask": inlier_mask
+            }
+        )
+        return x_inliers, y_inliers, x_inliers-y_inliers, None, df
+    elif _match_method == "argmin2d":
+        x = np.array(list(spe_pos_dict.keys()))
+        y = np.array(list(ref_dict.keys()))
+        x_idx, y_idx = find_closest_pairs_idx(x, y)
+        x_spe = x[x_idx]
+        x_reference = y[y_idx]
+        df = pd.DataFrame(
+            {
+                "spe": x_spe,
+                "reference": x_reference,
+                "distances": x_spe - x_reference,
+                "inlier_mask": True
+            }
+        )
+        return x_spe, x_reference, x_spe - x_reference, None, df
+    elif _match_method == "assignment":  # https://en.wikipedia.org/wiki/Hungarian_algorithm
+        try:
+            x_spe, x_reference, x_distance, cost_matrix, df = match_peaks_optimized(
+                spe_pos_dict=spe_pos_dict,
+                ref=ref_dict,
+                tolerance=100, relative=False, weight_intensity=0.9
+            )
+            return x_spe, x_reference, x_distance, cost_matrix, df
+        except Exception as err:
+            logger.warning(f"{err} Reverting to monotonic match")
+            x_spe, x_reference, x_distance,  df = match_peaks_monotonic(
+                spe_pos_dict=spe_pos_dict,
+                ref=ref_dict,
+                tolerance=None, relative=False, weight_intensity=0.25
+            )
+            return x_spe, x_reference, x_distance, None, df
+    else:  # self.match_method == "monotonic":
+        try:
+            x_spe, x_reference, x_distance,  df = match_peaks_monotonic_simple(
+                spe_pos_dict=spe_pos_dict,
+                ref=ref_dict,
+                tolerance=100,
+                relative=False,
+                weight_intensity=.5
+            )
+            x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
+                x_spe, x_reference, n_sigma=3
+            )
+            df["inlier_mask"] = inlier_mask
+            logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
+            return x_inliers, y_inliers, x_inliers-y_inliers, None, df
+        except Exception as err:
+            raise err
 
-    def __str__(self):
-        return f"Cubic Spline Interpolator with {len(self.x)} points."
+
+def fit_peaks(spe_to_process, find_kw, fit_peaks_kw, profile="Gaussian", should_fit=True):
+
+    fit_res = None
+
+    # instead of fit_peak_positions - we don't want movmin here
+    # baseline removal might be done during preprocessing
+    center_err_threshold = 0.5
+    find_kw = {**(find_kw or {}), "sharpening": None}  # don't mutate the caller's dict
+    cand = spe_to_process.find_peak_multipeak(**find_kw)
+    # print(cand.get_ampl_pos_fwhm())
+
+    fit_res = spe_to_process.fit_peak_multimodel(
+        profile=profile, candidates=cand, **fit_peaks_kw, no_fit=not should_fit,
+        bound_centers_to_group=True
+    )
+    if should_fit:
+        pos, amp = fit_res.center_amplitude(threshold=center_err_threshold)
+        if len(pos) == 0:
+            # noisy spectrum / non-converged fit: no center passed the stderr threshold.
+            # Fall back to the candidate positions (same as should_fit=False) so the
+            # spectrum stays in the analysis instead of crashing the caller.
+            logger.warning(
+                f"no fitted peak passed center_err_threshold={center_err_threshold}; "
+                "falling back to candidate positions")
+            spe_pos_dict = cand.get_pos_ampl_dict()
+        else:
+            spe_pos_dict = dict(zip(pos, amp))
+    else:
+        spe_pos_dict = cand.get_pos_ampl_dict()
+    return fit_res, spe_pos_dict
+
+
+def match_peaks4analysis(
+        spectra, ref=None, spe_units="nm",
+        find_kw=None, fit_peaks_kw=None, profile="Gaussian", should_fit=True,
+        match_method="qargmin2d",
+        stages=["1.original"]):
+    if spectra is None or ref is None:
+        return None
+    matched_peaks = None
+    for spe, stage in list(zip(spectra, stages)):
+        fit_res, spe_pos_dict = fit_peaks(
+            spe, find_kw, fit_peaks_kw, profile=profile, should_fit=should_fit)
+        _x, _ref, _, _, df_calib = match_peaks(
+            spe_pos_dict, ref, spe_units=spe_units, match_method=match_method)
+        df_calib["match_mode"] = match_method
+        df_calib["before_after"] = stage
+        matched_peaks = df_calib if matched_peaks is None else pd.concat([matched_peaks, df_calib])
+    return matched_peaks
