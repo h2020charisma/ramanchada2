@@ -50,7 +50,7 @@ def _build_neon_model(spe_neon, interpolator_method):
     )
 
 
-@pytest.mark.parametrize("interpolator_method, expected_cls", [
+METHOD_CASES: list[tuple[str, type]] = [
     ("pchip", CustomPChipInterpolator),
     ("pchipinverse", CustomPChipInterpolator),
     ("poly", CustomPolyInterpolator),
@@ -59,7 +59,10 @@ def _build_neon_model(spe_neon, interpolator_method):
     # rbfinverse: thin-plate spline shape remapped through a monotone PCHIP (CWA/MATLAB
     # recipe), so the built model is a CustomPChipInterpolator.
     ("rbfinverse", CustomPChipInterpolator),
-])
+]
+
+
+@pytest.mark.parametrize("interpolator_method, expected_cls", METHOD_CASES)
 def test_interpolator_method_is_honoured(spe_neon, interpolator_method, expected_cls):
     model_ne = _build_neon_model(spe_neon, interpolator_method)
     built = type(model_ne.model)
