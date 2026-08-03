@@ -61,10 +61,10 @@ UNIFORM_GRID_REL_TOL = 0.01
 # fit is defective and the rescale is not applied
 SRES_MIN_RATIO = 0.8
 # ASTM E2529 spectral-resolution formula as applied in the VAMAS P6 analysis
-# (Erlon 2026-05-04, cross-checked against Ankit and ASTM): the calcite 1085
-# band's intrinsic width is subtracted (offset 0.684) and the instrument
-# response scaled (slope 1.0209), so SRes = (FWHM - 0.684) / 1.0209. FWHM 8.011
-# -> 7.177 cm-1. (Not FWHM/0.684 - 1.029, which swaps the two roles.)
+# (cross-checked against ASTM E2529): the calcite 1085 band's intrinsic width
+# is subtracted (offset 0.684) and the instrument response scaled (slope
+# 1.0209), so SRes = (FWHM - 0.684) / 1.0209. FWHM 8.011 -> 7.177 cm-1.
+# (Not FWHM/0.684 - 1.029, which swaps the two roles.)
 E2529_OFFSET = 0.684
 E2529_SLOPE = 1.0209
 # default peak-finding window (VAMAS-tuned; see the calibration engine)
