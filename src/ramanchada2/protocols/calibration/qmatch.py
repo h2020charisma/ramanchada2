@@ -101,7 +101,8 @@ def linear_residual_filter(x, y, n_sigma=3.0):
     return x[mask], y[mask], mask
 
 
-def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0):
+def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0,
+                                auto_reduce_degree=False):
     """Curve-aware robust outlier filter for matched (measured, reference) pairs.
 
     ``linear_residual_filter`` fits a *straight line* and rejects points by their
@@ -116,12 +117,36 @@ def robust_poly_residual_filter(x, y, deg=2, n_sigma=3.0, n_iter=300, seed=0):
     of a degree-``deg`` fit, so on-trend (curved) near-laser lines survive while genuine
     mismatches are still rejected. Returns ``(x_inliers, y_inliers, mask)`` with ``mask``
     aligned to the input order, matching ``linear_residual_filter``.
+
+    ``auto_reduce_degree`` (default ``False``, so neon-sized reference sets keep today's
+    exact behaviour): when ``True`` and ``n`` is too small relative to ``deg`` for a
+    degree-``deg`` RANSAC sample to be statistically meaningful (fewer than
+    ``2 * (deg + 2)`` points -- e.g. a degree-2 fit through 3 of only 6 points, CAL/PST-
+    sized reference sets, unlike neon's ~15-30), recurse to one degree lower, which needs
+    fewer points to be well-determined. A degree-0 fit (a single reference value) cannot
+    discriminate a mismatch by curve shape at all, so a pure MAD-distance rejection is used
+    as the base case.
     """
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     n = len(x)
     if n <= deg + 2:
         return x, y, np.ones(n, dtype=bool)
+
+    if auto_reduce_degree and deg > 0 and n < 2 * (deg + 2):
+        return robust_poly_residual_filter(
+            x, y, deg=deg - 1, n_sigma=n_sigma, n_iter=n_iter, seed=seed,
+            auto_reduce_degree=auto_reduce_degree)
+    if auto_reduce_degree and deg == 0 and n < 2 * (deg + 2):
+        r = y - np.median(y)
+        mad = np.median(np.abs(r - np.median(r)))
+        thr = max(n_sigma * 1.4826 * mad, 1e-9)
+        mask = np.abs(r) < thr
+        if mask.sum() < 2:
+            mask = np.ones(n, dtype=bool)
+        print(f"  Robust deg-0 filter (n={n} too small for RANSAC): "
+              f"band={thr:.3f}, kept {mask.sum()}/{n} inliers")
+        return x[mask], y[mask], mask
 
     xc = x - x.mean()  # centre for numerical stability of polyfit
     # Initial (generous) acceptance band for the RANSAC search: n_sigma * robust-sigma of
