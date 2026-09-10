@@ -3,21 +3,21 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Coverage for src/ramanchada2/spectrum/creators/hdr_from_multi_exposure.py: 47%</title>
-    <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
-    <link rel="stylesheet" href="style_cb_6b508a39.css" type="text/css">
-    <script src="coverage_html_cb_6fb7b396.js" defer></script>
+    <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
+    <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
+    <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
 </head>
 <body class="pyfile">
 <header>
     <div class="content">
         <h1>
-            <span class="text">Coverage for </span><b>src/ramanchada2/spectrum/creators/hdr_from_multi_exposure.py</b>:
+            <span class="text">Coverage for </span><b>src<span class="sep">/</span>ramanchada2<span class="sep">/</span>spectrum<span class="sep">/</span>creators<span class="sep">/</span>hdr_from_multi_exposure.py</b>:
             <span class="pc_cov">47%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
             <label for="help_panel_state">
-                <img id="keyboard_icon" src="keybd_closed_cb_ce680311.png" alt="Show/hide keyboard shortcuts">
+                <img id="keyboard_icon" src="keybd_closed_cb_900cfef5.png" alt="Show/hide keyboard shortcuts">
             </label>
             <div id="help_panel">
                 <p class="legend">Shortcuts on this page</p>
@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_b4b07bd69bbb12e0___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.11.0">coverage.py v7.11.0</a>,
-            created at 2026-09-10 21:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-10 21:58 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -93,9 +93,9 @@
     <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="op">@</span><span class="nam">add_spectrum_constructor</span><span class="op">(</span><span class="nam">set_applied_processing</span><span class="op">=</span><span class="key">True</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="op">@</span><span class="nam">validate_call</span><span class="op">(</span><span class="nam">config</span><span class="op">=</span><span class="nam">dict</span><span class="op">(</span><span class="nam">arbitrary_types_allowed</span><span class="op">=</span><span class="key">True</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">def</span> <span class="nam">hdr_from_multi_exposure</span><span class="op">(</span><span class="nam">spes_in</span><span class="op">:</span> <span class="nam">List</span><span class="op">[</span><span class="nam">Spectrum</span><span class="op">]</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">                            <span class="nam">meta_exposure_time</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">'intigration times(ms)'</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">                            <span class="nam">meta_ymax</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">'yaxis_max'</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">                            <span class="nam">meta_exposure_time</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">&#x27;intigration times(ms)&#x27;</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">                            <span class="nam">meta_ymax</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">&#x27;yaxis_max&#x27;</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="str">    Create an HDR spectrum from several spectra with different exposures.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t"><span class="str">    The resulting spectrum will have the details in low-intensity peaks</span>&nbsp;</span><span class="r"></span></p>
@@ -107,18 +107,18 @@
     <p class="pln"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t"><span class="str">        spes_in (List[Spectrum]): Set of spectra with different exposures</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t"><span class="str">        meta_exposure_time (str, optional): The name of the metadata parameter</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t"><span class="str">            having the exposure/integration time. The units should be the same</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t"><span class="str">            for all the spectra. Defaults to 'intigration times(ms)'.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t"><span class="str">            for all the spectra. Defaults to &#x27;intigration times(ms)&#x27;.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t"><span class="str">        meta_ymax (str, optional): The name fo the metadata parameter having</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t"><span class="str">            the maximum ADC value. This value will be used as a threshold. If</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t"><span class="str">            value in a spectrum is higher, the value will be taken from a</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t"><span class="str">            spectrum with shorter exposure. Defaults to 'yaxis_max'.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t"><span class="str">            spectrum with shorter exposure. Defaults to &#x27;yaxis_max&#x27;.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">    <span class="nam">spes</span> <span class="op">=</span> <span class="nam">list</span><span class="op">(</span><span class="nam">sorted</span><span class="op">(</span><span class="nam">spes_in</span><span class="op">,</span> <span class="nam">key</span><span class="op">=</span><span class="key">lambda</span> <span class="nam">s</span><span class="op">:</span> <span class="nam">float</span><span class="op">(</span><span class="nam">s</span><span class="op">.</span><span class="nam">meta</span><span class="op">[</span><span class="nam">meta_exposure_time</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="com"># type: ignore</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">np</span><span class="op">.</span><span class="nam">all</span><span class="op">(</span><span class="op">[</span><span class="nam">spes</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">.</span><span class="nam">x</span> <span class="op">==</span> <span class="nam">s</span><span class="op">.</span><span class="nam">x</span> <span class="key">for</span> <span class="nam">s</span> <span class="key">in</span> <span class="nam">spes</span><span class="op">]</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="str">'x-axes of the spectra should be equal'</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">        <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="str">&#x27;x-axes of the spectra should be equal&#x27;</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="nam">spes_cpms</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="op">[</span><span class="nam">s</span><span class="op">.</span><span class="nam">y</span> <span class="op">/</span> <span class="nam">float</span><span class="op">(</span><span class="nam">s</span><span class="op">.</span><span class="nam">meta</span><span class="op">[</span><span class="nam">meta_exposure_time</span><span class="op">]</span><span class="op">)</span> <span class="key">for</span> <span class="nam">s</span> <span class="key">in</span> <span class="nam">spes</span><span class="op">]</span><span class="op">)</span>  <span class="com"># type: ignore</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">    <span class="nam">masks</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="nam">list</span><span class="op">(</span><span class="nam">map</span><span class="op">(</span><span class="key">lambda</span> <span class="nam">s</span><span class="op">:</span> <span class="nam">s</span><span class="op">.</span><span class="nam">y</span> <span class="op">></span> <span class="nam">s</span><span class="op">.</span><span class="nam">meta</span><span class="op">[</span><span class="nam">meta_ymax</span><span class="op">]</span><span class="op">,</span> <span class="nam">spes</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="com"># type: ignore</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">    <span class="nam">masks</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">array</span><span class="op">(</span><span class="nam">list</span><span class="op">(</span><span class="nam">map</span><span class="op">(</span><span class="key">lambda</span> <span class="nam">s</span><span class="op">:</span> <span class="nam">s</span><span class="op">.</span><span class="nam">y</span> <span class="op">&gt;</span> <span class="nam">s</span><span class="op">.</span><span class="nam">meta</span><span class="op">[</span><span class="nam">meta_ymax</span><span class="op">]</span><span class="op">,</span> <span class="nam">spes</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>  <span class="com"># type: ignore</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">    <span class="nam">y</span> <span class="op">=</span> <span class="nam">spes_cpms</span><span class="op">[</span><span class="num">0</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">    <span class="key">for</span> <span class="nam">si</span> <span class="key">in</span> <span class="nam">range</span><span class="op">(</span><span class="num">1</span><span class="op">,</span> <span class="nam">len</span><span class="op">(</span><span class="nam">spes_cpms</span><span class="op">)</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">        <span class="nam">y</span><span class="op">[</span><span class="op">~</span><span class="nam">masks</span><span class="op">[</span><span class="nam">si</span><span class="op">]</span><span class="op">]</span> <span class="op">=</span> <span class="nam">spes_cpms</span><span class="op">[</span><span class="nam">si</span><span class="op">]</span><span class="op">[</span><span class="op">~</span><span class="nam">masks</span><span class="op">[</span><span class="nam">si</span><span class="op">]</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -131,8 +131,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_b4b07bd69bbb12e0___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.11.0">coverage.py v7.11.0</a>,
-            created at 2026-09-10 21:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-10 21:58 +0000
         </p>
     </div>
 </footer>

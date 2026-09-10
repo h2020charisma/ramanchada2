@@ -52,7 +52,7 @@
 | src/ramanchada2/misc/types/pydantic\_base\_model.py                        |       12 |        2 |     83% |    13, 23 |
 | src/ramanchada2/misc/types/spectrum/\_\_init\_\_.py                        |        2 |        0 |    100% |           |
 | src/ramanchada2/misc/types/spectrum/applied\_processings.py                |       50 |        2 |     96% |    29, 65 |
-| src/ramanchada2/misc/types/spectrum/metadata.py                            |       58 |       10 |     83% |31-36, 46, 50, 66, 87 |
+| src/ramanchada2/misc/types/spectrum/metadata.py                            |       57 |       10 |     82% |31-36, 46, 50, 66, 87 |
 | src/ramanchada2/misc/utils/\_\_init\_\_.py                                 |        4 |        0 |    100% |           |
 | src/ramanchada2/misc/utils/argmin2d.py                                     |       64 |       21 |     67% |30-31, 63, 78-79, 88-103 |
 | src/ramanchada2/misc/utils/matchsets.py                                    |      292 |      156 |     47% |28, 39, 60-61, 124-149, 165-238, 273-331, 347-383, 390-437, 508-509, 515, 521, 628-629 |
@@ -71,9 +71,9 @@
 | src/ramanchada2/protocols/calibration/resolution.py                        |      218 |       11 |     95% |99, 139, 161, 190, 242, 247, 251, 312, 316, 356, 410 |
 | src/ramanchada2/protocols/calibration/serialization.py                     |       77 |       23 |     70% |44, 126-152 |
 | src/ramanchada2/protocols/calibration/xcalibration.py                      |      286 |      109 |     62% |132, 135, 141-153, 156-169, 171, 177-228, 234, 243, 245, 248-249, 275-284, 292-294, 318, 326, 328, 343, 348-351, 395, 435, 457-465, 470, 493-540, 564-567, 580-591 |
-| src/ramanchada2/protocols/calibration/ycalibration.py                      |      219 |       21 |     90% |108, 112, 169-170, 174, 294-295, 297-299, 302, 305-324, 348, 367-368 |
+| src/ramanchada2/protocols/calibration/ycalibration.py                      |      215 |       21 |     90% |108, 112, 169-170, 174, 294-295, 297-299, 302, 305-324, 348, 367-368 |
 | src/ramanchada2/protocols/metadata\_helper.py                              |       22 |       10 |     55% |3, 8, 11, 16, 21, 26, 29-32 |
-| src/ramanchada2/protocols/spectraframe.py                                  |       87 |       12 |     86% |50-51, 54-57, 75, 84-88, 94 |
+| src/ramanchada2/protocols/spectraframe.py                                  |       86 |       12 |     86% |50-51, 54-57, 75, 84-88, 94 |
 | src/ramanchada2/protocols/twinning.py                                      |      106 |        6 |     94% |101, 126-127, 134-136 |
 | src/ramanchada2/spectral\_components/\_\_init\_\_.py                       |        3 |        0 |    100% |           |
 | src/ramanchada2/spectral\_components/baseline/\_\_init\_\_.py              |        0 |        0 |    100% |           |
@@ -140,7 +140,7 @@
 | src/ramanchada2/spectrum/peaks/get\_fitted\_peaks.py                       |       18 |        9 |     50% |     45-56 |
 | src/ramanchada2/spectrum/spectrum.py                                       |      180 |       46 |     74% |38, 71, 77, 80-83, 89, 98-100, 133, 180-186, 208, 212-218, 225, 229-235, 244-247, 259-266, 270-272 |
 | src/ramanchada2/theoretical\_lines/\_\_init\_\_.py                         |        0 |        0 |    100% |           |
-| src/ramanchada2/theoretical\_lines/model\_from\_lines.py                   |       57 |       57 |      0% |      1-84 |
+| src/ramanchada2/theoretical\_lines/model\_from\_lines.py                   |       56 |       56 |      0% |      1-84 |
 | tests/conftest.py                                                          |       29 |        1 |     97% |        35 |
 | tests/end\_to\_end/test\_from\_cache\_or\_calc.py                          |       33 |        0 |    100% |           |
 | tests/end\_to\_end/test\_generate\_and\_fit.py                             |       33 |        0 |    100% |           |
@@ -172,7 +172,7 @@
 | tests/spectrum/test\_normalize.py                                          |       20 |        0 |    100% |           |
 | tests/spectrum/test\_random\_generator\_seeds.py                           |       90 |        0 |    100% |           |
 | tests/test\_matching\_stress.py                                            |       47 |        1 |     98% |        30 |
-|                                                                  **TOTAL** | **6385** | **1916** | **70%** |           |
+| **TOTAL**                                                                  | **6378** | **1915** | **70%** |           |
 
 
 ## Setup coverage badge

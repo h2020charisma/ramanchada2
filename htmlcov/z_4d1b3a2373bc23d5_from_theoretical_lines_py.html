@@ -3,21 +3,21 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Coverage for src/ramanchada2/spectrum/creators/from_theoretical_lines.py: 100%</title>
-    <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
-    <link rel="stylesheet" href="style_cb_6b508a39.css" type="text/css">
-    <script src="coverage_html_cb_6fb7b396.js" defer></script>
+    <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
+    <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
+    <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
 </head>
 <body class="pyfile">
 <header>
     <div class="content">
         <h1>
-            <span class="text">Coverage for </span><b>src/ramanchada2/spectrum/creators/from_theoretical_lines.py</b>:
+            <span class="text">Coverage for </span><b>src<span class="sep">/</span>ramanchada2<span class="sep">/</span>spectrum<span class="sep">/</span>creators<span class="sep">/</span>from_theoretical_lines.py</b>:
             <span class="pc_cov">100%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
             <label for="help_panel_state">
-                <img id="keyboard_icon" src="keybd_closed_cb_ce680311.png" alt="Show/hide keyboard shortcuts">
+                <img id="keyboard_icon" src="keybd_closed_cb_900cfef5.png" alt="Show/hide keyboard shortcuts">
             </label>
             <div id="help_panel">
                 <p class="legend">Shortcuts on this page</p>
@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_4d1b3a2373bc23d5_hdr_from_multi_exposure_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.11.0">coverage.py v7.11.0</a>,
-            created at 2026-09-10 21:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-10 21:58 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -110,7 +110,7 @@
     <p class="run run2"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t">        <span class="nam">shapes</span><span class="op">:</span> <span class="nam">List</span><span class="op">[</span><span class="nam">Literal</span><span class="op">[</span><span class="nam">lineshapes</span><span class="op">.</span><span class="nam">functions</span><span class="op">]</span><span class="op">]</span><span class="op">,</span>  <span class="com"># type: ignore</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">        <span class="nam">params</span><span class="op">:</span> <span class="nam">List</span><span class="op">[</span><span class="nam">Dict</span><span class="op">]</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">        <span class="nam">x</span><span class="op">:</span> <span class="nam">Union</span><span class="op">[</span><span class="nam">int</span><span class="op">,</span> <span class="nam">npt</span><span class="op">.</span><span class="nam">NDArray</span><span class="op">[</span><span class="nam">np</span><span class="op">.</span><span class="nam">float64</span><span class="op">]</span><span class="op">]</span> <span class="op">=</span> <span class="num">2000</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t"><span class="str">    Generate spectrum from `lmfit` shapes.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t"><span class="str">    Args:</span>&nbsp;</span><span class="r"></span></p>
@@ -120,7 +120,7 @@
     <p class="pln"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t"><span class="str">            Shape parameters to be applied to be used with shapes.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t"><span class="str">        x:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t"><span class="str">            Array with `x` values, by default `np.array(2000)`.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">    <span class="nam">spe</span> <span class="op">=</span> <span class="nam">Spectrum</span><span class="op">(</span><span class="nam">x</span><span class="op">=</span><span class="nam">x</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t">    <span class="nam">spe</span><span class="op">.</span><span class="nam">y</span> <span class="op">=</span> <span class="nam">generate_theoretical_lines</span><span class="op">(</span><span class="nam">shapes</span><span class="op">=</span><span class="nam">shapes</span><span class="op">,</span> <span class="nam">params</span><span class="op">=</span><span class="nam">params</span><span class="op">,</span> <span class="nam">x</span><span class="op">=</span><span class="nam">spe</span><span class="op">.</span><span class="nam">x</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">    <span class="key">return</span> <span class="nam">spe</span>&nbsp;</span><span class="r"></span></p>
@@ -132,8 +132,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_4d1b3a2373bc23d5_hdr_from_multi_exposure_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.11.0">coverage.py v7.11.0</a>,
-            created at 2026-09-10 21:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-10 21:58 +0000
         </p>
     </div>
 </footer>

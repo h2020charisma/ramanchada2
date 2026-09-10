@@ -3,21 +3,21 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Coverage for src/ramanchada2/spectrum/filters/drop_spikes.py: 81%</title>
-    <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
-    <link rel="stylesheet" href="style_cb_6b508a39.css" type="text/css">
-    <script src="coverage_html_cb_6fb7b396.js" defer></script>
+    <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
+    <link rel="stylesheet" href="style_cb_4667309f.css" type="text/css">
+    <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
 </head>
 <body class="pyfile">
 <header>
     <div class="content">
         <h1>
-            <span class="text">Coverage for </span><b>src/ramanchada2/spectrum/filters/drop_spikes.py</b>:
+            <span class="text">Coverage for </span><b>src<span class="sep">/</span>ramanchada2<span class="sep">/</span>spectrum<span class="sep">/</span>filters<span class="sep">/</span>drop_spikes.py</b>:
             <span class="pc_cov">81%</span>
         </h1>
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
             <label for="help_panel_state">
-                <img id="keyboard_icon" src="keybd_closed_cb_ce680311.png" alt="Show/hide keyboard shortcuts">
+                <img id="keyboard_icon" src="keybd_closed_cb_900cfef5.png" alt="Show/hide keyboard shortcuts">
             </label>
             <div id="help_panel">
                 <p class="legend">Shortcuts on this page</p>
@@ -64,8 +64,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_b4b07bd69bbb12e0_dropna_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.11.0">coverage.py v7.11.0</a>,
-            created at 2026-09-10 21:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-10 21:58 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -92,8 +92,8 @@
     <p class="pln"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t"><span class="op">@</span><span class="nam">add_spectrum_method</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t"><span class="op">@</span><span class="nam">validate_call</span><span class="op">(</span><span class="nam">config</span><span class="op">=</span><span class="nam">dict</span><span class="op">(</span><span class="nam">arbitrary_types_allowed</span><span class="op">=</span><span class="key">True</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">def</span> <span class="nam">spike_indices</span><span class="op">(</span><span class="nam">spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span> <span class="op">/</span><span class="op">,</span> <span class="nam">n_sigma</span><span class="op">:</span> <span class="nam">PositiveFloat</span><span class="op">)</span> <span class="op">-></span> <span class="nam">NDArray</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">def</span> <span class="nam">spike_indices</span><span class="op">(</span><span class="nam">spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span> <span class="op">/</span><span class="op">,</span> <span class="nam">n_sigma</span><span class="op">:</span> <span class="nam">PositiveFloat</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="nam">NDArray</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="str">    Find spikes in spectrum</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t"><span class="str">    Single-bin spikes are located using left and right successive</span>&nbsp;</span><span class="r"></span></p>
@@ -106,12 +106,12 @@
     <p class="pln"><span class="n"><a id="t24" href="#t24">24</a></span><span class="t"><span class="str">          deviation of the metric.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t25" href="#t25">25</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t26" href="#t26">26</a></span><span class="t"><span class="str">    Returns: List of spike indices</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t27" href="#t27">27</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t28" href="#t28">28</a></span><span class="t">    <span class="nam">yi</span> <span class="op">=</span> <span class="nam">spe</span><span class="op">.</span><span class="nam">y</span><span class="op">[</span><span class="num">1</span><span class="op">:</span><span class="op">-</span><span class="num">1</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t29" href="#t29">29</a></span><span class="t">    <span class="nam">yi_1</span> <span class="op">=</span> <span class="nam">spe</span><span class="op">.</span><span class="nam">y</span><span class="op">[</span><span class="op">:</span><span class="op">-</span><span class="num">2</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t30" href="#t30">30</a></span><span class="t">    <span class="nam">yi1</span> <span class="op">=</span> <span class="nam">spe</span><span class="op">.</span><span class="nam">y</span><span class="op">[</span><span class="num">2</span><span class="op">:</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t31" href="#t31">31</a></span><span class="t">    <span class="nam">y_merit</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">abs</span><span class="op">(</span><span class="num">2</span><span class="op">*</span><span class="nam">yi</span><span class="op">-</span><span class="nam">yi_1</span><span class="op">-</span><span class="nam">yi1</span><span class="op">)</span> <span class="op">-</span> <span class="nam">np</span><span class="op">.</span><span class="nam">abs</span><span class="op">(</span><span class="nam">yi1</span><span class="op">-</span><span class="nam">yi_1</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="nam">spike_idx</span> <span class="op">=</span> <span class="nam">y_merit</span> <span class="op">></span> <span class="nam">n_sigma</span> <span class="op">*</span> <span class="nam">y_merit</span><span class="op">.</span><span class="nam">std</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t32" href="#t32">32</a></span><span class="t">    <span class="nam">spike_idx</span> <span class="op">=</span> <span class="nam">y_merit</span> <span class="op">&gt;</span> <span class="nam">n_sigma</span> <span class="op">*</span> <span class="nam">y_merit</span><span class="op">.</span><span class="nam">std</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t33" href="#t33">33</a></span><span class="t">    <span class="nam">spike_idx</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">concatenate</span><span class="op">(</span><span class="op">(</span><span class="op">[</span><span class="key">False</span><span class="op">]</span><span class="op">,</span> <span class="nam">spike_idx</span><span class="op">,</span> <span class="op">[</span><span class="key">False</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">    <span class="key">return</span> <span class="nam">spike_idx</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -121,7 +121,7 @@
     <p class="run"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t"><span class="key">def</span> <span class="nam">drop_spikes</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">                <span class="nam">new_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span> <span class="op">/</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">                <span class="nam">n_sigma</span><span class="op">:</span> <span class="nam">PositiveFloat</span> <span class="op">=</span> <span class="num">10</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t"><span class="str">    Removes single-bin spikes.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t45" href="#t45">45</a></span><span class="t"><span class="str">    Remove x, y pairs recognised as spikes using left and right</span>&nbsp;</span><span class="r"></span></p>
@@ -134,7 +134,7 @@
     <p class="pln"><span class="n"><a id="t52" href="#t52">52</a></span><span class="t"><span class="str">            Threshold is `n_sigma` times the standard deviation.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t53" href="#t53">53</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t54" href="#t54">54</a></span><span class="t"><span class="str">    Returns: modified Spectrum</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">    <span class="nam">use_idx</span> <span class="op">=</span> <span class="op">~</span><span class="nam">spike_indices</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">,</span> <span class="nam">n_sigma</span><span class="op">=</span><span class="nam">n_sigma</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">x</span> <span class="op">=</span> <span class="nam">old_spe</span><span class="op">.</span><span class="nam">x</span><span class="op">[</span><span class="nam">use_idx</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">y</span> <span class="op">=</span> <span class="nam">old_spe</span><span class="op">.</span><span class="nam">y</span><span class="op">[</span><span class="nam">use_idx</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -145,7 +145,7 @@
     <p class="run"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t"><span class="key">def</span> <span class="nam">recover_spikes</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t64" href="#t64">64</a></span><span class="t">                   <span class="nam">new_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span> <span class="op">/</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t65" href="#t65">65</a></span><span class="t">                   <span class="nam">n_sigma</span><span class="op">:</span> <span class="nam">PositiveFloat</span> <span class="op">=</span> <span class="num">10</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t66" href="#t66">66</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t67" href="#t67">67</a></span><span class="t"><span class="str">    Recover single-bin spikes.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t68" href="#t68">68</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t69" href="#t69">69</a></span><span class="t"><span class="str">    Recover x, y pairs recognised as spikes using left and right</span>&nbsp;</span><span class="r"></span></p>
@@ -159,7 +159,7 @@
     <p class="pln"><span class="n"><a id="t77" href="#t77">77</a></span><span class="t"><span class="str">            Threshold is `n_sigma` times the standard deviation.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t78" href="#t78">78</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t79" href="#t79">79</a></span><span class="t"><span class="str">    Returns: modified Spectrum</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t80" href="#t80">80</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t80" href="#t80">80</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t81" href="#t81">81</a></span><span class="t">    <span class="nam">use_idx</span> <span class="op">=</span> <span class="op">~</span><span class="nam">spike_indices</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">,</span> <span class="nam">n_sigma</span><span class="op">=</span><span class="nam">n_sigma</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">y</span> <span class="op">=</span> <span class="nam">np</span><span class="op">.</span><span class="nam">interp</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">.</span><span class="nam">x</span><span class="op">,</span> <span class="nam">old_spe</span><span class="op">.</span><span class="nam">x</span><span class="op">[</span><span class="nam">use_idx</span><span class="op">]</span><span class="op">,</span> <span class="nam">old_spe</span><span class="op">.</span><span class="nam">y</span><span class="op">[</span><span class="nam">use_idx</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -169,7 +169,7 @@
     <p class="run"><span class="n"><a id="t87" href="#t87">87</a></span><span class="t"><span class="key">def</span> <span class="nam">get_spikes</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t88" href="#t88">88</a></span><span class="t">               <span class="nam">new_spe</span><span class="op">:</span> <span class="nam">Spectrum</span><span class="op">,</span> <span class="op">/</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t">               <span class="nam">n_sigma</span><span class="op">:</span> <span class="nam">PositiveFloat</span> <span class="op">=</span> <span class="num">10</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t">    <span class="str">&quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t"><span class="str">    Get single-bin spikes only.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t"><span class="str">    Get x, y pairs recognised as spikes using left and right</span>&nbsp;</span><span class="r"></span></p>
@@ -183,7 +183,7 @@
     <p class="pln"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t"><span class="str">            Threshold is `n_sigma` times the standard deviation.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t103" href="#t103">103</a></span><span class="t"><span class="str">    Returns: modified Spectrum</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t104" href="#t104">104</a></span><span class="t"><span class="str">    &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t105" href="#t105">105</a></span><span class="t">    <span class="nam">spike_idx</span> <span class="op">=</span> <span class="nam">spike_indices</span><span class="op">(</span><span class="nam">old_spe</span><span class="op">,</span> <span class="nam">n_sigma</span><span class="op">=</span><span class="nam">n_sigma</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t106" href="#t106">106</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">x</span> <span class="op">=</span> <span class="nam">old_spe</span><span class="op">.</span><span class="nam">x</span><span class="op">[</span><span class="nam">spike_idx</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t107" href="#t107">107</a></span><span class="t">    <span class="nam">new_spe</span><span class="op">.</span><span class="nam">y</span> <span class="op">=</span> <span class="nam">old_spe</span><span class="op">.</span><span class="nam">y</span><span class="op">[</span><span class="nam">spike_idx</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -195,8 +195,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_b4b07bd69bbb12e0_dropna_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.11.0">coverage.py v7.11.0</a>,
-            created at 2026-09-10 21:50 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.15.4">coverage.py v7.15.4</a>,
+            created at 2026-09-10 21:58 +0000
         </p>
     </div>
 </footer>
