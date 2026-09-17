@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from matplotlib.axes import Axes
 from sklearn.linear_model import LinearRegression
 
@@ -32,6 +33,9 @@ class TwinningComponent(Plottable):
             Defaults to a tuple (None, None) which can later hold the regression slope and intercept.
 
         correction_factor (float): A scaling factor derived as ratio of slopes as defined in CWA18134.
+
+        qhi_mean (float): Average quality of harmonization (Q_HI, CWA18134 Formula 4) over the
+            laser power pairs, filled by quality_factor(); 1 is ideal, values above 0.9 very good.
 
         peak (float): The position of the peak (in nm) of interest for analysis, with a default value of 144 (TiO2).
 
@@ -71,6 +75,7 @@ class TwinningComponent(Plottable):
         self.linreg_reference = (None, None)
         self.linreg_twinned = (None, None)
         self.correction_factor: float = 1.0
+        self.qhi_mean = None
         self.reference_band_nm = reference_band_nm
 
     def normalize_by_laserpower_time(self, source="spectrum", target="spectrum"):
@@ -203,6 +208,75 @@ class TwinningComponent(Plottable):
         self.correction_factor = model_reference.coef_[0] / model_twinned.coef_[0]
         self.twinned["correction_factor"] = self.correction_factor
 
+    def quality_factor(
+        self,
+        source_reference="area",
+        source_twinned="area_harmonized",
+        target="qhi",
+    ):
+        """Quality of harmonization (Q_HI), CWA18134 Formula 4.
+
+        Computes Q_HI = 1 - |A_R - A_T| / A_R for each pair of (reference,
+        twinned) spectra and their average, where A_R is the area under the
+        reference spectrum and A_T the area under the CF-harmonized twinned
+        spectrum. Q_HI = 1 means ideal harmonization, values above 0.9
+        indicate very good harmonization.
+
+        Requires derive_model() (which fills the source_reference areas) and
+        process() (which fills the source_twinned harmonized areas) to have
+        been called first. Rows are paired positionally, like
+        normalize_by_laserpower_time, so both frames must have the same
+        number of rows, one per laser power.
+
+        Returns:
+            pandas.DataFrame: one row per power pair with the paired areas
+                and the Q_HI value; the average is also stored in
+                self.qhi_mean.
+        """
+        if source_reference not in self.reference.columns:
+            raise ValueError(
+                "Column '{}' not found: call derive_model() before quality_factor()".format(
+                    source_reference
+                )
+            )
+        if source_twinned not in self.twinned.columns:
+            raise ValueError(
+                "Column '{}' not found: call process() before quality_factor()".format(
+                    source_twinned
+                )
+            )
+        if len(self.reference) != len(self.twinned):
+            raise ValueError(
+                "Reference and twinned frames have {} and {} rows; rows are paired "
+                "positionally, so both must have one row per laser power".format(
+                    len(self.reference), len(self.twinned)
+                )
+            )
+        rows = []
+        for (_, row_reference), (_, row_twinned) in zip(
+            self.reference.iterrows(), self.twinned.iterrows()
+        ):
+            area_reference = row_reference[source_reference]
+            area_twinned = row_twinned[source_twinned]
+            # 'not > 0' also rejects NaN, which would silently skew the mean
+            if not area_reference > 0:
+                raise ValueError(
+                    "Reference area must be positive, got {}".format(area_reference)
+                )
+            rows.append(
+                {
+                    "laser_power_percent": row_twinned["laser_power_percent"],
+                    "laser_power_mW_reference": row_reference["laser_power_mW"],
+                    "laser_power_mW_twinned": row_twinned["laser_power_mW"],
+                    "area_reference": area_reference,
+                    "area_twinned_harmonized": area_twinned,
+                    target: 1 - abs(area_reference - area_twinned) / area_reference,
+                }
+            )
+        result = pd.DataFrame(rows)
+        self.qhi_mean = result[target].mean()
+        return result
+
     def plot(self, ax=None, label=" ", **kwargs) -> Axes:
         if ax is None:
             fig, ax = plt.subplots(1, 2, figsize=(10, 4))
@@ -232,12 +306,14 @@ class TwinningComponent(Plottable):
             B["laser_power_mW"], B["peak_intensity"], "+", label=B["device_id"].unique()
         )
 
-        # axes[0].plot(
-        #     B["laser_power_mW"],
-        #     B["peak_intensity"] * correction_factor,
-        #     "+",
-        #     label="{} corrected".format(B["device_id"].unique()),
-        # )
+        # CWA18134 6.5(a): the twinned RRB intensities multiplied by the CF
+        # should overlap the reference regression line across all powers.
+        ax[0].plot(
+            B["laser_power_mW"],
+            B["peak_intensity"] * self.correction_factor,
+            "+",
+            label="{} corrected".format(B["device_id"].unique()),
+        )
 
         B_pred = B["laser_power_mW"] * regression_B[1] + regression_B[0]
         ax[0].plot(

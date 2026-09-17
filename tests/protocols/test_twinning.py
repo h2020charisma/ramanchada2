@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 import ramanchada2 as rc2
 from ramanchada2.auxiliary.spectra.datasets2 import filtered_df, prepend_prefix
@@ -91,5 +92,25 @@ def test_twinning(
     plot_spectra(cmp.twinned, "spectrum_harmonized", source="spectrum_harmonized")
 
     print(cmp.twinned[["laser_power_mW", "area", "area_harmonized"]])
-    cmp.plot()
+    ax = cmp.plot()
     plt.savefig("test_twinning_evaluation.png")
+
+    # CWA18134 6.5(a): the corrected-points overlay must be drawn
+    assert any(
+        "corrected" in str(line.get_label()).lower() for line in ax[0].get_lines()
+    ), "missing CF-corrected overlay in the evaluation plot"
+
+    # CWA18134 Formula 4: quality of harmonization per power pair + mean
+    qhi = cmp.quality_factor()
+    assert len(qhi) == len(cmp.reference) == len(cmp.twinned)
+    assert qhi["qhi"].notna().all()
+    assert (qhi["qhi"] <= 1.0).all()
+    # Formula 4 checked independently of quality_factor()'s own arithmetic
+    area_delta = (qhi["area_reference"] - qhi["area_twinned_harmonized"]).abs()
+    expected_qhi = 1 - area_delta / qhi["area_reference"]
+    assert np.allclose(qhi["qhi"], expected_qhi)
+    assert cmp.qhi_mean == pytest.approx(qhi["qhi"].mean())
+    # quality_factor requires process() to have filled area_harmonized
+    with pytest.raises(ValueError):
+        cmp.quality_factor(source_twinned="missing_column")
+    plt.close("all")
