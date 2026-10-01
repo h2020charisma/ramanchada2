@@ -55,7 +55,7 @@ jobs:
     steps:
 
       - name: Retrieve the package distributions
-        uses: actions/download-artifact@v6.0.0
+        uses: actions/download-artifact@v8.0.1
         with:
           name: ramanchada2-dist
           path: dist
