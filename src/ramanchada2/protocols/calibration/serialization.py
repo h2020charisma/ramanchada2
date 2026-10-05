@@ -12,12 +12,20 @@ derived from, as a self-describing NXraman HDF5 file (plain h5py or h5pyd).
 """
 import datetime
 import json
+import logging
 
 import numpy as np
+import pandas as pd
 
 from ramanchada2.spectrum import Spectrum
 
+logger = logging.getLogger(__name__)
+
 SI_REF_CM1 = 520.45
+
+# NeXus-valid unit spellings (NX_WAVENUMBER is 1/length); the public ``*_units`` arguments
+# keep the ramanchada2 spelling ("cm-1"), only the written HDF5 ``units`` attrs are mapped.
+_NX_UNITS = {"cm-1": "1/cm", "nm": "nm", "pixel": "pixel"}
 
 
 def _calibration_curve(calmodel, spectral_range, npoints):
@@ -129,19 +137,98 @@ def _string_dtype(h5):
     return h5.special_dtype(vlen=str)
 
 
-def _h5_clean(value, h5):
-    """Coerce a to_dict()-sourced value into something create_dataset accepts.
+def _is_missing(value):
+    """True for scalars that must not be written: None, pd.NA/NaT, NaN of any float width."""
+    if value is None or value is pd.NA or value is pd.NaT:
+        return True
+    if isinstance(value, (float, np.floating)):
+        return bool(np.isnan(value))
+    if isinstance(value, np.datetime64):
+        return bool(np.isnat(value))
+    return False
 
-    Plain numpy string arrays (numpy's default fixed-width unicode dtype, e.g. '<U8')
-    have no direct HDF5 type mapping and need a variable-length utf-8 dtype. Numeric
-    lists/tuples become plain float arrays. Everything else (scalar numbers, bools,
-    already-clean strings) passes through unchanged.
+
+def _json_default(obj):
+    """json.dumps ``default=`` hook for numpy / pandas / datetime values."""
+    if _is_missing(obj):
+        return None
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, np.generic):
+        return obj.item()
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    return str(obj)
+
+
+def _to_h5_value(value, h5):
+    """Coerce an arbitrary metadata/to_dict() value into something ``create_dataset``
+    accepts, or return ``None`` if it is missing and must be dropped.
+
+    Scalars: numpy strings/ints/floats/bools become plain python scalars; pd.NA/NaT/NaN
+    (any float width) are dropped; datetimes (pd.Timestamp included) become ISO-8601
+    strings; bytes are decoded. Sequences/arrays: all-string -> variable-length utf-8
+    string array, numeric -> numeric array, anything else (mixed, ragged, nested objects,
+    dicts) -> a JSON string. Unknown objects fall back to ``str``.
     """
-    if isinstance(value, (list, tuple)):
-        if value and all(isinstance(v, str) for v in value):
-            return np.asarray(value, dtype=_string_dtype(h5))
-        return np.asarray(value, dtype=float)
-    return value
+    if _is_missing(value):
+        return None
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (str, np.str_)):
+        return str(value)
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.datetime64):
+        return str(np.datetime_as_string(value))
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        return value.isoformat()
+    if isinstance(value, (pd.Timedelta, np.timedelta64, datetime.timedelta)):
+        return str(value)
+    if isinstance(value, dict):
+        return json.dumps(value, default=_json_default)
+    if isinstance(value, (list, tuple, np.ndarray, pd.Series)):
+        if isinstance(value, np.ndarray) and value.ndim == 0:
+            return _to_h5_value(value.item(), h5)
+        seq = value.tolist() if isinstance(value, (np.ndarray, pd.Series)) else list(value)
+        if seq and all(isinstance(v, (str, np.str_)) for v in seq):
+            return np.asarray([str(v) for v in seq], dtype=_string_dtype(h5))
+        try:
+            arr = np.asarray(seq)
+        except ValueError:  # ragged
+            arr = None
+        if arr is not None and arr.dtype.kind in "biuf":
+            return arr
+        return json.dumps(seq, default=_json_default)
+    return str(value)
+
+
+def _h5_clean(value, h5):
+    """Back-compat name for :func:`_to_h5_value` (None means 'drop')."""
+    return _to_h5_value(value, h5)
+
+
+def _clean_mapping(mapping, h5):
+    """``{safe_key: h5-ready value}`` for ``mapping``: missing values dropped, '/' in keys
+    replaced (a '/' would silently create nested HDF5 groups), clashes disambiguated."""
+    out = {}
+    for key, value in (mapping or {}).items():
+        cleaned = _to_h5_value(value, h5)
+        if cleaned is None:
+            continue
+        safe = str(key).replace("/", "_").strip() or "_"
+        base, i = safe, 1
+        while safe in out:
+            i += 1
+            safe = f"{base}_{i}"
+        out[safe] = cleaned
+    return out
 
 
 def _component_parameters(component_dict):
@@ -214,6 +301,11 @@ def _axis_name_for_units(units):
     return {"cm-1": "raman_shift", "nm": "wavelength", "pixel": "pixel"}.get(units, "x")
 
 
+def _nx_units(units):
+    """NeXus-valid spelling of a ramanchada2 unit string ("cm-1" -> "1/cm")."""
+    return _NX_UNITS.get(units, units)
+
+
 # component_dict keys that already have a typed, *numeric* home elsewhere in the written
 # NXcalibration group (original_axis/calibrated_axis, anchors) or that are orchestration-
 # level, not calibration-model content (name/enabled, handled via attrs already).
@@ -259,21 +351,22 @@ def _nx_data(parent, name, signal, axes, arrays, units=None, **attrs):
     for key, values in arrays.items():
         ds = group.create_dataset(key, data=np.asarray(values, dtype=float))
         if units and key in units:
-            ds.attrs["units"] = units[key]
+            ds.attrs["units"] = _nx_units(units[key])
     return group
 
 
 def _nx_note(parent, name, document, h5):
     note = _nx_group(parent, name, "NXnote")
     note.create_dataset("type", data="application/json")
-    note.create_dataset("data", data=json.dumps(document))
+    note.create_dataset("data", data=json.dumps(document, default=_json_default))
     return note
 
 
-def _nx_calibration_group(parent, name, component_dict, h5, curve=None):
+def _nx_calibration_group(parent, name, component_dict, h5, curve=None, curve_units=None):
     """Write one calibration component as an NXcalibration group under ``parent``.
 
-    ``curve`` is an optional (original_axis, calibrated_axis) array pair — real datasets.
+    ``curve`` is an optional (original_axis, calibrated_axis) array pair — real datasets —
+    and ``curve_units`` the matching (original, calibrated) ramanchada2 unit strings.
     calibration_parameters is an NXparameters container with the actual numeric children;
     calibration_object/NXnote is kept deliberately small — only fields with no typed home
     yet (see _residual_component_fields) — so the typed datasets are the single source of
@@ -290,16 +383,17 @@ def _nx_calibration_group(parent, name, component_dict, h5, curve=None):
 
     if curve is not None:
         original_axis, calibrated_axis = curve
-        cal.create_dataset("original_axis", data=np.asarray(original_axis, dtype=float))
-        cal.create_dataset("calibrated_axis", data=np.asarray(calibrated_axis, dtype=float))
+        orig_ds = cal.create_dataset("original_axis", data=np.asarray(original_axis, dtype=float))
+        cal_ds = cal.create_dataset("calibrated_axis", data=np.asarray(calibrated_axis, dtype=float))
+        if curve_units:
+            orig_ds.attrs["units"] = _nx_units(curve_units[0])
+            cal_ds.attrs["units"] = _nx_units(curve_units[1])
 
     params = _component_parameters(component_dict)
     if params:
         pgroup = _nx_group(cal, "calibration_parameters", "NXparameters")
-        for key, value in params.items():
-            if value is None:
-                continue
-            pgroup.create_dataset(key, data=_h5_clean(value, h5))
+        for key, value in _clean_mapping(params, h5).items():
+            pgroup.create_dataset(key, data=value)
 
     _nx_note(cal, "calibration_object", _residual_component_fields(component_dict), h5)
 
@@ -313,6 +407,75 @@ def _nx_calibration_group(parent, name, component_dict, h5, curve=None):
         agroup.create_dataset("reference", data=arr[:, 1])
         agroup.create_dataset("inlier", data=arr[:, 2].astype(bool))
     return cal
+
+
+def _component_curves(calmodel, grid, spe_units="cm-1"):
+    """Per-stage x curves, mirroring :meth:`CalibrationModel.apply_calibration_x`.
+
+    Returns ``{id(component): (original_x, calibrated_x, original_units, calibrated_units)}``
+    for each *enabled* component: its own input axis (the previous stage's output) and its
+    own output axis, in the units each stage works in (e.g. the Ne component maps cm-1 to
+    nm, the Si zeroing component maps nm back to cm-1). Components whose output length
+    differs from the input (non-monotonic 'drop' policy) get no entry.
+    """
+    from .xcalibration import LazerZeroingComponent
+    curves = {}
+    x = np.array(grid, dtype=float)
+    axis_units = spe_units  # units of the axis actually carried between stages
+    process_units = spe_units  # what apply_calibration_x passes as spe_units to the stage
+    for comp in getattr(calmodel, "components", []):
+        if not comp.enabled:
+            continue
+        in_x = np.array(x, dtype=float)
+        # fresh Spectrum per stage: process() may assign to .x of the spectrum it is given
+        out = comp.process(Spectrum(x=in_x.copy(), y=np.ones_like(in_x)), process_units,
+                           convert_back=False)
+        out_x = np.array(out.x, dtype=float)
+        # LazerZeroingComponent.model_units is its *input* unit (nm); it outputs cm-1
+        out_units = "cm-1" if isinstance(comp, LazerZeroingComponent) else comp.model_units
+        if out_x.shape == in_x.shape:
+            curves[id(comp)] = (in_x, out_x, axis_units, out_units)
+        x, axis_units, process_units = out_x, out_units, comp.model_units
+    return curves
+
+
+def _y_curves(ycal_component, grid, npoints):
+    """Sample the y calibration on the certificate's declared range.
+
+    Returns ``(x, measured, certificate, factor)``: ``measured`` is the measured-SRM
+    response model (``ycal_component.model``), ``certificate`` the certified response and
+    ``factor`` the intensity factor ``YCalibrationComponent.process`` multiplies spectra by
+    (certificate / measured, 0 where the measured response is not usable). ``factor`` is
+    obtained by running ``process`` on a unit spectrum, so it is by construction what the
+    component applies.
+    """
+    y_grid = np.asarray(grid, dtype=float)
+    cert = getattr(ycal_component, "ref", None)
+    if cert is not None and getattr(cert, "raman_shift", None):
+        lo, hi = cert.raman_shift
+        y_grid = np.linspace(float(lo), float(hi), int(npoints))
+    measured = np.asarray(ycal_component.model(y_grid), dtype=float)
+    certificate = _certificate_curve(cert, y_grid) if cert is not None else None
+    factor = np.asarray(
+        ycal_component.process(Spectrum(x=y_grid.copy(), y=np.ones_like(y_grid))).y,
+        dtype=float)
+    return y_grid, measured, certificate, factor
+
+
+def _beam_wavelength(wavelength, instrument, calmodel):
+    """Beam wavelength in nm: explicit argument, else instrument['laser_wl'], else
+    ``calmodel.laser_wl``. Returns ``(wavelength_or_None, instrument_laser_wl_consumed)``."""
+    if wavelength is not None:
+        return float(wavelength), False
+    for source, candidate in (("instrument", instrument.get("laser_wl")),
+                              ("calmodel", getattr(calmodel, "laser_wl", None))):
+        try:
+            value = float(candidate)
+        except (TypeError, ValueError):
+            continue
+        if np.isfinite(value):
+            return value, source == "instrument"
+    return None, False
 
 
 def export_nexus_calibration(
@@ -338,11 +501,30 @@ def export_nexus_calibration(
     information, incident beam wavelength, one ``NXcalibration`` group per calibration
     component), an ``NXsample`` and plottable ``NXdata`` groups for the calibrant spectra
     actually used (``spe_neon``/``spe_silicon``, as loaded), the sampled x calibration curve
-    and — with ``ycal_component`` — the measured SRM response and its certificate curve.
+    and, with ``ycal_component``, the y calibration curves.
 
     The full model is stored as JSON in ``entry/calibration_model/data``, so a reader can
     regenerate ``calmodel`` from the file alone via
     ``CalibrationModel.from_dict(json.loads(...)["model"])``.
+
+    x curves. ``entry/calibration_curve`` is the end-to-end map (uncalibrated cm-1 ->
+    calibrated cm-1). Each ``instrument/calibration_x_<i>`` group carries *its own stage's*
+    ``original_axis`` -> ``calibrated_axis`` pair, which is generally in different units
+    (the Ne component maps cm-1 -> nm, the Si laser-zeroing component maps nm -> cm-1);
+    the datasets' ``units`` attrs state which. Chaining the stages reproduces
+    ``calibration_curve``.
+
+    y curves (on the calibrated Raman shift axis, over the certificate's declared range).
+    ``calibration_curve_y`` (signal ``intensity_factor``) is the factor
+    ``YCalibrationComponent.process`` multiplies a spectrum by, i.e. certificate response /
+    measured response (0 where the measured response is not usable).
+    ``calibration_curve_y_measured`` (signal ``measured_response``) and
+    ``calibration_curve_y_certificate`` (signal ``certificate_response``) are the two
+    responses it is formed from. The measured response is the model fitted to the measured
+    SRM spectrum (normalised unless the component was built with ``normalize=False``), so
+    only the factor, not the individual response scales, is meaningful in absolute terms.
+    If the y curves cannot be evaluated a warning is logged and ``calibration_y`` gets a
+    ``curves_error`` attribute; the curve groups are then absent.
 
     Args:
         calmodel: a derived :class:`CalibrationModel` (Ne curve + Si zeroing components).
@@ -353,16 +535,20 @@ def export_nexus_calibration(
         instrument: optional dict of instrument metadata. ``instrument_make``/
             ``instrument_model`` become ``NXinstrument/device_information`` (vendor,
             model); ``laser_wl`` is used for the beam wavelength if ``wavelength`` is not
-            given; other keys are written as datasets under ``instrument/parameters``.
-            NaN/None values are dropped.
+            given (falling back to ``calmodel.laser_wl``); other keys are written as
+            datasets under ``instrument/parameters``. None/NaN/pd.NA/NaT values are
+            dropped, numpy and pandas scalars are converted (Timestamps to ISO-8601
+            strings), sequences become arrays (or a JSON string if not homogeneous) and
+            '/' in keys is replaced by '_'.
         ycal_component: optional derived ``YCalibrationComponent`` (relative-intensity
             calibration); written as a second NXcalibration group together with its
-            measured SRM spectrum and certificate response curve.
+            y curves (see above).
         spe_neon, spe_silicon: optional as-loaded calibrant :class:`Spectrum` objects (the
             *inputs* the model was derived from). When omitted, no reference spectra are
             written.
         spe_neon_units, spe_silicon_units: axis units of the calibrant spectra as loaded
-            ("cm-1", "nm", or "pixel") — do not assume cm-1.
+            ("cm-1", "nm", or "pixel"); do not assume cm-1. Written as NeXus unit strings
+            ("1/cm", "nm", "pixel").
         title: optional entry title.
         wavelength: incident laser wavelength in nm.
         h5module: ``h5py`` (default) or ``h5pyd``.
@@ -375,44 +561,27 @@ def export_nexus_calibration(
     h5 = h5module
 
     grid, calibrated = _calibration_curve(calmodel, spectral_range, npoints)
+    stage_curves = _component_curves(calmodel, grid)
 
-    def _not_missing(value):
-        return value is not None and not (isinstance(value, float) and np.isnan(value))
+    instrument = _clean_mapping(instrument, h5)
+    wavelength, laser_wl_consumed = _beam_wavelength(wavelength, instrument, calmodel)
+    if laser_wl_consumed:
+        instrument.pop("laser_wl")  # numeric: it is the beam wavelength, not a parameter
 
-    instrument = {k: v for k, v in (instrument or {}).items() if _not_missing(v)}
-    if wavelength is None:
-        try:
-            wavelength = float(instrument.get("laser_wl"))
-        except (TypeError, ValueError):
-            wavelength = None
-
-    spectra = []  # (group name, x, y, x_units, x_name, y_name, description)
+    spectra = []  # (group name, x, y, x_units, y_name, description)
     for name, spe, units in (("reference_neon", spe_neon, spe_neon_units),
                              ("reference_silicon", spe_silicon, spe_silicon_units)):
         if spe is not None:
             spectra.append((name, spe.x, spe.y, units, "intensity", "As-loaded calibrant."))
 
-    y_curves = []
+    y_data = None
+    y_error = None
     if ycal_component is not None:
-        y_grid = grid
-        cert = getattr(ycal_component, "ref", None)
-        if cert is not None and getattr(cert, "raman_shift", None):
-            lo, hi = cert.raman_shift
-            y_grid = np.linspace(float(lo), float(hi), int(npoints))
         try:
-            measured = np.asarray(ycal_component.model(y_grid), dtype=float)
-            y_curves.append(("calibration_curve_y_measured", y_grid, measured,
-                             "Measured SRM response, resampled onto the certificate's "
-                             "declared range."))
-        except Exception:
-            pass
-        if cert is not None:
-            try:
-                y_curves.append(("calibration_curve_y_certificate", y_grid,
-                                 _certificate_curve(cert, y_grid),
-                                 "Certificate response curve."))
-            except Exception:
-                pass
+            y_data = _y_curves(ycal_component, grid, npoints)
+        except (ValueError, ArithmeticError) as err:
+            y_error = f"{type(err).__name__}: {err}"
+            logger.warning("NeXus export: y calibration curves not written (%s)", y_error)
 
     with h5.File(filename, "w") as f:
         f.attrs["NX_class"] = "NXroot"
@@ -431,7 +600,7 @@ def export_nexus_calibration(
             wl = beam.create_dataset("wavelength", data=float(wavelength))
             wl.attrs["units"] = "nm"
         extras = {k: v for k, v in instrument.items()
-                  if k not in ("instrument_make", "instrument_model", "laser_wl")}
+                  if k not in ("instrument_make", "instrument_model")}
         if extras:
             params = _nx_group(inst, "parameters", "NXparameters")
             for key, value in extras.items():
@@ -451,24 +620,40 @@ def export_nexus_calibration(
 
         _nx_data(entry, "calibration_curve", "calibrated_cm1", ["uncalibrated_cm1"],
                  {"uncalibrated_cm1": grid, "calibrated_cm1": calibrated},
-                 units={"uncalibrated_cm1": "1/cm", "calibrated_cm1": "1/cm"})
+                 units={"uncalibrated_cm1": "cm-1", "calibrated_cm1": "cm-1"},
+                 description="End-to-end x calibration: uncalibrated -> calibrated Raman shift.")
 
         x_components = [c for c in getattr(calmodel, "components", [])
                         if c.to_dict().get("type") != "YCalibrationComponent"]
         for idx, comp in enumerate(x_components):
             name = f"calibration_x_{idx}" if len(x_components) > 1 else "calibration_x"
-            _nx_calibration_group(inst, name, comp.to_dict(), h5,
-                                  curve=(grid, calibrated) if idx == 0 else None)
+            stage = stage_curves.get(id(comp))
+            _nx_calibration_group(
+                inst, name, comp.to_dict(), h5,
+                curve=(stage[0], stage[1]) if stage else None,
+                curve_units=(stage[2], stage[3]) if stage else None)
 
         if ycal_component is not None:
-            _nx_calibration_group(inst, "calibration_y", ycal_component.to_dict(), h5)
-            for name, x, y, description in y_curves:
-                if name == "calibration_curve_y_measured":
-                    # plottable y-calibration curve, the analogue of calibration_curve
-                    _nx_data(entry, "calibration_curve_y", "intensity_factor",
-                             ["calibrated_cm1"], {"calibrated_cm1": x, "intensity_factor": y},
-                             description=description)
-                _nx_data(entry, name, "intensity_factor", ["calibrated_cm1"],
-                         {"calibrated_cm1": x, "intensity_factor": y},
-                         description=description)
+            ycal_group = _nx_calibration_group(inst, "calibration_y", ycal_component.to_dict(), h5)
+            if y_error is not None:
+                ycal_group.attrs["curves_error"] = y_error
+            if y_data is not None:
+                y_x, measured, certificate, factor = y_data
+                axis_units = {"calibrated_cm1": "cm-1"}
+                _nx_data(entry, "calibration_curve_y", "intensity_factor", ["calibrated_cm1"],
+                         {"calibrated_cm1": y_x, "intensity_factor": factor}, units=axis_units,
+                         description="y calibration factor applied by "
+                                     "YCalibrationComponent.process: certificate response / "
+                                     "measured response (0 where unusable).")
+                _nx_data(entry, "calibration_curve_y_measured", "measured_response",
+                         ["calibrated_cm1"],
+                         {"calibrated_cm1": y_x, "measured_response": measured},
+                         units=axis_units,
+                         description="Measured SRM response model (denominator of the factor).")
+                if certificate is not None:
+                    _nx_data(entry, "calibration_curve_y_certificate", "certificate_response",
+                             ["calibrated_cm1"],
+                             {"calibrated_cm1": y_x, "certificate_response": certificate},
+                             units=axis_units,
+                             description="Certificate response curve (numerator of the factor).")
     return filename

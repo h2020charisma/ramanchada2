@@ -10,6 +10,7 @@ import json
 
 import h5py
 import numpy as np
+import pandas as pd
 import pytest
 
 import ramanchada2.misc.constants as rc2const
@@ -19,7 +20,7 @@ from ramanchada2.protocols.calibration.ycalibration import (
     YCalibrationCertificate,
     YCalibrationComponent,
 )
-from ramanchada2.spectrum import from_test_spe
+from ramanchada2.spectrum import Spectrum, from_test_spe
 
 LASER_WL = 785
 _SPE_KW = dict(provider=["ICV"], device=["BWtek"], OP=["100"], laser_wl=[str(LASER_WL)])
@@ -211,25 +212,76 @@ def test_ycal_component_written_when_given(calmodel, ycal, spe_pst, tmp_path):
 
 
 def test_ycal_plottable_curves_present(calmodel, ycal, tmp_path):
-    """Regression: the y-calibration must be visually discoverable, not just present as
-    fit parameters/JSON. The x side already had a plottable calibration_curve NXdata;
-    the y side previously had none, which is why a user opening the file couldn't find
-    the intensity calibration at all despite the model being fully written."""
+    """The y-calibration is discoverable as plottable NXdata, with truthful names: the
+    plottable ``calibration_curve_y`` is the intensity FACTOR (certificate / measured), the
+    two responses it is built from are written under their own, differently named signals."""
     path = _write(calmodel, tmp_path, ycal_component=ycal)
     with h5py.File(path, "r") as f:
         entry = _entry_path(f)
-        assert "calibration_curve_y" in f[entry], (
-            "no plottable NXdata for the y (relative-intensity) calibration curve")
-        y_curve = f[f"{entry}/calibration_curve_y"]
-        assert y_curve.attrs["NX_class"] == "NXdata"
-        assert y_curve.attrs["signal"] == "intensity_factor"
-        assert y_curve["intensity_factor"].shape[0] > 1
-
-        # the measured SRM response and the certificate's analytic response are both
-        # written as their own NXdata groups, not just embedded numbers in the JSON
-        for name in ("calibration_curve_y_measured", "calibration_curve_y_certificate"):
+        signals = {"calibration_curve_y": "intensity_factor",
+                   "calibration_curve_y_measured": "measured_response",
+                   "calibration_curve_y_certificate": "certificate_response"}
+        for name, signal in signals.items():
             assert name in f[entry], f"{name} not written"
-            assert f[f"{entry}/{name}"].attrs["NX_class"] == "NXdata"
+            group = f[f"{entry}/{name}"]
+            assert group.attrs["NX_class"] == "NXdata"
+            assert group.attrs["signal"] == signal
+            assert group[signal].shape == (101,)
+            assert group["calibrated_cm1"].attrs["units"] == "1/cm"
+
+
+def test_ycal_curve_values(calmodel, ycal, tmp_path):
+    """The y curves hold the right VALUES: factor == certificate / measured (what
+    YCalibrationComponent.process applies), not the raw measured response mislabeled."""
+    path = _write(calmodel, tmp_path, ycal_component=ycal)
+    with h5py.File(path, "r") as f:
+        entry = _entry_path(f)
+        x = f[f"{entry}/calibration_curve_y/calibrated_cm1"][()]
+        factor = f[f"{entry}/calibration_curve_y/intensity_factor"][()]
+        measured = f[f"{entry}/calibration_curve_y_measured/measured_response"][()]
+        certificate = f[f"{entry}/calibration_curve_y_certificate/certificate_response"][()]
+        np.testing.assert_array_equal(
+            x, f[f"{entry}/calibration_curve_y_measured/calibrated_cm1"][()])
+
+    lo, hi = ycal.ref.raman_shift
+    np.testing.assert_allclose(x, np.linspace(lo, hi, 101))
+    np.testing.assert_allclose(measured, ycal.model(x), rtol=1e-12)
+    np.testing.assert_allclose(certificate, ycal.ref.Y(x), rtol=1e-12)
+
+    used = factor != 0
+    assert used.sum() > 50, "factor is (almost) entirely masked"
+    np.testing.assert_allclose(factor[used], certificate[used] / measured[used], rtol=1e-9)
+    # not the mislabeled raw measured response
+    assert not np.allclose(factor, measured)
+    # it is exactly what process() multiplies a spectrum by
+    applied = ycal.process(Spectrum(x=x.copy(), y=np.full_like(x, 3.0))).y
+    np.testing.assert_allclose(applied, 3.0 * factor, rtol=1e-12)
+
+
+def test_ycal_curve_failure_is_not_silent(calmodel, ycal, tmp_path, monkeypatch, caplog):
+    """If the y curves cannot be evaluated, a warning is logged and the calibration_y group
+    records it; unexpected error types propagate instead of being swallowed."""
+    def _boom(*a, **kw):
+        raise ValueError("cannot evaluate")
+
+    monkeypatch.setattr(ycal, "process", _boom)
+    with caplog.at_level("WARNING", logger="ramanchada2.protocols.calibration.serialization"):
+        path = _write(calmodel, tmp_path, ycal_component=ycal)
+    assert any("y calibration curves not written" in r.getMessage() for r in caplog.records)
+    with h5py.File(path, "r") as f:
+        entry = _entry_path(f)
+        group = f[f"{entry}/instrument/calibration_y"]
+        assert "cannot evaluate" in group.attrs["curves_error"]
+        for name in ("calibration_curve_y", "calibration_curve_y_measured",
+                     "calibration_curve_y_certificate"):
+            assert name not in f[entry]
+
+    def _bug(*a, **kw):
+        raise TypeError("programming error")
+
+    monkeypatch.setattr(ycal, "process", _bug)
+    with pytest.raises(TypeError):
+        _write(calmodel, tmp_path, ycal_component=ycal)
 
 
 def test_ycal_component_omitted_when_not_given(calmodel, tmp_path):
@@ -267,19 +319,153 @@ def test_instrument_metadata_written_and_nan_dropped(calmodel, tmp_path):
         assert "parameters" not in f[f"{entry}/instrument"]
 
 
-def test_h5pyd_style_module_is_used(calmodel, tmp_path):
-    """h5module is honoured (h5pyd exposes the h5py File/require_group/attrs API)."""
-    import h5py
+def test_instrument_metadata_coercion(calmodel, tmp_path):
+    """numpy/pandas values are written as sensible HDF5 values; missing values of any float
+    width / pd.NA / pd.NaT are dropped; '/' in keys does not create nested groups."""
+    path = _write(calmodel, tmp_path, instrument={
+        "instrument_make": np.str_("NumpyCo"),
+        "instrument_model": "M",
+        "slit_size": np.int64(50),
+        "grating": np.float32(1200.5),
+        "hole": np.float64(0.25),
+        "nan32": np.float32("nan"),
+        "nan16": np.float16("nan"),
+        "nan64": np.float64("nan"),
+        "na": pd.NA,
+        "nat": pd.NaT,
+        "none": None,
+        "date": pd.Timestamp("2024-05-06 07:08:09"),
+        "tags": ["a", "b"],
+        "np_tags": np.array(["x", "yy"]),
+        "ranges": [1, 2, 3],
+        "mixed": [1, "a"],
+        "flag": np.bool_(True),
+        "a/b": "slashed",
+    })
+    with h5py.File(path, "r") as f:
+        entry = _entry_path(f)
+        assert entry == "entry"
+        assert f[f"{entry}/instrument/device_information/vendor"][()].decode() == "NumpyCo"
+        params = f[f"{entry}/instrument/parameters"]
+        assert set(params.keys()) == {"slit_size", "grating", "hole", "date", "tags", "np_tags",
+                                      "ranges", "mixed", "flag", "a_b"}
+        assert params["slit_size"][()] == 50
+        assert params["grating"][()] == pytest.approx(1200.5)
+        assert params["hole"][()] == 0.25
+        assert params["date"][()].decode() == "2024-05-06T07:08:09"
+        assert [v.decode() for v in params["tags"][()]] == ["a", "b"]
+        assert [v.decode() for v in params["np_tags"][()]] == ["x", "yy"]
+        np.testing.assert_array_equal(params["ranges"][()], [1, 2, 3])
+        assert json.loads(params["mixed"][()]) == [1, "a"]
+        assert bool(params["flag"][()]) is True
+        assert params["a_b"][()].decode() == "slashed"
+
+
+def test_metadata_with_numpy_and_timestamps_serialises(calmodel, tmp_path):
+    """The JSON model note must not choke on numpy / pandas values in ``metadata``."""
+    path = _write(calmodel, tmp_path, metadata={
+        "n": np.int64(3), "x": np.float32(1.5), "when": pd.Timestamp("2024-01-02"),
+        "arr": np.arange(3), "missing": pd.NA})
+    with h5py.File(path, "r") as f:
+        doc = json.loads(f["entry/calibration_model/data"][()])
+    assert doc["metadata"] == {"n": 3, "x": 1.5, "when": "2024-01-02T00:00:00",
+                               "arr": [0, 1, 2], "missing": None}
+
+
+def test_beam_wavelength_falls_back_to_calmodel(calmodel, tmp_path):
+    """No ``wavelength`` and no instrument laser_wl: use calmodel.laser_wl. An explicit
+    argument wins; a non-numeric instrument laser_wl is kept as a parameter and ignored."""
+    path = _write(calmodel, tmp_path)
+    with h5py.File(path, "r") as f:
+        assert f["entry/instrument/beam_incident/wavelength"][()] == LASER_WL
+    path = _write(calmodel, tmp_path, wavelength=633, instrument={"laser_wl": 785})
+    with h5py.File(path, "r") as f:
+        assert f["entry/instrument/beam_incident/wavelength"][()] == 633
+    path = _write(calmodel, tmp_path, instrument={"laser_wl": "n/a"})
+    with h5py.File(path, "r") as f:
+        assert f["entry/instrument/beam_incident/wavelength"][()] == LASER_WL
+        assert f["entry/instrument/parameters/laser_wl"][()].decode() == "n/a"
+
+
+def test_units_are_nexus_spelling_everywhere(calmodel, spe_neon, tmp_path):
+    """One NeXus-valid spelling ("1/cm") for wavenumber axes, in every NXdata group."""
+    path = _write(calmodel, tmp_path, spe_neon=spe_neon, spe_neon_units="cm-1")
+    with h5py.File(path, "r") as f:
+        curve = f["entry/calibration_curve"]
+        assert curve["uncalibrated_cm1"].attrs["units"] == "1/cm"
+        assert curve["calibrated_cm1"].attrs["units"] == "1/cm"
+        assert f["entry/reference_neon/raman_shift"].attrs["units"] == "1/cm"
+        seen = set()
+        f.visititems(lambda n, o: seen.add(o.attrs["units"])
+                     if isinstance(o, h5py.Dataset) and "units" in o.attrs else None)
+        assert seen == {"1/cm", "nm"}
+
+
+def test_reference_spectrum_in_nm_keeps_nm_units(calmodel, spe_neon, tmp_path):
+    path = _write(calmodel, tmp_path, spe_neon=spe_neon, spe_neon_units="nm")
+    with h5py.File(path, "r") as f:
+        assert f["entry/reference_neon/wavelength"].attrs["units"] == "nm"
+
+
+def test_stage_curves_belong_to_their_component(calmodel, tmp_path):
+    """calibration_x_<i>/original_axis -> calibrated_axis is that component's OWN stage:
+    Ne maps cm-1 -> nm, Si zeroing maps nm -> cm-1, and chaining them gives the end-to-end
+    calibration_curve."""
+    path = _write(calmodel, tmp_path)
+    with h5py.File(path, "r") as f:
+        curve_x = f["entry/calibration_curve/uncalibrated_cm1"][()]
+        curve_y = f["entry/calibration_curve/calibrated_cm1"][()]
+        ne = f["entry/instrument/calibration_x_0"]
+        si = f["entry/instrument/calibration_x_1"]
+        assert ne["original_axis"].attrs["units"] == "1/cm"
+        assert ne["calibrated_axis"].attrs["units"] == "nm"
+        assert si["original_axis"].attrs["units"] == "nm"
+        assert si["calibrated_axis"].attrs["units"] == "1/cm"
+        np.testing.assert_allclose(ne["original_axis"][()], curve_x)
+        np.testing.assert_allclose(si["original_axis"][()], ne["calibrated_axis"][()])
+        np.testing.assert_allclose(si["calibrated_axis"][()], curve_y)
+
+        # independent recomputation of the Ne stage alone
+        ne_comp = calmodel.components[0]
+        expected_nm = ne_comp.process(Spectrum(x=curve_x.copy(), y=np.ones_like(curve_x)),
+                                      "cm-1").x
+        np.testing.assert_allclose(ne["calibrated_axis"][()], expected_nm)
+        # nm values are physically sensible for a 785 nm laser (Stokes shifts 150-3400 cm-1)
+        assert 785 < ne["calibrated_axis"][()].min() < ne["calibrated_axis"][()].max() < 1100
+
+
+def test_h5pyd_style_module_is_used(calmodel, ycal, tmp_path, monkeypatch):
+    """h5module is honoured for EVERYTHING (File, string dtypes): a stray direct ``h5py``
+    use inside the exporter would hit the patched h5py entry points and raise."""
+    real = {name: getattr(h5py, name) for name in ("File", "string_dtype", "special_dtype")}
     calls = []
 
     class _Spy:
         def __getattr__(self, name):
-            return getattr(h5py, name)
+            return real[name]
 
         def File(self, *a, **kw):
-            calls.append(a)
-            return h5py.File(*a, **kw)
+            calls.append(("File", a))
+            return real["File"](*a, **kw)
+
+        def string_dtype(self, *a, **kw):
+            calls.append(("string_dtype", a))
+            return real["string_dtype"](*a, **kw)
+
+    def _forbidden(name):
+        def _raise(*a, **kw):
+            raise AssertionError(f"exporter used h5py.{name} directly instead of h5module")
+        return _raise
+
+    for name in real:
+        monkeypatch.setattr(h5py, name, _forbidden(name))
 
     path = str(tmp_path / "spy.nxs")
-    export_nexus_calibration(calmodel, path, npoints=11, h5module=_Spy())
-    assert calls and calls[0][0] == path
+    # ycal component + string-list instrument metadata exercise the string_dtype path
+    export_nexus_calibration(calmodel, path, npoints=11, h5module=_Spy(),
+                             ycal_component=ycal, instrument={"tags": ["a", "b"]})
+    assert ("File", (path, "w")) in calls
+    assert any(c[0] == "string_dtype" for c in calls)
+    monkeypatch.undo()
+    with h5py.File(path, "r") as f:
+        assert f["entry/definition"][()].decode() == "NXraman"
