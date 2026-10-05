@@ -60,12 +60,12 @@
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
         </h2>
         <p class="text">
-            <a id="prevFileLink" class="nav" href="z_8ff97b39dfd74a1a_test_metadataextractor_py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a id="prevFileLink" class="nav" href="z_8ff97b39dfd74a1a_test_qmatch_robust_filter_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_8ff97b39dfd74a1a_test_twinning_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-05 15:40 +0000
+            created at 2026-10-05 19:17 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -116,8 +116,8 @@
     <p class="pln"><span class="n"><a id="t34" href="#t34">34</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t"><span class="key">def</span> <span class="nam">test_e2529_formula</span><span class="op">(</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">    <span class="com"># ASTM E2529 (VAMAS P6 / Erlon): SRes = (FWHM - 0.684) / 1.0209.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="com"># Anchored to the expert&#x27;s published value: calcite FWHM 8.011 -&gt; 7.177 cm-1.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">    <span class="com"># ASTM E2529 (VAMAS P6): SRes = (FWHM - 0.684) / 1.0209.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="com"># Anchored to the published value: calcite FWHM 8.011 -&gt; 7.177 cm-1.</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">    <span class="key">assert</span> <span class="nam">spectral_resolution_e2529</span><span class="op">(</span><span class="num">8.011</span><span class="op">)</span> <span class="op">==</span> <span class="nam">pytest</span><span class="op">.</span><span class="nam">approx</span><span class="op">(</span><span class="num">7.177</span><span class="op">,</span> <span class="nam">abs</span><span class="op">=</span><span class="num">1e-3</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">    <span class="key">assert</span> <span class="nam">spectral_resolution_e2529</span><span class="op">(</span><span class="num">1.1</span><span class="op">)</span> <span class="op">==</span> <span class="nam">pytest</span><span class="op">.</span><span class="nam">approx</span><span class="op">(</span><span class="op">(</span><span class="num">1.1</span> <span class="op">-</span> <span class="num">0.684</span><span class="op">)</span> <span class="op">/</span> <span class="num">1.0209</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -259,12 +259,12 @@
 <footer>
     <div class="content">
         <p>
-            <a class="nav" href="z_8ff97b39dfd74a1a_test_metadataextractor_py.html">&#xab; prev</a> &nbsp; &nbsp;
+            <a class="nav" href="z_8ff97b39dfd74a1a_test_qmatch_robust_filter_py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_8ff97b39dfd74a1a_test_twinning_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.16.1">coverage.py v7.16.1</a>,
-            created at 2026-10-05 15:40 +0000
+            created at 2026-10-05 19:17 +0000
         </p>
     </div>
 </footer>
