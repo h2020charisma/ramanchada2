@@ -516,3 +516,16 @@ def test_only_vendor_given_writes_only_vendor(calmodel, tmp_path):
     with h5py.File(path, "r") as f:
         device = f[f"{_entry_path(f)}/instrument/device_information"]
         assert set(device.keys()) == {"vendor"}
+
+
+def test_laser_wl_not_duplicated_as_parameter(calmodel, tmp_path):
+    """An instrument laser_wl that merely repeats the (explicit) beam wavelength is not
+    also written under instrument/parameters; a conflicting one is kept."""
+    path = _write(calmodel, tmp_path, wavelength=785, instrument={"laser_wl": 785, "grating": 600})
+    with h5py.File(path, "r") as f:
+        assert f["entry/instrument/beam_incident/wavelength"][()] == 785
+        assert "laser_wl" not in f["entry/instrument/parameters"]
+        assert "grating" in f["entry/instrument/parameters"]
+    path = _write(calmodel, tmp_path, wavelength=633, instrument={"laser_wl": 785})
+    with h5py.File(path, "r") as f:
+        assert f["entry/instrument/parameters/laser_wl"][()] == 785

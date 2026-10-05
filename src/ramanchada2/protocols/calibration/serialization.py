@@ -485,9 +485,17 @@ def _y_curves(ycal_component, grid, npoints):
 
 def _beam_wavelength(wavelength, instrument, calmodel):
     """Beam wavelength in nm: explicit argument, else instrument['laser_wl'], else
-    ``calmodel.laser_wl``. Returns ``(wavelength_or_None, instrument_laser_wl_consumed)``."""
+    ``calmodel.laser_wl``. Returns ``(wavelength_or_None, instrument_laser_wl_consumed)``;
+    the second item is True when ``instrument['laser_wl']`` only repeats the beam wavelength
+    (so it need not also be written as a parameter). An explicit wavelength that differs
+    from ``instrument['laser_wl']`` leaves the latter in place."""
     if wavelength is not None:
-        return float(wavelength), False
+        value = float(wavelength)
+        try:
+            same = float(instrument.get("laser_wl")) == value
+        except (TypeError, ValueError):
+            same = False
+        return value, same
     for source, candidate in (("instrument", instrument.get("laser_wl")),
                               ("calmodel", getattr(calmodel, "laser_wl", None))):
         try:
