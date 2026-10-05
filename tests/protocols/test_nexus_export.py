@@ -73,46 +73,23 @@ def _write(calmodel, tmp_path, **kw):
     return path
 
 
-def test_build_measurement_papp_entry_is_discoverable(tmp_path):
-    """Regression: pyambit's to_nexus() writes the entry under a leading-slash path
-    derived from (provider, papp.uuid); it's reachable via nx_root.entries (the pattern
-    pyambit's own test suite uses), not .keys(). Also: spe2ambit's per-effect group name
-    comes from its `sample` argument (routed to spe2effect's nx_name) -- passing the same
-    generic label for every spectrum makes every effect group indistinguishable except by
-    position, so _build_measurement_papp must pass each spectrum's own nx_name there."""
-    pytest.importorskip("pyambit")
-    from ramanchada2.protocols.calibration.serialization import _build_measurement_papp
-    import nexusformat.nexus.tree as nx
-
-    spe_neon = _load("Neon").trim_axes(method="x-axis", boundaries=(100, 3500))
-    papp = _build_measurement_papp(
-        [(spe_neon.x, spe_neon.y, "RAW_DATA", "reference_neon", "cm-1")],
-        meta=None, instrument=("TestCo", "ModelX"), wavelength=LASER_WL)
-    assert papp is not None
-
-    nx_root = nx.NXroot()
-    papp.to_nexus(nx_root)
-    entry = next(iter(nx_root.entries.values()))
-    assert "instrument" in entry
-    path = str(tmp_path / "papp_only.nxs")
-    nx_root.save(path, mode="w")
-
-    import h5py
-    with h5py.File(path, "r") as f:
-        groups = []
-        f.visititems(lambda name, obj: groups.append(name))
-    assert any("reference_neon" in g for g in groups), (
-        f"reference_neon effect not found anywhere in the written tree: {groups}")
-
-
 def _entry_path(h5file):
-    """The one real NXentry in the file. pyambit's to_nexus writes it at a leading-slash
-    path derived from (provider, papp.uuid), not a fixed "/entry" -- discover it instead
-    of assuming the name (see test_build_measurement_papp_entry_is_discoverable)."""
+    """The one NXentry in the file."""
     names = [k for k, v in h5file.items()
-            if v.attrs.get("NX_class") in (b"NXentry", "NXentry")]
+             if v.attrs.get("NX_class") in (b"NXentry", "NXentry")]
     assert len(names) == 1, f"expected exactly one NXentry, found {names}"
     return names[0]
+
+
+def test_entry_is_nxraman(calmodel, tmp_path):
+    """The entry declares the NXraman application definition."""
+    path = _write(calmodel, tmp_path)
+    with h5py.File(path, "r") as f:
+        entry = f[_entry_path(f)]
+        assert entry["definition"][()].decode() == "NXraman"
+        assert entry["experiment_type"][()].decode() == "Raman spectroscopy"
+        assert entry["instrument"].attrs["NX_class"] == "NXinstrument"
+        assert entry["sample"].attrs["NX_class"] == "NXsample"
 
 
 def test_nexusformat_can_open(calmodel, tmp_path):
@@ -126,8 +103,7 @@ def test_nexusformat_can_open(calmodel, tmp_path):
     nexusformat = pytest.importorskip("nexusformat.nexus")
     path = _write(calmodel, tmp_path)
     root = nexusformat.nxload(path)
-    entry = next(iter(root.entries.values()))
-    assert entry.nxclass == "NXentry"
+    entry = next(e for e in root.entries.values() if e.nxclass == "NXentry")
     assert entry.instrument.nxclass == "NXinstrument"
     assert entry.instrument.calibration_x_0.nxclass == "NXcalibration"
     assert entry.calibration_curve.nxclass == "NXdata"
@@ -194,29 +170,31 @@ def test_anchors_not_in_calibrated_axis(calmodel, tmp_path):
 def test_reference_spectra_written(calmodel, spe_neon, spe_sil, tmp_path):
     """Regression guard: the calibrant x AND y arrays are actually persisted (the failure
     mode this guards against is ramanchada2.io.HSDS.write_nexus silently dropping the axis
-    via require_group(..., data=x) — a group has no data= kwarg). Written through pyambit's
-    spe2ambit/process_pa, so the effect lands under a RAW_DATA group, named by nx_name."""
+    via require_group(..., data=x) — a group has no data= kwarg). Each calibrant is its own
+    plottable NXdata group under the entry."""
     path = _write(calmodel, tmp_path, spe_neon=spe_neon, spe_neon_units="cm-1",
                   spe_silicon=spe_sil, spe_silicon_units="cm-1")
     with h5py.File(path, "r") as f:
         entry = _entry_path(f)
-        neon = f[f"{entry}/RAW_DATA/reference_neon_1"]
+        neon = f[f"{entry}/reference_neon"]
+        assert neon.attrs["NX_class"] == "NXdata"
+        assert neon.attrs["signal"] == "intensity"
         np.testing.assert_allclose(neon["raman_shift"][()], np.asarray(spe_neon.x))
-        np.testing.assert_allclose(neon["y"][()], np.asarray(spe_neon.y))
+        np.testing.assert_allclose(neon["intensity"][()], np.asarray(spe_neon.y))
 
-        sil = f[f"{entry}/RAW_DATA/reference_silicon_2"]
+        sil = f[f"{entry}/reference_silicon"]
         np.testing.assert_allclose(sil["raman_shift"][()], np.asarray(spe_sil.x))
-        np.testing.assert_allclose(sil["y"][()], np.asarray(spe_sil.y))
+        np.testing.assert_allclose(sil["intensity"][()], np.asarray(spe_sil.y))
 
 
 def test_reference_spectra_omitted_when_not_given(calmodel, tmp_path):
-    """No invented data: no RAW_DATA reference-spectrum effect exists if the caller didn't
-    supply calibrant spectra (the x-calibration curve itself still gets its own
-    non-RAW_DATA group, so RAW_DATA is absent entirely rather than merely smaller)."""
+    """No invented data: no reference-spectrum group exists if the caller didn't supply
+    calibrant spectra."""
     path = _write(calmodel, tmp_path)
     with h5py.File(path, "r") as f:
         entry = _entry_path(f)
-        assert "RAW_DATA" not in f[entry]
+        assert "reference_neon" not in f[entry]
+        assert "reference_silicon" not in f[entry]
 
 
 def test_ycal_component_written_when_given(calmodel, ycal, spe_pst, tmp_path):
@@ -248,14 +226,10 @@ def test_ycal_plottable_curves_present(calmodel, ycal, tmp_path):
         assert y_curve["intensity_factor"].shape[0] > 1
 
         # the measured SRM response and the certificate's analytic response are both
-        # written as their own RAW_DATA-adjacent effects (via spe2ambit), not just
-        # embedded numbers in calibration_object's JSON
-        raw_names = list(f[f"{entry}/Y_CALIBRATION_MEASURED"].keys()) \
-            if "Y_CALIBRATION_MEASURED" in f[entry] else []
-        cert_names = list(f[f"{entry}/Y_CALIBRATION_CERTIFICATE"].keys()) \
-            if "Y_CALIBRATION_CERTIFICATE" in f[entry] else []
-        assert raw_names, "measured SRM response effect not written"
-        assert cert_names, "certificate response effect not written"
+        # written as their own NXdata groups, not just embedded numbers in the JSON
+        for name in ("calibration_curve_y_measured", "calibration_curve_y_certificate"):
+            assert name in f[entry], f"{name} not written"
+            assert f[f"{entry}/{name}"].attrs["NX_class"] == "NXdata"
 
 
 def test_ycal_component_omitted_when_not_given(calmodel, tmp_path):
@@ -275,10 +249,9 @@ def test_default_attr_points_at_calibration_curve(calmodel, tmp_path):
 
 
 def test_instrument_metadata_written_and_nan_dropped(calmodel, tmp_path):
-    """instrument_make/instrument_model become pyambit's typed (vendor, model) device
-    identity; other instrument keys (grating) route through configure_papp's backward-
-    compat table into typed fields or the generic parameters bucket. NaN values must not
-    reach either -- they're dropped before crossing into pyambit's meta dict."""
+    """instrument_make/instrument_model become the NXfabrication (vendor, model) device
+    identity, laser_wl the incident beam wavelength; other keys go to instrument/
+    parameters. NaN values are dropped."""
     path = _write(calmodel, tmp_path, instrument={
         "instrument_make": "TestCo", "instrument_model": "ModelX",
         "grating": float("nan"), "laser_wl": 785,
@@ -289,5 +262,24 @@ def test_instrument_metadata_written_and_nan_dropped(calmodel, tmp_path):
         assert device["vendor"][()].decode() == "TestCo"
         assert device["model"][()].decode() == "ModelX"
         # grating was NaN -> dropped; must not appear anywhere as a written value
-        params = f[f"{entry}/parameters"] if "parameters" in f[entry] else {}
-        assert "grating" not in params
+        assert f[f"{entry}/instrument/beam_incident/wavelength"][()] == 785
+        assert f[f"{entry}/instrument/beam_incident/wavelength"].attrs["units"] == "nm"
+        assert "parameters" not in f[f"{entry}/instrument"]
+
+
+def test_h5pyd_style_module_is_used(calmodel, tmp_path):
+    """h5module is honoured (h5pyd exposes the h5py File/require_group/attrs API)."""
+    import h5py
+    calls = []
+
+    class _Spy:
+        def __getattr__(self, name):
+            return getattr(h5py, name)
+
+        def File(self, *a, **kw):
+            calls.append(a)
+            return h5py.File(*a, **kw)
+
+    path = str(tmp_path / "spy.nxs")
+    export_nexus_calibration(calmodel, path, npoints=11, h5module=_Spy())
+    assert calls and calls[0][0] == path

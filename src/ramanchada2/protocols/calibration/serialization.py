@@ -8,7 +8,7 @@ model in the portable :meth:`CalibrationModel.to_dict` form, so the exact model 
 the sampled curve — can be reconstructed by ramanchada2 or any JSON-capable reader).
 
 ``export_nexus_calibration`` writes the same content, plus the calibrant spectra it was
-derived from, as a self-describing NeXus/HDF5 file (NXentry/NXinstrument/NXcalibration).
+derived from, as a self-describing NXraman HDF5 file (plain h5py or h5pyd).
 """
 import datetime
 import json
@@ -122,26 +122,26 @@ def export_cwa_y(ycal_component, base_path, spectral_range=None, npoints=200,
     return csv_path, json_path
 
 
-def _h5_clean(value):
-    """Coerce a to_dict()-sourced value into something h5py's create_dataset accepts.
+def _string_dtype(h5):
+    """Variable-length utf-8 string dtype for ``h5`` (h5py or h5pyd)."""
+    if hasattr(h5, "string_dtype"):
+        return h5.string_dtype()
+    return h5.special_dtype(vlen=str)
+
+
+def _h5_clean(value, h5):
+    """Coerce a to_dict()-sourced value into something create_dataset accepts.
 
     Plain numpy string arrays (numpy's default fixed-width unicode dtype, e.g. '<U8')
-    have no direct HDF5 type mapping; h5py needs its own variable-length utf-8 dtype for
-    string data. Numeric lists/tuples become plain float arrays. Everything else (scalar
-    numbers, bools, already-clean strings) passes through unchanged.
+    have no direct HDF5 type mapping and need a variable-length utf-8 dtype. Numeric
+    lists/tuples become plain float arrays. Everything else (scalar numbers, bools,
+    already-clean strings) passes through unchanged.
     """
     if isinstance(value, (list, tuple)):
         if value and all(isinstance(v, str) for v in value):
-            return np.asarray(value, dtype=h5py_string_dtype())
+            return np.asarray(value, dtype=_string_dtype(h5))
         return np.asarray(value, dtype=float)
-    if isinstance(value, str):
-        return value
     return value
-
-
-def h5py_string_dtype():
-    import h5py
-    return h5py.special_dtype(vlen=str)
 
 
 def _component_parameters(component_dict):
@@ -216,16 +216,13 @@ def _axis_name_for_units(units):
 
 # component_dict keys that already have a typed, *numeric* home elsewhere in the written
 # NXcalibration group (original_axis/calibrated_axis, anchors) or that are orchestration-
-# level, not calibration-model content (name/enabled, handled via NX_class attrs already).
+# level, not calibration-model content (name/enabled, handled via attrs already).
 # "model" and "certificate" are deliberately NOT here, even though _component_parameters
 # also surfaces a flattened numeric view of "model" under calibration_parameters/: that
 # flattened view is a convenience mirror for readers that only want the numbers, not a
 # substitute for the exact tagged-dict shape interpolator_from_tagged_dict/
-# YCalibrationComponent.from_dict need (e.g. ParametricModel needs "type"+"equation"+
-# "param_names"+"coef" together; _component_parameters doesn't reproduce every
-# interpolator kind's exact shape). Dropping "model" broke the ycal_component per-
-# component round-trip in exactly this way (KeyError: 'model') -- residual field pruning
-# must never remove anything the corresponding from_dict() classmethod requires.
+# YCalibrationComponent.from_dict need. Residual field pruning must never remove
+# anything the corresponding from_dict() classmethod requires.
 _TYPED_ELSEWHERE = {
     "anchors", "name", "enabled", "sample", "spe_units", "ref_units",
     "model_units", "match_method", "interpolator_method", "ref", "profile",
@@ -235,69 +232,8 @@ _TYPED_ELSEWHERE = {
 def _residual_component_fields(component_dict):
     """component_dict stripped of everything that already has a typed home (see
     _TYPED_ELSEWHERE), so calibration_object/NXnote carries only what genuinely has none
-    yet -- e.g. laser_wl, nonmonotonic policy, extrapolate flag, model_method -- rather
-    than the full model duplicated verbatim alongside the typed datasets."""
+    yet -- e.g. laser_wl, nonmonotonic policy, extrapolate flag, model_method."""
     return {k: v for k, v in component_dict.items() if k not in _TYPED_ELSEWHERE}
-
-
-def _build_measurement_papp(spe_list, meta, instrument=None, wavelength=None,
-                            provider="ramanchada2", investigation="calibration",
-                            sample="calibration"):
-    """Build one NXRamanProtocolApplication carrying every (x, y, endpointtype, nx_name,
-    units) tuple in ``spe_list`` as its own EffectArray, via pyambit's spe2ambit/
-    configure_papp — the same machinery every other Raman measurement in this ecosystem
-    goes through (see pyambit.nexus_spectra), rather than a hand-rolled NXdata group, so
-    the written file gets real NXRaman instrument/sample linkage and the same plottable
-    signal/axes/interpretation conventions process_pa already implements.
-
-    pyambit is an optional dependency of ramanchada2 (not a hard one — most rc2 consumers
-    have no need for it), so only the *absence* of pyambit falls back silently (returns
-    None; export_nexus_calibration then writes a minimal plottable NXdata fallback with no
-    NXRaman typing). A pyambit call that raises for any other reason is a real bug in the
-    export path and must not be swallowed here — it propagates.
-    """
-    try:
-        from pyambit.nexus_spectra import spe2ambit
-    except ImportError:
-        return None
-
-    # spe2ambit/configure_papp unconditionally subscript instrument[0]/instrument[1]
-    # (vendor, model) with no None-guard, so a default of None crashes on the very first
-    # call rather than degrading gracefully -- always pass a concrete (possibly unknown)
-    # pair instead of relying on pyambit to handle the missing-metadata case.
-    instrument = instrument if instrument is not None else ("unknown", "unknown")
-
-    papp = None
-    for x, y, endpointtype, nx_name, units in spe_list:
-        # spe2ambit's `sample` argument does double duty: on the FIRST call (papp is
-        # None) it also seeds configure_papp's overall Sample.uuid identity for the whole
-        # papp; on every call it becomes spe2effect's nx_name -- the per-effect group name
-        # process_pa uses to build entryid ("{nx_name}_{index}"). Passing the per-spectrum
-        # nx_name here (not the overall `sample` parameter) on every call is deliberate:
-        # it makes each effect's group discoverable by its own name (reference_neon,
-        # calibration_curve_x, ...) instead of every effect sharing one generic label,
-        # which is what made the previous version's groups indistinguishable except by
-        # positional index (RAW_DATA/calibration_1, RAW_DATA/calibration_2, ...).
-        # meta must carry BOTH the per-effect @signal/@axes routing keys AND the
-        # caller-supplied meta (grating, slit_size, ...) -- configure_papp only reads
-        # meta on the FIRST spe2ambit call (papp is None), so if that first call's meta
-        # doesn't include the caller's instrument metadata, it is never seen again for
-        # the rest of this papp's lifetime. An earlier version passed only the routing
-        # keys here, silently dropping every meta-sourced field except wavelength/
-        # instrument (those come from configure_papp's own dedicated parameters, not
-        # from meta).
-        effect_meta = dict(meta or {})
-        effect_meta["@signal"] = "y"
-        effect_meta["@axes"] = [_axis_name_for_units(units)]
-        papp = spe2ambit(
-            np.asarray(x, dtype=float), np.asarray(y, dtype=float),
-            meta=effect_meta,
-            instrument=instrument, wavelength=wavelength, provider=provider,
-            investigation=investigation, sample=nx_name, endpointtype=endpointtype,
-            unit=units, papp=papp,
-        )
-    papp.sync_parameters()
-    return papp
 
 
 def _certificate_curve(cert, grid):
@@ -305,6 +241,78 @@ def _certificate_curve(cert, grid):
     cm-1), for a plottable certificate-response NXdata alongside the measured SRM
     spectrum it was compared against."""
     return np.asarray(cert.Y(grid), dtype=float)
+
+
+def _nx_group(parent, name, nx_class, **attrs):
+    group = parent.require_group(name)
+    group.attrs["NX_class"] = nx_class
+    for key, value in attrs.items():
+        group.attrs[key] = value
+    return group
+
+
+def _nx_data(parent, name, signal, axes, arrays, units=None, **attrs):
+    """Write a plottable NXdata group: ``arrays`` is an ordered ``{dataset: values}``
+    dict; ``signal`` names the signal dataset and ``axes`` the axis datasets."""
+    group = _nx_group(parent, name, "NXdata", signal=signal, axes=list(axes),
+                      interpretation="spectrum", **attrs)
+    for key, values in arrays.items():
+        ds = group.create_dataset(key, data=np.asarray(values, dtype=float))
+        if units and key in units:
+            ds.attrs["units"] = units[key]
+    return group
+
+
+def _nx_note(parent, name, document, h5):
+    note = _nx_group(parent, name, "NXnote")
+    note.create_dataset("type", data="application/json")
+    note.create_dataset("data", data=json.dumps(document))
+    return note
+
+
+def _nx_calibration_group(parent, name, component_dict, h5, curve=None):
+    """Write one calibration component as an NXcalibration group under ``parent``.
+
+    ``curve`` is an optional (original_axis, calibrated_axis) array pair — real datasets.
+    calibration_parameters is an NXparameters container with the actual numeric children;
+    calibration_object/NXnote is kept deliberately small — only fields with no typed home
+    yet (see _residual_component_fields) — so the typed datasets are the single source of
+    truth for the reconstructable numbers rather than a duplicate copy.
+    """
+    is_y = component_dict.get("type") == "YCalibrationComponent"
+    cal = _nx_group(
+        parent, name, "NXcalibration",
+        description="ramanchada2 " + component_dict.get("type", "calibration"),
+        physical_quantity="relative intensity" if is_y else "wavenumber",
+        applied=bool(component_dict.get("enabled", True)),
+        fit_formula_description=_fit_formula_description(component_dict),
+    )
+
+    if curve is not None:
+        original_axis, calibrated_axis = curve
+        cal.create_dataset("original_axis", data=np.asarray(original_axis, dtype=float))
+        cal.create_dataset("calibrated_axis", data=np.asarray(calibrated_axis, dtype=float))
+
+    params = _component_parameters(component_dict)
+    if params:
+        pgroup = _nx_group(cal, "calibration_parameters", "NXparameters")
+        for key, value in params.items():
+            if value is None:
+                continue
+            pgroup.create_dataset(key, data=_h5_clean(value, h5))
+
+    _nx_note(cal, "calibration_object", _residual_component_fields(component_dict), h5)
+
+    anchors = component_dict.get("anchors")
+    if anchors:
+        arr = np.asarray(anchors, dtype=float)
+        agroup = _nx_group(
+            cal, "anchors", "NXdata",
+            description="Matched calibrant peaks used to derive the model.")
+        agroup.create_dataset("measured", data=arr[:, 0])
+        agroup.create_dataset("reference", data=arr[:, 1])
+        agroup.create_dataset("inlier", data=arr[:, 2].astype(bool))
+    return cal
 
 
 def export_nexus_calibration(
@@ -321,68 +329,70 @@ def export_nexus_calibration(
     spe_silicon_units="cm-1",
     title=None,
     wavelength=None,
-    provider="ramanchada2",
-    investigation="calibration",
+    h5module=None,
 ):
-    """Write the calibration workflow as a self-describing NeXus/HDF5 file.
+    """Write the calibration workflow as a self-describing NeXus (NXraman) HDF5 file.
 
-    Carries, in reconstructable form: the calibrant spectra actually used
-    (``spe_neon``/``spe_silicon``, as-loaded, plus — when ``ycal_component`` is given —
-    the measured SRM spectrum and its certificate's response curve), the sampled x and y
-    calibration curves, and — inside an ``NXcalibration`` group per component — the
-    portable fit parameters (curve points, interpolator knots or polynomial coefficients,
-    Si zeroing, matched-peak anchors). A reader can regenerate ``calmodel`` from the file
-    alone via ``CalibrationModel.from_dict(json.loads(.../entry/calibration_model/data))``
-    without needing pyambit or ramanchada2 installed to parse the file structure itself.
+    Only ``h5py`` (or ``h5pyd`` via ``h5module``, as in :func:`ramanchada2.io.HSDS.write_nexus`)
+    is used. The entry carries ``definition = "NXraman"``, an ``NXinstrument`` (device
+    information, incident beam wavelength, one ``NXcalibration`` group per calibration
+    component), an ``NXsample`` and plottable ``NXdata`` groups for the calibrant spectra
+    actually used (``spe_neon``/``spe_silicon``, as loaded), the sampled x calibration curve
+    and — with ``ycal_component`` — the measured SRM response and its certificate curve.
 
-    Every spectrum (calibrants, sampled curves, certificate response) is written through
-    pyambit's ``spe2ambit``/``NXRamanProtocolApplication`` machinery when pyambit is
-    importable, so it gets real NXRaman instrument/sample linkage and the same plottable
-    ``signal``/``axes``/``interpretation`` conventions as any other Raman measurement in
-    this ecosystem — not a hand-rolled, one-off NXdata shape. If pyambit is not installed,
-    a minimal plottable NXdata fallback (same NIAC signal/axes attributes, no NXRaman
-    typing) is written instead, so the export never fails outright over an optional
-    dependency; the ``NXcalibration``-specific structures (fit parameters, anchors) always
-    go through plain h5py/nexusformat, since neither pyambit's codegen (scalar-typed
-    array fields, see docs/nexus_export_plan.md) nor NXRaman itself has a home for them.
+    The full model is stored as JSON in ``entry/calibration_model/data``, so a reader can
+    regenerate ``calmodel`` from the file alone via
+    ``CalibrationModel.from_dict(json.loads(...)["model"])``.
 
     Args:
         calmodel: a derived :class:`CalibrationModel` (Ne curve + Si zeroing components).
-        filename: output ``.nxs``/``.h5`` path.
+        filename: output ``.nxs``/``.h5`` path (or HSDS domain for ``h5pyd``).
         spectral_range: (min, max) Raman shift in cm-1 the sampled curve should cover.
         npoints: number of curve points.
-        metadata: optional dict merged into the top-level entry (instrument/run metadata).
+        metadata: optional dict stored in the JSON model document.
         instrument: optional dict of instrument metadata. ``instrument_make``/
-            ``instrument_model`` (if present) become pyambit's ``(vendor, model)`` device
-            identity; every other key (``grating``, ``slit_size``, ...) is routed through
-            pyambit's ``configure_papp`` backward-compat key table / generic parameters
-            bucket, same as any other Raman measurement's meta dict.
+            ``instrument_model`` become ``NXinstrument/device_information`` (vendor,
+            model); ``laser_wl`` is used for the beam wavelength if ``wavelength`` is not
+            given; other keys are written as datasets under ``instrument/parameters``.
+            NaN/None values are dropped.
         ycal_component: optional derived ``YCalibrationComponent`` (relative-intensity
-            calibration); written as a second NXcalibration group when given, together
-            with its measured SRM spectrum and certificate response curve.
+            calibration); written as a second NXcalibration group together with its
+            measured SRM spectrum and certificate response curve.
         spe_neon, spe_silicon: optional as-loaded calibrant :class:`Spectrum` objects (the
-            *inputs* the model was derived from, before any trim/baseline preprocessing —
-            that preprocessing is derivable from these; the reverse is not). When omitted,
-            no reference spectra are written (they are optional, unlike the model itself).
-        spe_neon_units, spe_silicon_units: axis units of the respective calibrant spectra
-            as loaded ("cm-1", "nm", or "pixel") — do not assume cm-1.
+            *inputs* the model was derived from). When omitted, no reference spectra are
+            written.
+        spe_neon_units, spe_silicon_units: axis units of the calibrant spectra as loaded
+            ("cm-1", "nm", or "pixel") — do not assume cm-1.
         title: optional entry title.
-        wavelength, provider, investigation: forwarded to pyambit's configure_papp for
-            the NXRaman instrument/citation context (see pyambit.nexus_spectra).
+        wavelength: incident laser wavelength in nm.
+        h5module: ``h5py`` (default) or ``h5pyd``.
 
     Returns:
         filename
     """
+    if h5module is None:
+        import h5py as h5module
+    h5 = h5module
+
     grid, calibrated = _calibration_curve(calmodel, spectral_range, npoints)
 
-    spe_list = []
-    if spe_neon is not None:
-        spe_list.append((spe_neon.x, spe_neon.y, "RAW_DATA", "reference_neon", spe_neon_units))
-    if spe_silicon is not None:
-        spe_list.append(
-            (spe_silicon.x, spe_silicon.y, "RAW_DATA", "reference_silicon", spe_silicon_units))
-    spe_list.append((grid, calibrated, "X_CALIBRATION", "calibration_curve_x", "cm-1"))
+    def _not_missing(value):
+        return value is not None and not (isinstance(value, float) and np.isnan(value))
 
+    instrument = {k: v for k, v in (instrument or {}).items() if _not_missing(v)}
+    if wavelength is None:
+        try:
+            wavelength = float(instrument.get("laser_wl"))
+        except (TypeError, ValueError):
+            wavelength = None
+
+    spectra = []  # (group name, x, y, x_units, x_name, y_name, description)
+    for name, spe, units in (("reference_neon", spe_neon, spe_neon_units),
+                             ("reference_silicon", spe_silicon, spe_silicon_units)):
+        if spe is not None:
+            spectra.append((name, spe.x, spe.y, units, "intensity", "As-loaded calibrant."))
+
+    y_curves = []
     if ycal_component is not None:
         y_grid = grid
         cert = getattr(ycal_component, "ref", None)
@@ -391,180 +401,74 @@ def export_nexus_calibration(
             y_grid = np.linspace(float(lo), float(hi), int(npoints))
         try:
             measured = np.asarray(ycal_component.model(y_grid), dtype=float)
-            spe_list.append(
-                (y_grid, measured, "Y_CALIBRATION_MEASURED", "calibration_curve_y_measured",
-                 "cm-1"))
+            y_curves.append(("calibration_curve_y_measured", y_grid, measured,
+                             "Measured SRM response, resampled onto the certificate's "
+                             "declared range."))
         except Exception:
             pass
         if cert is not None:
             try:
-                cert_curve = _certificate_curve(cert, y_grid)
-                spe_list.append(
-                    (y_grid, cert_curve, "Y_CALIBRATION_CERTIFICATE",
-                     "calibration_curve_y_certificate", "cm-1"))
+                y_curves.append(("calibration_curve_y_certificate", y_grid,
+                                 _certificate_curve(cert, y_grid),
+                                 "Certificate response curve."))
             except Exception:
                 pass
 
-    def _not_missing(value):
-        return value is not None and not (isinstance(value, float) and np.isnan(value))
+    with h5.File(filename, "w") as f:
+        f.attrs["NX_class"] = "NXroot"
+        f.attrs["default"] = "entry"
+        entry = _nx_group(f, "entry", "NXentry", default="calibration_curve")
+        entry.create_dataset("definition", data="NXraman")
+        entry.create_dataset("title", data=title or "ramanchada2 x/y calibration")
+        entry.create_dataset("experiment_type", data="Raman spectroscopy")
 
-    instrument_tuple = None
-    meta = {k: v for k, v in (metadata or {}).items() if _not_missing(v)}
-    if instrument:
-        instrument_tuple = (
-            instrument.get("instrument_make") or "unknown",
-            instrument.get("instrument_model") or "unknown",
-        )
-        meta.update({k: v for k, v in instrument.items()
-                    if k not in ("instrument_make", "instrument_model") and _not_missing(v)})
+        inst = _nx_group(entry, "instrument", "NXinstrument")
+        device = _nx_group(inst, "device_information", "NXfabrication")
+        device.create_dataset("vendor", data=str(instrument.get("instrument_make") or "unknown"))
+        device.create_dataset("model", data=str(instrument.get("instrument_model") or "unknown"))
+        if wavelength is not None:
+            beam = _nx_group(inst, "beam_incident", "NXbeam")
+            wl = beam.create_dataset("wavelength", data=float(wavelength))
+            wl.attrs["units"] = "nm"
+        extras = {k: v for k, v in instrument.items()
+                  if k not in ("instrument_make", "instrument_model", "laser_wl")}
+        if extras:
+            params = _nx_group(inst, "parameters", "NXparameters")
+            for key, value in extras.items():
+                params.create_dataset(key, data=value)
 
-    papp = _build_measurement_papp(
-        spe_list, meta=meta, instrument=instrument_tuple, wavelength=wavelength,
-        provider=provider, investigation=investigation,
-        sample=(title or "ramanchada2 x/y calibration"))
+        sample = _nx_group(entry, "sample", "NXsample")
+        sample.create_dataset("name", data=title or "calibration")
 
-    if papp is not None:
-        import nexusformat.nexus.tree as nx
+        for name, x, y, units, y_name, description in spectra:
+            x_name = _axis_name_for_units(units)
+            _nx_data(entry, name, y_name, [x_name], {x_name: x, y_name: y},
+                     units={x_name: units}, description=description)
 
-        nx_root = nx.NXroot()
-        # papp.to_nexus(nx_root) (the bound method), not the free
-        # pyambit.nexus_writer.to_nexus(papp, nx_root=...) function: to_nexus writes the
-        # entry at a leading-slash path derived from (provider, papp.uuid), and
-        # nx_root.entries (not .keys()) is what correctly resolves that -- the pattern
-        # pyambit's own test suite uses (tests/pyambit/nexus_models/nx_raman_test.py).
-        papp.to_nexus(nx_root)
-        entry = next(iter(nx_root.entries.values()))
-        if "instrument" not in entry:
-            entry["instrument"] = nx.NXinstrument()
-        inst = entry["instrument"]
-    else:
-        # pyambit not importable: minimal plottable fallback, still real NXdata with the
-        # documented signal/axes conventions, just not NXRaman-typed.
-        import nexusformat.nexus.tree as nx
+        doc = {"metadata": metadata or {}, **_laser_zero_info(calmodel),
+               "model": calmodel.to_dict()}
+        _nx_note(entry, "calibration_model", doc, h5)
 
-        nx_root = nx.NXroot()
-        entry = nx.NXentry()
-        entry["title"] = title or "ramanchada2 x/y calibration"
-        entry["instrument"] = nx.NXinstrument()
-        inst = entry["instrument"]
-        for name, x, y, x_units, y_name in (
-            ("reference_neon", spe_neon.x if spe_neon is not None else None,
-             spe_neon.y if spe_neon is not None else None, spe_neon_units, "intensity"),
-            ("reference_silicon", spe_silicon.x if spe_silicon is not None else None,
-             spe_silicon.y if spe_silicon is not None else None, spe_silicon_units,
-             "intensity"),
-        ):
-            if x is None:
-                continue
-            data = nx.NXdata()
-            x_name = _axis_name_for_units(x_units)
-            data[x_name] = np.asarray(x, dtype=float)
-            data[y_name] = np.asarray(y, dtype=float)
-            data.attrs["signal"] = y_name
-            data.attrs["axes"] = [x_name]
-            entry[name] = data
-        nx_root["entry"] = entry
+        _nx_data(entry, "calibration_curve", "calibrated_cm1", ["uncalibrated_cm1"],
+                 {"uncalibrated_cm1": grid, "calibrated_cm1": calibrated},
+                 units={"uncalibrated_cm1": "1/cm", "calibrated_cm1": "1/cm"})
 
-    entry["calibration_model"] = nx.NXnote()
-    entry["calibration_model"]["type"] = "application/json"
-    doc = {"metadata": metadata or {}, **_laser_zero_info(calmodel), "model": calmodel.to_dict()}
-    entry["calibration_model"]["data"] = json.dumps(doc)
+        x_components = [c for c in getattr(calmodel, "components", [])
+                        if c.to_dict().get("type") != "YCalibrationComponent"]
+        for idx, comp in enumerate(x_components):
+            name = f"calibration_x_{idx}" if len(x_components) > 1 else "calibration_x"
+            _nx_calibration_group(inst, name, comp.to_dict(), h5,
+                                  curve=(grid, calibrated) if idx == 0 else None)
 
-    curve_data = nx.NXdata()
-    curve_data["uncalibrated_cm1"] = np.asarray(grid, dtype=float)
-    curve_data["calibrated_cm1"] = np.asarray(calibrated, dtype=float)
-    curve_data.attrs["signal"] = "calibrated_cm1"
-    curve_data.attrs["axes"] = ["uncalibrated_cm1"]
-    entry["calibration_curve"] = curve_data
-    entry.attrs["default"] = "calibration_curve"
-
-    components = list(getattr(calmodel, "components", []))
-    x_components = [c for c in components if c.to_dict().get("type") != "YCalibrationComponent"]
-    for idx, comp in enumerate(x_components):
-        comp_dict = comp.to_dict()
-        curve = (grid, calibrated) if idx == 0 else None
-        name = f"calibration_x_{idx}" if len(x_components) > 1 else "calibration_x"
-        inst[name] = _nx_calibration_group(comp_dict, curve=curve)
-
-    if ycal_component is not None:
-        y_dict = ycal_component.to_dict()
-        inst["calibration_y"] = _nx_calibration_group(y_dict)
-        # Plottable y-calibration curve, the analogue of calibration_curve for x -- the
-        # gap that made the earlier h5py-only version look like intensity calibration was
-        # silently dropped (it wasn't; it just had no plottable representation).
-        if "calibration_curve_y_measured" in (spe_names := [s[3] for s in spe_list]):
-            y_curve = nx.NXdata()
-            idx = spe_names.index("calibration_curve_y_measured")
-            y_curve["calibrated_cm1"] = np.asarray(spe_list[idx][0], dtype=float)
-            y_curve["intensity_factor"] = np.asarray(spe_list[idx][1], dtype=float)
-            y_curve.attrs["signal"] = "intensity_factor"
-            y_curve.attrs["axes"] = ["calibrated_cm1"]
-            y_curve.attrs["description"] = ("Measured SRM response, resampled onto the "
-                                            "certificate's declared range.")
-            entry["calibration_curve_y"] = y_curve
-
-    nx_root.save(filename, mode="w")
+        if ycal_component is not None:
+            _nx_calibration_group(inst, "calibration_y", ycal_component.to_dict(), h5)
+            for name, x, y, description in y_curves:
+                if name == "calibration_curve_y_measured":
+                    # plottable y-calibration curve, the analogue of calibration_curve
+                    _nx_data(entry, "calibration_curve_y", "intensity_factor",
+                             ["calibrated_cm1"], {"calibrated_cm1": x, "intensity_factor": y},
+                             description=description)
+                _nx_data(entry, name, "intensity_factor", ["calibrated_cm1"],
+                         {"calibrated_cm1": x, "intensity_factor": y},
+                         description=description)
     return filename
-
-
-def _nx_calibration_group(component_dict, curve=None):
-    """Build one calibration component as an NXcalibration nexusformat.nexus.tree group,
-    for composing into the shared NXroot alongside the pyambit-written entry (the whole
-    file is saved in one nx_root.save() call — see export_nexus_calibration). ``curve``
-    is an optional (original_axis, calibrated_axis) array pair — real datasets, not the
-    scalar-typed fields pyambit's generated NXCalibration pydantic model exposes (that
-    codegen has no NX_FLOAT[rank] support yet; see docs/nexus_export_plan.md).
-    calibration_parameters is a real NXparameters container with its actual numeric
-    children, not the near-empty base-class stub; calibration_object/NXnote is kept
-    deliberately small — only fields with no typed home yet (see
-    _residual_component_fields) — so the typed datasets are the single source of truth
-    for the reconstructable numbers rather than a duplicate copy.
-    """
-    import nexusformat.nexus.tree as nx
-
-    cal = nx.NXgroup()
-    cal.nxclass = "NXcalibration"
-    cal.attrs["description"] = "ramanchada2 " + component_dict.get("type", "calibration")
-    cal.attrs["physical_quantity"] = (
-        "relative intensity" if component_dict.get("type") == "YCalibrationComponent"
-        else "wavenumber")
-    cal.attrs["applied"] = bool(component_dict.get("enabled", True))
-    cal.attrs["fit_formula_description"] = _fit_formula_description(component_dict)
-
-    if curve is not None:
-        original_axis, calibrated_axis = curve
-        cal["original_axis"] = np.asarray(original_axis, dtype=float)
-        cal["calibrated_axis"] = np.asarray(calibrated_axis, dtype=float)
-
-    params = _component_parameters(component_dict)
-    if params:
-        pgroup = nx.NXgroup()
-        pgroup.nxclass = "NXparameters"
-        for key, value in params.items():
-            if value is None:
-                continue
-            pgroup[key] = _h5_clean(value)
-        cal["calibration_parameters"] = pgroup
-
-    note = nx.NXnote()
-    note["type"] = "application/json"
-    note["data"] = json.dumps(_residual_component_fields(component_dict))
-    cal["calibration_object"] = note
-
-    anchors = component_dict.get("anchors")
-    if anchors:
-        agroup = nx.NXdata()
-        agroup.attrs["description"] = "Matched calibrant peaks used to derive the model."
-        arr = np.asarray(anchors, dtype=float)
-        agroup["measured"] = arr[:, 0]
-        agroup["reference"] = arr[:, 1]
-        agroup["inlier"] = arr[:, 2].astype(bool)
-        cal["anchors"] = agroup
-
-    return cal
-
-
-# Back-compat alias: the pre-existing name, now the richer calibration-workflow exporter.
-# The old export_nexus was unreachable dead code (imported nowhere in this repo or its
-# known callers), so no behavior is broken by widening its signature under this name.
-export_nexus = export_nexus_calibration
