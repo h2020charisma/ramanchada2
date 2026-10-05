@@ -55,10 +55,15 @@ def from_local_file(
         if ft in {'cha'}:
             return from_chada(filename=in_file_name)
         elif ft in {'txt', 'txtr', 'prn', 'rruf', 'tsv', 'dpt'}:
-            with open(in_file_name) as fp:
+            # Explicit UTF-8 (RRUFF's own export encoding, confirmed against
+            # real corpus files containing e.g. a UTF-8 middle-dot U+00B7):
+            # without this, open() falls back to the platform default (on
+            # Windows, cp1252/"charmap"), which raises UnicodeDecodeError on
+            # those bytes instead of decoding them.
+            with open(in_file_name, encoding='utf-8') as fp:
                 x, y, meta = read_txt(fp)
         elif ft in {'csv'}:
-            with open(in_file_name) as fp:
+            with open(in_file_name, encoding='utf-8') as fp:
                 x, y, meta = read_csv(fp)
         elif ft in {'spc'}:
             with open(in_file_name, 'rb') as fp:

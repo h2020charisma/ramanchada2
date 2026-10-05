@@ -173,12 +173,23 @@ class XCalibrationComponent(CalibrationComponent):
             return new_spe
 
     def _plot(self, ax, **kwargs):
-        # Normalize x-positions to [0, 1] for comparison
         ref_keys = np.array(list(self.ref.keys()))
         spe_keys = np.array(list(self.spe_pos_dict.keys()))
 
-        ref_norm_x = (ref_keys - ref_keys.min()) / (ref_keys.max() - ref_keys.min())
-        spe_norm_x = (spe_keys - spe_keys.min()) / (spe_keys.max() - spe_keys.min())
+        # fit_peaks() converts the spectrum to ref_units before fitting, so
+        # spe_pos_dict is already in ref_units (nm) -- except when spe_units
+        # is "pixel", which has no physical conversion and is passed through
+        # unconverted (see CalibrationComponent.convert_units). Only in that
+        # case do the two series lack a shared physical scale, so only then
+        # do we fall back to normalized [0, 1] positions for the overlay.
+        pixel_case = self.spe_units == "pixel"
+
+        if pixel_case:
+            ref_plot_x = (ref_keys - ref_keys.min()) / (ref_keys.max() - ref_keys.min())
+            spe_plot_x = (spe_keys - spe_keys.min()) / (spe_keys.max() - spe_keys.min())
+        else:
+            ref_plot_x = ref_keys
+            spe_plot_x = spe_keys
 
         # Normalize y-values to [0, 1] for each dataset
         ref_vals = np.array(list(self.ref.values()))
@@ -191,7 +202,7 @@ class XCalibrationComponent(CalibrationComponent):
 
         # Plot spectrum peaks going UP
         ax.stem(
-            spe_norm_x,
+            spe_plot_x,
             spe_norm_y,
             linefmt="b-",
             basefmt="k-",
@@ -201,7 +212,7 @@ class XCalibrationComponent(CalibrationComponent):
 
         # Plot reference peaks going DOWN (negative)
         ax.stem(
-            ref_norm_x,
+            ref_plot_x,
             -ref_norm_y,  # Negative for mirror effect
             linefmt="r-",
             basefmt="k-",
@@ -210,14 +221,20 @@ class XCalibrationComponent(CalibrationComponent):
         )
 
         ax.axhline(y=0, color='k', linewidth=0.8)
-        ax.set_xlabel("Normalized position [0-1]")
+        if pixel_case:
+            ax.set_xlabel("Normalized position [0-1]")
+        elif self.ref_units == "cm-1":
+            ax.set_xlabel(r"Position [$\mathrm{cm^{-1}}$]")
+        else:
+            ax.set_xlabel(f"Position [{self.ref_units}]")
         ax.set_ylabel("Normalized intensity (measured ↑, reference ↓)")
         ax.legend(loc='upper right')
         ax.grid(True, alpha=0.3)
         ax.set_ylim(-1.1, 1.1)  # Give some padding
 
         # Add annotation showing original ranges
-        ax.text(0.02, 0.98, f"Spectrum: {spe_keys.min():.1f} - {spe_keys.max():.1f} [{self.spe_units}]",
+        spe_label = "pixel" if pixel_case else self.ref_units
+        ax.text(0.02, 0.98, f"Spectrum: {spe_keys.min():.1f} - {spe_keys.max():.1f} [{spe_label}]",
                 transform=ax.transAxes, va='top', fontsize=8, color='b',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
@@ -429,7 +446,17 @@ class LazerZeroingComponent(CalibrationComponent):
         return obj
 
 
-def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
+def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d",
+                auto_reduce_degree=False):
+    """
+    ``auto_reduce_degree`` is passed through to
+    ``qmatch.robust_poly_residual_filter`` (default ``False``: no behaviour
+    change for the neon calibration path, which has enough reference lines for
+    the degree-2 RANSAC filter to be reliable). Set ``True`` for sparse
+    reference sets (e.g. CAL/PST verification, a handful of points) where a
+    degree-2 fit is not statistically well-determined; see that function's
+    docstring.
+    """
     _match_method = match_method
     if spe_units == "pixel" and match_method != "qargmin2d":
         _match_method = "dynamicp"
@@ -440,7 +467,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
             # _filter_range = self.spe_units != "pixel"
         )
         x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
-            x_spe, x_reference, n_sigma=3
+            x_spe, x_reference, n_sigma=3, auto_reduce_degree=auto_reduce_degree
         )
         logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
         cost_matrix = None
@@ -458,7 +485,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
             spe_pos_dict, ref_dict,
         )
         x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
-            x_spe, x_reference, n_sigma=3
+            x_spe, x_reference, n_sigma=3, auto_reduce_degree=auto_reduce_degree
         )
         df["inlier_mask"] = inlier_mask
         logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
@@ -478,7 +505,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
         x_reference = x_reference[idx]
         # iterative_linear_filter
         x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
-            x_spe, x_reference, n_sigma=3
+            x_spe, x_reference, n_sigma=3, auto_reduce_degree=auto_reduce_degree
         )
         logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
         df = pd.DataFrame(
@@ -531,7 +558,7 @@ def match_peaks(spe_pos_dict, ref_dict, spe_units, match_method="qargmin2d"):
                 weight_intensity=.5
             )
             x_inliers, y_inliers, inlier_mask = qmatch.robust_poly_residual_filter(
-                x_spe, x_reference, n_sigma=3
+                x_spe, x_reference, n_sigma=3, auto_reduce_degree=auto_reduce_degree
             )
             df["inlier_mask"] = inlier_mask
             logger.debug(f"Outliers found {len(x_spe)-len(x_inliers)}")
@@ -576,7 +603,15 @@ def match_peaks4analysis(
         spectra, ref=None, spe_units="nm",
         find_kw=None, fit_peaks_kw=None, profile="Gaussian", should_fit=True,
         match_method="qargmin2d",
-        stages=["1.original"]):
+        stages=["1.original"], auto_reduce_degree=False):
+    """
+    ``auto_reduce_degree`` (default ``False``) is passed through to
+    ``match_peaks``: set ``True`` when ``ref`` is a sparse reference set (e.g.
+    CAL/PST verification with a handful of certified positions) so the
+    degree-2 RANSAC outlier filter automatically falls back to a lower degree
+    rather than running underdetermined; see
+    ``qmatch.robust_poly_residual_filter``.
+    """
     if spectra is None or ref is None:
         return None
     matched_peaks = None
@@ -584,7 +619,8 @@ def match_peaks4analysis(
         fit_res, spe_pos_dict = fit_peaks(
             spe, find_kw, fit_peaks_kw, profile=profile, should_fit=should_fit)
         _x, _ref, _, _, df_calib = match_peaks(
-            spe_pos_dict, ref, spe_units=spe_units, match_method=match_method)
+            spe_pos_dict, ref, spe_units=spe_units, match_method=match_method,
+            auto_reduce_degree=auto_reduce_degree)
         df_calib["match_mode"] = match_method
         df_calib["before_after"] = stage
         matched_peaks = df_calib if matched_peaks is None else pd.concat([matched_peaks, df_calib])

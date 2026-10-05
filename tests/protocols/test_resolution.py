@@ -34,8 +34,8 @@ _FWHM_TO_SIGMA = 1.0 / 2.354820045
 
 
 def test_e2529_formula():
-    # ASTM E2529 (VAMAS P6 / Erlon): SRes = (FWHM - 0.684) / 1.0209.
-    # Anchored to the expert's published value: calcite FWHM 8.011 -> 7.177 cm-1.
+    # ASTM E2529 (VAMAS P6): SRes = (FWHM - 0.684) / 1.0209.
+    # Anchored to the published value: calcite FWHM 8.011 -> 7.177 cm-1.
     assert spectral_resolution_e2529(8.011) == pytest.approx(7.177, abs=1e-3)
     assert spectral_resolution_e2529(1.1) == pytest.approx((1.1 - 0.684) / 1.0209)
 

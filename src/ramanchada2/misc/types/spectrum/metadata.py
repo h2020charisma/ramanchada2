@@ -36,7 +36,19 @@ class SpeMetadataFieldModel(PydRootModel):
                 return model.model_validate(val[pos_hash+1:])
             if (val.startswith('[') and val.endswith(']') or
                val.startswith('{') and val.endswith('}')):
-                return json.loads(val.replace("'", '"').replace(r'b"', '"'))
+                # Not every "[...]"/"{...}"-bracketed string is JSON --
+                # e.g. RRUFF chemistry-formula metadata legitimately uses
+                # square brackets for coordination notation (confirmed:
+                # "[Ca_2_(H_2_O)_17_Mg(H_2_...)]"), which raises
+                # json.JSONDecodeError here instead of the "[1, 2, 3]"-style
+                # list/dict values this branch actually targets. Fall back
+                # to the plain string when it isn't real JSON, rather than
+                # letting the decode error propagate as a validation
+                # failure for every such value.
+                try:
+                    return json.loads(val.replace("'", '"').replace(r'b"', '"'))
+                except json.JSONDecodeError:
+                    return val
         return val
 
     def serialize(self):

@@ -7,6 +7,8 @@ from scipy import linalg
 
 
 def argmin2d(A, median_limit: Optional[float] = None):
+    if A.shape[0] == 0 or A.shape[1] == 0:
+        return np.empty((0, 2), dtype=int)
     if median_limit is None:
         median_limit = 10
     ymin_idx = np.argmin(A, axis=0)
