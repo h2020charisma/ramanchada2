@@ -18,7 +18,6 @@ calibration path (which has enough points for degree-2 RANSAC to be reliable)
 is unaffected.
 """
 import numpy as np
-import pytest
 
 from ramanchada2.protocols.calibration.qmatch import robust_poly_residual_filter
 
