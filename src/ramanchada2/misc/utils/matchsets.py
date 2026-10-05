@@ -232,7 +232,7 @@ def match_peaks_optimized(
     df = pd.DataFrame({
         "spe": matched_spe,
         "reference": matched_ref,
-        "distance": distances
+        "distances": distances
     })
 
     return matched_spe, matched_ref, distances, cost_matrix, df
@@ -324,7 +324,7 @@ def match_peaks_monotonic_simple(
     df = pd.DataFrame({
         "spe": matched_spe,
         "reference": matched_ref_array,
-        "distance": distances_array,
+        "distances": distances_array,
         "intensity_diff": inten_diff
     })
 
@@ -375,7 +375,7 @@ def match_peaks_monotonic(
     df = pd.DataFrame({
         "spe": matched_spe,
         "reference": matched_ref,
-        "distance": distances,
+        "distances": distances,
         "intensity_diff": inten_diff,
         "inlier_mask": True
     })
