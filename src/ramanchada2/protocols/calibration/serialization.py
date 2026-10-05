@@ -10,9 +10,11 @@ the sampled curve — can be reconstructed by ramanchada2 or any JSON-capable re
 ``export_nexus_calibration`` writes the same content, plus the calibrant spectra it was
 derived from, as a self-describing NXraman HDF5 file (plain h5py or h5pyd).
 """
+import contextlib
 import datetime
 import json
 import logging
+import os
 
 import numpy as np
 import pandas as pd
@@ -335,6 +337,25 @@ def _certificate_curve(cert, grid):
     return np.asarray(cert.Y(grid), dtype=float)
 
 
+@contextlib.contextmanager
+def _create_h5_file(h5, filename, atomic):
+    """Open ``filename`` for writing; with ``atomic`` write ``<filename>.tmp`` and
+    ``os.replace`` it into place only if the body succeeded."""
+    if not atomic:
+        with h5.File(filename, "w") as f:
+            yield f
+        return
+    tmp = f"{filename}.tmp"
+    try:
+        with h5.File(tmp, "w") as f:
+            yield f
+        os.replace(tmp, filename)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.remove(tmp)
+        raise
+
+
 def _nx_group(parent, name, nx_class, **attrs):
     group = parent.require_group(name)
     group.attrs["NX_class"] = nx_class
@@ -492,6 +513,8 @@ def export_nexus_calibration(
     spe_silicon_units="cm-1",
     title=None,
     wavelength=None,
+    vendor=None,
+    model=None,
     h5module=None,
 ):
     """Write the calibration workflow as a self-describing NeXus (NXraman) HDF5 file.
@@ -551,11 +574,19 @@ def export_nexus_calibration(
             ("1/cm", "nm", "pixel").
         title: optional entry title.
         wavelength: incident laser wavelength in nm.
+        vendor, model: instrument vendor and model for ``NXinstrument/device_information``.
+            They take precedence over ``instrument["instrument_make"]`` /
+            ``instrument["instrument_model"]``; when neither is given the field is omitted
+            (nothing is invented).
         h5module: ``h5py`` (default) or ``h5pyd``.
 
     Returns:
         filename
     """
+    # a local file (default h5py) is written to a temp name and moved into place on success,
+    # so a failure never leaves a truncated file or destroys an existing one; an h5pyd
+    # domain is not a local path and is written directly
+    atomic = h5module is None
     if h5module is None:
         import h5py as h5module
     h5 = h5module
@@ -583,7 +614,7 @@ def export_nexus_calibration(
             y_error = f"{type(err).__name__}: {err}"
             logger.warning("NeXus export: y calibration curves not written (%s)", y_error)
 
-    with h5.File(filename, "w") as f:
+    with _create_h5_file(h5, filename, atomic) as f:
         f.attrs["NX_class"] = "NXroot"
         f.attrs["default"] = "entry"
         entry = _nx_group(f, "entry", "NXentry", default="calibration_curve")
@@ -592,9 +623,13 @@ def export_nexus_calibration(
         entry.create_dataset("experiment_type", data="Raman spectroscopy")
 
         inst = _nx_group(entry, "instrument", "NXinstrument")
-        device = _nx_group(inst, "device_information", "NXfabrication")
-        device.create_dataset("vendor", data=str(instrument.get("instrument_make") or "unknown"))
-        device.create_dataset("model", data=str(instrument.get("instrument_model") or "unknown"))
+        device_fields = {"vendor": vendor or instrument.get("instrument_make"),
+                         "model": model or instrument.get("instrument_model")}
+        device_fields = {k: str(v) for k, v in device_fields.items() if v}
+        if device_fields:
+            device = _nx_group(inst, "device_information", "NXfabrication")
+            for key, value in device_fields.items():
+                device.create_dataset(key, data=value)
         if wavelength is not None:
             beam = _nx_group(inst, "beam_incident", "NXbeam")
             wl = beam.create_dataset("wavelength", data=float(wavelength))

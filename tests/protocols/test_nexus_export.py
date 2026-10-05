@@ -469,3 +469,50 @@ def test_h5pyd_style_module_is_used(calmodel, ycal, tmp_path, monkeypatch):
     monkeypatch.undo()
     with h5py.File(path, "r") as f:
         assert f["entry/definition"][()].decode() == "NXraman"
+
+
+def test_failed_export_keeps_existing_file_and_leaves_no_temp(calmodel, tmp_path, monkeypatch):
+    """A failure while writing must neither truncate an existing file nor leave a .tmp."""
+    import ramanchada2.protocols.calibration.serialization as ser
+
+    path = tmp_path / "calibration.nxs"
+    path.write_bytes(b"previous content")
+
+    def _boom(_calmodel):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(ser, "_laser_zero_info", _boom)
+    with pytest.raises(RuntimeError, match="boom"):
+        export_nexus_calibration(calmodel, str(path), npoints=11)
+
+    assert path.read_bytes() == b"previous content"
+    assert not (tmp_path / "calibration.nxs.tmp").exists()
+
+
+def test_successful_export_leaves_no_temp(calmodel, tmp_path):
+    path = _write(calmodel, tmp_path)
+    assert h5py.is_hdf5(path)
+    assert not (tmp_path / "calibration.nxs.tmp").exists()
+
+
+def test_vendor_model_options_override_instrument_dict(calmodel, tmp_path):
+    path = _write(calmodel, tmp_path, vendor="OptCo", model="OptModel",
+                  instrument={"instrument_make": "DictCo", "instrument_model": "DictModel"})
+    with h5py.File(path, "r") as f:
+        device = f[f"{_entry_path(f)}/instrument/device_information"]
+        assert device["vendor"][()].decode() == "OptCo"
+        assert device["model"][()].decode() == "OptModel"
+
+
+def test_vendor_model_not_invented_when_unset(calmodel, tmp_path):
+    """No hard-coded "unknown": without vendor/model the device group is simply absent."""
+    path = _write(calmodel, tmp_path)
+    with h5py.File(path, "r") as f:
+        assert "device_information" not in f[f"{_entry_path(f)}/instrument"]
+
+
+def test_only_vendor_given_writes_only_vendor(calmodel, tmp_path):
+    path = _write(calmodel, tmp_path, vendor="OnlyCo")
+    with h5py.File(path, "r") as f:
+        device = f[f"{_entry_path(f)}/instrument/device_information"]
+        assert set(device.keys()) == {"vendor"}
